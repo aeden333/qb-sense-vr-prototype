@@ -190,7 +190,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 </optgroup>
 </select><br><br>
 <label>Blitz side</label><br>
-<select id="blitzSide"><option>Left</option><option>Right</option><option>Middle</option><option>None</option></select><br><br>
+<select id="blitzSide"><option>Left</option><option>Right</option><option>Middle</option><option>Random</option><option>None</option></select><br><br>
 <label>Haptic intensity</label><br>
 <input type="range" min="1" max="10" value="4" oninput="document.getElementById('intensityVal').textContent=this.value"><br>
 <b>Intensity: <span id="intensityVal">4</span>/10</b><br><br>
@@ -239,7 +239,24 @@ document.querySelectorAll('[data-goto]').forEach(button=>{
   button.addEventListener('click',()=>go(button.dataset.goto));
 });
 function startRep(){document.getElementById('vestStatus').textContent='Connected';document.getElementById('vestText').textContent='Rep active. Reading defense…';}
-function triggerPressure(){const side=document.getElementById('blitzSide').value;const card=document.getElementById('vestCard');card.classList.remove('pulse');void card.offsetWidth;card.classList.add('pulse');document.getElementById('vestText').textContent='Pressure detected from the '+side.toLowerCase()+' side. Haptic pulse sent.';document.getElementById('pressureBar').style.width='92%';}
+function triggerPressure(){
+  let side=document.getElementById('blitzSide').value;
+  if(side==='Random'){
+    const sides=['Left','Right','Middle','None'];
+    side=sides[Math.floor(Math.random()*sides.length)];
+  }
+  const card=document.getElementById('vestCard');
+  card.classList.remove('pulse');
+  void card.offsetWidth;
+  if(side==='None'){
+    document.getElementById('vestText').textContent='No blitz pressure. Read the coverage and make your throw.';
+    document.getElementById('pressureBar').style.width='20%';
+  }else{
+    card.classList.add('pulse');
+    document.getElementById('vestText').textContent='Pressure detected from the '+side.toLowerCase()+' side. Haptic pulse sent.';
+    document.getElementById('pressureBar').style.width='92%';
+  }
+}
 function endRep(){go('results');}
 </script>
 </body>
