@@ -271,6 +271,36 @@ const scenarioDescriptions={
 };
 const timeScenarios=['twoMinute','endHalf','gameWinner','comeback','overtime'];
 let timeoutsRemaining=0;
+function assignTimeouts(){
+ const value=document.getElementById('gameSituation').value;
+ if(timeScenarios.includes(value)){
+   timeoutsRemaining=Math.floor(Math.random()*4);
+   document.getElementById('timeoutInfo').innerHTML='<b>Timeouts remaining:</b> '+timeoutsRemaining;
+   document.getElementById('liveTimeoutInfo').innerHTML='<b>Timeouts remaining:</b> '+timeoutsRemaining;
+   document.getElementById('useTimeoutBtn').disabled=timeoutsRemaining===0;
+   document.getElementById('liveUseTimeout').disabled=timeoutsRemaining===0;
+ }else{
+   timeoutsRemaining=0;
+   document.getElementById('timeoutInfo').innerHTML='<b>No timeouts needed for this scenario.</b>';
+   document.getElementById('liveTimeoutInfo').innerHTML='<b>No timeouts needed for this scenario.</b>';
+   document.getElementById('useTimeoutBtn').disabled=true;
+   document.getElementById('liveUseTimeout').disabled=true;
+ }
+}
+function updateScenario(){
+ const value=document.getElementById('gameSituation').value;
+ document.getElementById('scenarioText').innerHTML=scenarioDescriptions[value];
+ document.getElementById('liveScenario').innerHTML=scenarioDescriptions[value];
+ assignTimeouts();
+}
+function useTimeout(){
+ if(timeoutsRemaining<=0)return;
+ timeoutsRemaining--;
+ document.getElementById('timeoutInfo').innerHTML='<b>Timeout called. Clock stopped.</b> Timeouts remaining: '+timeoutsRemaining;
+ document.getElementById('liveTimeoutInfo').innerHTML='<b>Timeout called. Clock stopped.</b> Timeouts remaining: '+timeoutsRemaining;
+ document.getElementById('useTimeoutBtn').disabled=timeoutsRemaining===0;
+ document.getElementById('liveUseTimeout').disabled=timeoutsRemaining===0;
+}
 function randomChoice(select){
  const options=Array.from(select.options).filter(option=>option.value!=='random');
  return options[Math.floor(Math.random()*options.length)].value;
@@ -294,32 +324,6 @@ function randomizeDrill(){
  document.getElementById('blitzSide').value=blitzSides[Math.floor(Math.random()*blitzSides.length)];
  updateScenario();
 }
-function updateScenario(){
- const value=document.getElementById('gameSituation').value;
- document.getElementById('scenarioText').innerHTML=scenarioDescriptions[value];
- document.getElementById('liveScenario').innerHTML=scenarioDescriptions[value];
- if(timeScenarios.includes(value)){
-   timeoutsRemaining=Math.floor(Math.random()*4);
-   document.getElementById('timeoutInfo').innerHTML='<b>Timeouts remaining:</b> '+timeoutsRemaining;
-   document.getElementById('liveTimeoutInfo').innerHTML='<b>Timeouts remaining:</b> '+timeoutsRemaining;
-   document.getElementById('useTimeoutBtn').disabled=timeoutsRemaining===0;
-   document.getElementById('liveUseTimeout').disabled=timeoutsRemaining===0;
- }else{
-   timeoutsRemaining=0;
-   document.getElementById('timeoutInfo').innerHTML='<b>No timeouts needed for this scenario.</b>';
-   document.getElementById('liveTimeoutInfo').innerHTML='<b>No timeouts needed for this scenario.</b>';
-   document.getElementById('useTimeoutBtn').disabled=true;
-   document.getElementById('liveUseTimeout').disabled=true;
- }
-}
-function useTimeout(){
- if(timeoutsRemaining<=0)return;
- timeoutsRemaining--;
- document.getElementById('timeoutInfo').innerHTML='<b>Timeout called. Clock stopped.</b> Timeouts remaining: '+timeoutsRemaining;
- document.getElementById('liveTimeoutInfo').innerHTML='<b>Timeout called. Clock stopped.</b> Timeouts remaining: '+timeoutsRemaining;
- document.getElementById('useTimeoutBtn').disabled=timeoutsRemaining===0;
- document.getElementById('liveUseTimeout').disabled=timeoutsRemaining===0;
-}
 function go(page){
   const target=document.getElementById(page);
   if(!target)return;
@@ -336,7 +340,11 @@ document.querySelectorAll('#mainNav button').forEach(button=>{
 document.querySelectorAll('[data-goto]').forEach(button=>{
   button.addEventListener('click',()=>go(button.dataset.goto));
 });
-function startRep(){document.getElementById('vestStatus').textContent='Connected';document.getElementById('vestText').textContent='Rep active. Reading defense…';}
+function startRep(){
+ document.getElementById('vestStatus').textContent='Connected';
+ document.getElementById('vestText').textContent='Rep active. Reading defense…';
+ assignTimeouts();
+}
 function speak(text){
   if(!('speechSynthesis' in window))return;
   const message=new SpeechSynthesisUtterance(text);
