@@ -116,7 +116,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 </section>
 
 <section id="coach" class="page">
-<div class="card"><h2>Coach Mode</h2><p>Create a custom defensive look and control the intensity of haptic feedback. Pressure cues are shown only at intensity 4 or lower.</p></div>
+<div class="card"><h2>Coach Mode</h2><p>Create a custom defensive look and choose the training difficulty. Level 1 gives the most help; Level 10 gives the least help.</p></div>
 <div class="card">
 <label>Defensive front</label><br>
 <select id="front">
@@ -191,9 +191,10 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 </select><br><br>
 <label>Blitz side</label><br>
 <select id="blitzSide"><option>Left</option><option>Right</option><option>Middle</option><option>Random</option><option>None</option></select><br><br>
-<label>Haptic intensity</label><br>
-<input type="range" min="1" max="10" value="4" oninput="document.getElementById('intensityVal').textContent=this.value"><br>
-<b>Intensity: <span id="intensityVal">4</span>/10</b><br><br>
+<label>Training difficulty</label><br>
+<input type="range" min="1" max="10" value="1" oninput="document.getElementById('intensityVal').textContent=this.value"><br>
+<b>Level: <span id="intensityVal">1</span>/10</b><br>
+<small>Level 1 = easiest, most help. Level 10 = hardest, least help.</small><br><br>
 <button class="btn primary" data-goto="live">Send drill to headset</button>
 </div>
 </section>
@@ -247,10 +248,13 @@ function speak(text){
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(message);
 }
+function hapticPulse(){
+  if('vibrate' in navigator){navigator.vibrate(180);}
+}
 function triggerPressure(){
   let side=document.getElementById('blitzSide').value;
-  const intensity=Number(document.getElementById('intensityVal').textContent);
-  if(side==='Random'){
+  const level=Number(document.getElementById('intensityVal').textContent);
+  if(side==='Random' || level>=7){
     const sides=['Left','Right','Middle','None'];
     side=sides[Math.floor(Math.random()*sides.length)];
   }
@@ -260,15 +264,23 @@ function triggerPressure(){
   if(side==='None'){
     return;
   }
-  if(intensity>4){
-    document.getElementById('vestText').textContent='No pressure cues available at this intensity.';
-    document.getElementById('pressureBar').style.width='20%';
-    return;
+  if(level<=3){
+    card.classList.add('pulse');
+    document.getElementById('vestText').textContent='Pressure detected from the '+side.toLowerCase()+' side. Haptic pulse sent.';
+    document.getElementById('pressureBar').style.width='92%';
+    hapticPulse();
+    speak('Pressure coming from the '+side.toLowerCase()+' side.');
+  }else if(level===4){
+    card.classList.add('pulse');
+    document.getElementById('vestText').textContent='Pressure detected from the '+side.toLowerCase()+' side.';
+    document.getElementById('pressureBar').style.width='92%';
+  }else if(level===5){
+    hapticPulse();
+  }else if(level===6){
+    setTimeout(hapticPulse,700);
+  }else if(level===8){
+    document.getElementById('pressureBar').style.width='92%';
   }
-  card.classList.add('pulse');
-  document.getElementById('vestText').textContent='Pressure detected from the '+side.toLowerCase()+' side. Haptic pulse sent.';
-  document.getElementById('pressureBar').style.width='92%';
-  speak('Pressure coming from the '+side.toLowerCase()+' side.');
 }
 function endRep(){go('results');}
 </script>
