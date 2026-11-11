@@ -66,6 +66,7 @@ nav button.active{background:linear-gradient(135deg,var(--blue),#6d8dff);color:#
 .pdf-frame{width:100%;height:70vh;border:1px solid #e4ebf5;border-radius:14px;background:#fff}
 .private-note{font-size:12px;color:var(--muted);margin-top:10px}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
+input,select{width:100%;max-width:520px;padding:12px;border:1px solid #d7e1ef;border-radius:12px;font-size:15px;background:#fff;color:#0f172a}
 @media(max-width:640px){header{flex-direction:column;align-items:flex-start;gap:8px}.vest{text-align:left}.hero{padding:30px 22px}.hero-actions .btn{width:100%}}
 </style>
 </head>
@@ -121,6 +122,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 <div class="card">
 <h2>Live Training: Nickel Blitz</h2>
 <p id="liveScenario">Pressure incoming from the left A-gap. Step up, reset, and throw to the open receiver.</p>
+<div id="livePlayInfo" class="card" style="box-shadow:none"><b>Coach playbook:</b> <span id="livePlayText">No play selected</span></div>
 <div class="label">Pocket pressure</div>
 <div class="bar"><span id="pressureBar" style="width:20%"></span></div>
 <div id="vestCard" class="card" style="box-shadow:none"><b>Haptic vest:</b> <span id="vestText">Waiting for pressure…</span></div>
@@ -128,6 +130,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 <button class="btn primary" onclick="startRep()">Start rep</button>
 <button class="btn ghost" onclick="triggerPressure()">Simulate blitz pressure</button>
 <button class="btn ghost" id="liveUseTimeout" onclick="useTimeout()">Use timeout</button>
+<button class="btn ghost" id="openSelectedPlaybookBtn" onclick="openSelectedPlaybook()" disabled>Open selected playbook</button>
 <button class="btn ghost" onclick="endRep()">End rep</button>
 </div>
 <div class="card">
@@ -146,12 +149,13 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 <div class="coach-item"><b>Pressure</b><span id="coachPressureSide">None</span></div>
 <div class="coach-item"><b>Haptic vest</b><span id="coachVest">Waiting</span></div>
 <div class="coach-item"><b>Timeouts</b><span id="coachTimeouts">—</span></div>
+<div class="coach-item"><b>Selected play</b><span id="coachSelectedPlay">None</span></div>
 </div>
 </div>
 </section>
 
 <section id="coach" class="page">
-<div class="card"><h2>Coach Mode</h2><p>Create a custom defensive look, choose a game situation, and choose the training difficulty. Level 1 gives the most help; Level 10 gives the least help.</p></div>
+<div class="card"><h2>Coach Mode</h2><p>Create a custom defensive look, choose a game situation, choose a play from your uploaded playbook, and set the training difficulty. Level 1 gives the most help; Level 10 gives the least help.</p></div>
 <div class="card">
 <label>Game situation</label><br>
 <select id="gameSituation" onchange="updateScenario()">
@@ -174,6 +178,15 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 <div id="scenarioText" class="card" style="box-shadow:none;margin-bottom:14px"><b>Normal Down and Distance:</b> Read the defense, take what the coverage gives you, and move the chains.</div>
 <div id="timeoutInfo" class="card" style="box-shadow:none;margin-bottom:14px"><b>Timeouts remaining:</b> <span id="timeoutCount">—</span></div>
 <button class="btn ghost" id="useTimeoutBtn" onclick="useTimeout()" disabled>Use timeout</button><br><br>
+
+<label>Choose playbook</label><br>
+<select id="coachPlaybook" onchange="updateSelectedPlay()">
+<option value="">No playbook selected</option>
+</select><br><br>
+<label>Play name or page</label><br>
+<input id="coachPlaySelection" placeholder="Example: Trips Right — Flood, or page 12" oninput="updateSelectedPlay()">
+<div id="selectedPlayInfo" class="card" style="box-shadow:none;margin:14px 0"><b>Selected play:</b> <span id="selectedPlayText">None</span></div>
+<button class="btn ghost" onclick="useSelectedPlay()">Use selected play</button><br><br>
 
 <label>Defensive front</label><br>
 <select id="front" onchange="handleFrontChange()">
@@ -321,6 +334,8 @@ const scenarioDescriptions={
 };
 const timeScenarios=['twoMinute','endHalf','gameWinner','comeback','overtime'];
 let timeoutsRemaining=0;
+let selectedPlaybook=null;
+let selectedPlayText='None';
 function assignTimeouts(){
  const value=document.getElementById('gameSituation').value;
  if(timeScenarios.includes(value)){
@@ -386,6 +401,7 @@ function go(page){
   });
   window.scrollTo({top:0,behavior:'smooth'});
   if(page==='playbook'){renderPlaybooks();}
+  if(page==='coach'){populateCoachPlaybooks();}
 }
 document.querySelectorAll('#mainNav button').forEach(button=>{
   button.addEventListener('click',()=>go(button.dataset.page));
@@ -398,6 +414,7 @@ function updateCoachView(){
  const selectedText=situation.options[situation.selectedIndex].text;
  document.getElementById('coachScenario').textContent=selectedText;
  document.getElementById('coachTimeouts').textContent=timeoutsRemaining;
+ document.getElementById('coachSelectedPlay').textContent=selectedPlayText;
 }
 function startRep(){
  document.getElementById('vestStatus').textContent='Connected';
@@ -499,33 +516,85 @@ async function uploadPlaybook(input){
    });
    input.value='';
    message.textContent='Playbook saved privately to your account.';
-   renderPlaybooks();
+   await renderPlaybooks();
+   await populateCoachPlaybooks();
  }catch(error){
    message.textContent='Could not save the playbook. Please try again.';
  }
+}
+async function getMyPlaybooks(){
+ const database=await openPlaybookDatabase();
+ return new Promise((resolve,reject)=>{
+   const transaction=database.transaction('playbooks','readonly');
+   const index=transaction.objectStore('playbooks').index('coachEmail');
+   const request=index.getAll(getCoachEmail());
+   request.onsuccess=()=>resolve(request.result||[]);
+   request.onerror=()=>reject(request.error);
+ });
+}
+async function populateCoachPlaybooks(){
+ const select=document.getElementById('coachPlaybook');
+ const previous=select.value;
+ select.innerHTML='<option value="">No playbook selected</option>';
+ try{
+   const records=await getMyPlaybooks();
+   records.sort((a,b)=>new Date(b.addedAt)-new Date(a.addedAt));
+   records.forEach(record=>{
+     const option=document.createElement('option');
+     option.value=record.id;
+     option.textContent=record.name;
+     select.appendChild(option);
+   });
+   if(previous && records.some(record=>record.id===previous)){
+     select.value=previous;
+   }
+   updateSelectedPlay();
+ }catch(error){}
+}
+function updateSelectedPlay(){
+ const select=document.getElementById('coachPlaybook');
+ const selection=document.getElementById('coachPlaySelection').value.trim();
+ const id=select.value;
+ selectedPlaybook=recordsCache.find(record=>record.id===id)||null;
+ if(!selectedPlaybook){
+   selectedPlayText='None';
+ }else{
+   selectedPlayText=selectedPlaybook.name+(selection?' — '+selection:'');
+ }
+ document.getElementById('selectedPlayText').textContent=selectedPlayText;
+ document.getElementById('livePlayText').textContent=selectedPlayText;
+ document.getElementById('coachSelectedPlay').textContent=selectedPlayText;
+ document.getElementById('openSelectedPlaybookBtn').disabled=!selectedPlaybook;
+}
+function useSelectedPlay(){
+ const select=document.getElementById('coachPlaybook');
+ if(!select.value){
+   document.getElementById('selectedPlayText').textContent='Choose a playbook first.';
+   return;
+ }
+ updateSelectedPlay();
+ go('live');
+}
+function openSelectedPlaybook(){
+ if(selectedPlaybook){viewPlaybook(selectedPlaybook.id);}
 }
 async function renderPlaybooks(){
  const list=document.getElementById('playbookList');
  list.innerHTML='<div class="playbook-item"><span>Loading your playbooks…</span></div>';
  try{
-   const database=await openPlaybookDatabase();
-   const records=await new Promise((resolve,reject)=>{
-     const transaction=database.transaction('playbooks','readonly');
-     const index=transaction.objectStore('playbooks').index('coachEmail');
-     const request=index.getAll(getCoachEmail());
-     request.onsuccess=()=>resolve(request.result||[]);
-     request.onerror=()=>reject(request.error);
-   });
+   const records=await getMyPlaybooks();
+   recordsCache=records;
    records.sort((a,b)=>new Date(b.addedAt)-new Date(a.addedAt));
    if(!records.length){
      list.innerHTML='<div class="playbook-item"><span>No playbooks uploaded yet.</span></div>';
-     return;
+   }else{
+     list.innerHTML=records.map(record=>{
+       const date=new Date(record.addedAt).toLocaleString();
+       const size=(record.size/1024/1024).toFixed(2)+' MB';
+       return '<div class="playbook-item"><div><b>'+record.name+'</b><br><small>'+date+' • '+size+'</small></div><div class="playbook-actions"><button class="btn ghost" onclick=\'viewPlaybook("'+record.id+'")\'>View</button><button class="btn ghost" onclick=\'deletePlaybook("'+record.id+'")\'>Delete</button></div></div>';
+     }).join('');
    }
-   list.innerHTML=records.map(record=>{
-     const date=new Date(record.addedAt).toLocaleString();
-     const size=(record.size/1024/1024).toFixed(2)+' MB';
-     return '<div class="playbook-item"><div><b>'+record.name+'</b><br><small>'+date+' • '+size+'</small></div><div class="playbook-actions"><button class="btn ghost" onclick=\'viewPlaybook("'+record.id+'")\'>View</button><button class="btn ghost" onclick=\'deletePlaybook("'+record.id+'")\'>Delete</button></div></div>';
-   }).join('');
+   await populateCoachPlaybooks();
  }catch(error){
    list.innerHTML='<div class="playbook-item"><span>Could not load your playbooks.</span></div>';
  }
@@ -567,9 +636,10 @@ async function deletePlaybook(id){
      transaction.oncomplete=resolve;
      transaction.onerror=()=>reject(transaction.error);
    });
-   renderPlaybooks();
+   await renderPlaybooks();
  }catch(error){}
 }
+let recordsCache=[];
 updateScenario();
 renderPlaybooks();
 </script>
