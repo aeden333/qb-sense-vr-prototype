@@ -61,6 +61,10 @@ nav button.active{background:linear-gradient(135deg,var(--blue),#6d8dff);color:#
 .coach-item{background:#f7fafc;border:1px solid #e4ebf5;border-radius:14px;padding:12px}
 .coach-item b{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
 .coach-item span{font-weight:800;color:var(--navy)}
+.playbook-item{display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid #e4ebf5;border-radius:14px;padding:14px;margin-bottom:10px;background:#fbfdff;flex-wrap:wrap}
+.playbook-actions{display:flex;gap:8px;flex-wrap:wrap}
+.pdf-frame{width:100%;height:70vh;border:1px solid #e4ebf5;border-radius:14px;background:#fff}
+.private-note{font-size:12px;color:var(--muted);margin-top:10px}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 @media(max-width:640px){header{flex-direction:column;align-items:flex-start;gap:8px}.vest{text-align:left}.hero{padding:30px 22px}.hero-actions .btn{width:100%}}
 </style>
@@ -77,6 +81,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 <button data-page="drills">Drills</button>
 <button data-page="live">Live Training</button>
 <button data-page="coach">Coach Mode</button>
+<button data-page="playbook">Playbook</button>
 <button data-page="results">Results</button>
 <button data-page="progress">Progress</button>
 </nav>
@@ -254,6 +259,25 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 </div>
 </section>
 
+<section id="playbook" class="page">
+<div class="card">
+<h2>Coach Playbook</h2>
+<p>Upload PDF playbooks for your own private use. Each coach can only see, open, and delete the playbooks they upload.</p>
+<label for="playbookFile">Upload PDF playbook</label><br>
+<input type="file" id="playbookFile" accept="application/pdf,.pdf" onchange="uploadPlaybook(this)">
+<div id="playbookMessage" class="private-note"></div>
+</div>
+<div class="card">
+<h2>Your playbooks</h2>
+<div id="playbookList"></div>
+</div>
+<div class="card" id="playbookViewerCard" style="display:none">
+<h2 id="playbookViewerTitle">Playbook</h2>
+<iframe id="playbookViewer" class="pdf-frame" title="PDF playbook viewer"></iframe>
+<button class="btn ghost" onclick="closePlaybookViewer()">Close playbook</button>
+</div>
+</section>
+
 <section id="results" class="page">
 <div class="card"><h2>Latest Rep</h2><p>AI feedback: You identified the blitz late and held the ball 0.4 seconds too long. Step toward the pressure and reset your feet before throwing.</p></div>
 <div class="stats">
@@ -361,6 +385,7 @@ function go(page){
     button.classList.toggle('active',button.dataset.page===page);
   });
   window.scrollTo({top:0,behavior:'smooth'});
+  if(page==='playbook'){renderPlaybooks();}
 }
 document.querySelectorAll('#mainNav button').forEach(button=>{
   button.addEventListener('click',()=>go(button.dataset.page));
@@ -430,7 +455,123 @@ function triggerPressure(){
   document.getElementById('coachPressure').textContent='Pressure incoming from the '+side.toLowerCase()+' side.';
 }
 function endRep(){go('results');}
+function getCoachEmail(){
+ return localStorage.getItem('qbsense_user') || 'guest';
+}
+function openPlaybookDatabase(){
+ return new Promise((resolve,reject)=>{
+   const request=indexedDB.open('qbsense_playbooks',1);
+   request.onupgradeneeded=()=>{
+     const database=request.result;
+     if(!database.objectStoreNames.contains('playbooks')){
+       const store=database.createObjectStore('playbooks',{keyPath:'id'});
+       store.createIndex('coachEmail','coachEmail',{unique:false});
+     }
+   };
+   request.onsuccess=()=>resolve(request.result);
+   request.onerror=()=>reject(request.error);
+ });
+}
+async function uploadPlaybook(input){
+ const file=input.files[0];
+ const message=document.getElementById('playbookMessage');
+ if(!file){return;}
+ if(file.type!=='application/pdf' && !file.name.toLowerCase().endsWith('.pdf')){
+   message.textContent='Please choose a PDF file.';
+   return;
+ }
+ message.textContent='Saving playbook…';
+ try{
+   const database=await openPlaybookDatabase();
+   const record={
+     id:Date.now()+'-'+Math.random().toString(36).slice(2),
+     coachEmail:getCoachEmail(),
+     name:file.name,
+     size:file.size,
+     addedAt:new Date().toISOString(),
+     file:file
+   };
+   await new Promise((resolve,reject)=>{
+     const transaction=database.transaction('playbooks','readwrite');
+     transaction.objectStore('playbooks').put(record);
+     transaction.oncomplete=resolve;
+     transaction.onerror=()=>reject(transaction.error);
+   });
+   input.value='';
+   message.textContent='Playbook saved privately to your account.';
+   renderPlaybooks();
+ }catch(error){
+   message.textContent='Could not save the playbook. Please try again.';
+ }
+}
+async function renderPlaybooks(){
+ const list=document.getElementById('playbookList');
+ list.innerHTML='<div class="playbook-item"><span>Loading your playbooks…</span></div>';
+ try{
+   const database=await openPlaybookDatabase();
+   const records=await new Promise((resolve,reject)=>{
+     const transaction=database.transaction('playbooks','readonly');
+     const index=transaction.objectStore('playbooks').index('coachEmail');
+     const request=index.getAll(getCoachEmail());
+     request.onsuccess=()=>resolve(request.result||[]);
+     request.onerror=()=>reject(request.error);
+   });
+   records.sort((a,b)=>new Date(b.addedAt)-new Date(a.addedAt));
+   if(!records.length){
+     list.innerHTML='<div class="playbook-item"><span>No playbooks uploaded yet.</span></div>';
+     return;
+   }
+   list.innerHTML=records.map(record=>{
+     const date=new Date(record.addedAt).toLocaleString();
+     const size=(record.size/1024/1024).toFixed(2)+' MB';
+     return '<div class="playbook-item"><div><b>'+record.name+'</b><br><small>'+date+' • '+size+'</small></div><div class="playbook-actions"><button class="btn ghost" onclick=\'viewPlaybook("'+record.id+'")\'>View</button><button class="btn ghost" onclick=\'deletePlaybook("'+record.id+'")\'>Delete</button></div></div>';
+   }).join('');
+ }catch(error){
+   list.innerHTML='<div class="playbook-item"><span>Could not load your playbooks.</span></div>';
+ }
+}
+async function viewPlaybook(id){
+ try{
+   const database=await openPlaybookDatabase();
+   const record=await new Promise((resolve,reject)=>{
+     const transaction=database.transaction('playbooks','readonly');
+     const request=transaction.objectStore('playbooks').get(id);
+     request.onsuccess=()=>resolve(request.result);
+     request.onerror=()=>reject(request.error);
+   });
+   if(!record || record.coachEmail!==getCoachEmail()){return;}
+   const url=URL.createObjectURL(record.file);
+   document.getElementById('playbookViewer').src=url;
+   document.getElementById('playbookViewerTitle').textContent=record.name;
+   document.getElementById('playbookViewerCard').style.display='block';
+   document.getElementById('playbookViewerCard').scrollIntoView({behavior:'smooth'});
+ }catch(error){}
+}
+function closePlaybookViewer(){
+ document.getElementById('playbookViewer').src='';
+ document.getElementById('playbookViewerCard').style.display='none';
+}
+async function deletePlaybook(id){
+ try{
+   const database=await openPlaybookDatabase();
+   const record=await new Promise((resolve,reject)=>{
+     const transaction=database.transaction('playbooks','readonly');
+     const request=transaction.objectStore('playbooks').get(id);
+     request.onsuccess=()=>resolve(request.result);
+     request.onerror=()=>reject(request.error);
+   });
+   if(!record || record.coachEmail!==getCoachEmail()){return;}
+   await new Promise((resolve,reject)=>{
+     const transaction=database.transaction('playbooks','readwrite');
+     transaction.objectStore('playbooks').delete(id);
+     transaction.oncomplete=resolve;
+     transaction.onerror=()=>reject(transaction.error);
+   });
+   renderPlaybooks();
+ }catch(error){}
+}
 updateScenario();
+renderPlaybooks();
 </script>
 </body>
 </html>
