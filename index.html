@@ -116,7 +116,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 </section>
 
 <section id="coach" class="page">
-<div class="card"><h2>Coach Mode</h2><p>Create a custom defensive look and control the intensity of haptic feedback.</p></div>
+<div class="card"><h2>Coach Mode</h2><p>Create a custom defensive look and control the intensity of haptic feedback. Pressure cues are shown only at intensity 4 or lower.</p></div>
 <div class="card">
 <label>Defensive front</label><br>
 <select id="front">
@@ -239,8 +239,17 @@ document.querySelectorAll('[data-goto]').forEach(button=>{
   button.addEventListener('click',()=>go(button.dataset.goto));
 });
 function startRep(){document.getElementById('vestStatus').textContent='Connected';document.getElementById('vestText').textContent='Rep active. Reading defense…';}
+function speak(text){
+  if(!('speechSynthesis' in window))return;
+  const message=new SpeechSynthesisUtterance(text);
+  message.rate=1;
+  message.pitch=1;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(message);
+}
 function triggerPressure(){
   let side=document.getElementById('blitzSide').value;
+  const intensity=Number(document.getElementById('intensityVal').textContent);
   if(side==='Random'){
     const sides=['Left','Right','Middle','None'];
     side=sides[Math.floor(Math.random()*sides.length)];
@@ -248,13 +257,20 @@ function triggerPressure(){
   const card=document.getElementById('vestCard');
   card.classList.remove('pulse');
   void card.offsetWidth;
+  if(intensity>4){
+    document.getElementById('vestText').textContent='No pressure cues available at this intensity.';
+    document.getElementById('pressureBar').style.width='20%';
+    return;
+  }
   if(side==='None'){
     document.getElementById('vestText').textContent='No blitz pressure. Read the coverage and make your throw.';
     document.getElementById('pressureBar').style.width='20%';
+    speak('No pressure. Read the coverage and make your throw.');
   }else{
     card.classList.add('pulse');
     document.getElementById('vestText').textContent='Pressure detected from the '+side.toLowerCase()+' side. Haptic pulse sent.';
     document.getElementById('pressureBar').style.width='92%';
+    speak('Pressure coming from the '+side.toLowerCase()+' side.');
   }
 }
 function endRep(){go('results');}
