@@ -61,12 +61,12 @@ nav button.active{background:linear-gradient(135deg,var(--blue),#6d8dff);color:#
 .coach-item{background:#f7fafc;border:1px solid #e4ebf5;border-radius:14px;padding:12px}
 .coach-item b{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
 .coach-item span{font-weight:800;color:var(--navy)}
-.playbook-item{display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid #e4ebf5;border-radius:14px;padding:14px;margin-bottom:10px;background:#fbfdff;flex-wrap:wrap}
-.playbook-actions{display:flex;gap:8px;flex-wrap:wrap}
+.playbook-item,.player-item{display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid #e4ebf5;border-radius:14px;padding:14px;margin-bottom:10px;background:#fbfdff;flex-wrap:wrap}
+.playbook-actions,.player-actions{display:flex;gap:8px;flex-wrap:wrap}
 .pdf-frame{width:100%;height:70vh;border:1px solid #e4ebf5;border-radius:14px;background:#fff}
 .private-note{font-size:12px;color:var(--muted);margin-top:10px}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
-input,select{width:100%;max-width:520px;padding:12px;border:1px solid #d7e1ef;border-radius:12px;font-size:15px;background:#fff;color:#0f172a}
+input,select,textarea{width:100%;max-width:520px;padding:12px;border:1px solid #d7e1ef;border-radius:12px;font-size:15px;background:#fff;color:#0f172a}
 @media(max-width:640px){header{flex-direction:column;align-items:flex-start;gap:8px}.vest{text-align:left}.hero{padding:30px 22px}.hero-actions .btn{width:100%}}
 </style>
 </head>
@@ -82,6 +82,7 @@ input,select{width:100%;max-width:520px;padding:12px;border:1px solid #d7e1ef;bo
 <button data-page="drills">Drills</button>
 <button data-page="live">Live Training</button>
 <button data-page="coach">Coach Mode</button>
+<button data-page="players">Players</button>
 <button data-page="playbook">Playbook</button>
 <button data-page="results">Results</button>
 <button data-page="progress">Progress</button>
@@ -272,6 +273,56 @@ input,select{width:100%;max-width:520px;padding:12px;border:1px solid #d7e1ef;bo
 </div>
 </section>
 
+<section id="players" class="page">
+<div class="card"><h2>Player Overview</h2><p>Add players, track how often they train, review their scores and performance trends, and keep coach notes for each athlete.</p></div>
+<div class="stats" id="playerStats"></div>
+<div class="card">
+<h2>Add player</h2>
+<label>Player name</label><br>
+<input id="playerName" placeholder="Example: Jordan Smith">
+<label>Player email</label><br>
+<input id="playerEmail" placeholder="Example: jordan@example.com">
+<label>Position</label><br>
+<select id="playerPosition">
+<option>Quarterback</option>
+<option>Running Back</option>
+<option>Wide Receiver</option>
+<option>Tight End</option>
+<option>Offensive Line</option>
+<option>Defensive Line</option>
+<option>Linebacker</option>
+<option>Defensive Back</option>
+<option>Kicker</option>
+<option>Punter</option>
+<option>Other</option>
+</select>
+<label>Coach notes</label><br>
+<input id="playerNotes" placeholder="Example: Working on pocket presence and blitz recognition">
+<button class="btn primary" onclick="addPlayer()">Add player</button>
+</div>
+<div class="card">
+<h2>Your players</h2>
+<div id="playerList"></div>
+</div>
+<div class="card" id="sessionCard" style="display:none">
+<h2 id="sessionPlayerName">Log training session</h2>
+<label>Drill</label><br>
+<input id="sessionDrill" placeholder="Example: Blitz Recognition">
+<label>Overall score (0-100)</label><br>
+<input type="number" id="sessionScore" min="0" max="100" placeholder="Example: 85">
+<label>Decision time (seconds)</label><br>
+<input type="number" id="sessionDecisionTime" step="0.1" min="0" placeholder="Example: 1.8">
+<label>Throw accuracy (%)</label><br>
+<input type="number" id="sessionAccuracy" min="0" max="100" placeholder="Example: 82">
+<label>Pressure response (%)</label><br>
+<input type="number" id="sessionPressure" min="0" max="100" placeholder="Example: 78">
+<label>Coach notes</label><br>
+<input id="sessionNotes" placeholder="Example: Great pocket movement; needs faster second read">
+<button class="btn primary" onclick="logSession()">Save session</button>
+<button class="btn ghost" onclick="closeSessionForm()">Close</button>
+</div>
+</section>
+
 <section id="playbook" class="page">
 <div class="card">
 <h2>Coach Playbook</h2>
@@ -336,6 +387,9 @@ const timeScenarios=['twoMinute','endHalf','gameWinner','comeback','overtime'];
 let timeoutsRemaining=0;
 let selectedPlaybook=null;
 let selectedPlayText='None';
+let playersCache=[];
+let sessionsCache=[];
+let activePlayerId=null;
 function assignTimeouts(){
  const value=document.getElementById('gameSituation').value;
  if(timeScenarios.includes(value)){
@@ -402,6 +456,7 @@ function go(page){
   window.scrollTo({top:0,behavior:'smooth'});
   if(page==='playbook'){renderPlaybooks();}
   if(page==='coach'){populateCoachPlaybooks();}
+  if(page==='players'){renderPlayers();}
 }
 document.querySelectorAll('#mainNav button').forEach(button=>{
   button.addEventListener('click',()=>go(button.dataset.page));
@@ -640,8 +695,162 @@ async function deletePlaybook(id){
  }catch(error){}
 }
 let recordsCache=[];
+function openCoachDatabase(){
+ return new Promise((resolve,reject)=>{
+   const request=indexedDB.open('qbsense_coach_data',1);
+   request.onupgradeneeded=()=>{
+     const database=request.result;
+     if(!database.objectStoreNames.contains('players')){
+       const players=database.createObjectStore('players',{keyPath:'id'});
+       players.createIndex('coachEmail','coachEmail',{unique:false});
+     }
+     if(!database.objectStoreNames.contains('sessions')){
+       const sessions=database.createObjectStore('sessions',{keyPath:'id'});
+       sessions.createIndex('coachEmail','coachEmail',{unique:false});
+       sessions.createIndex('playerId','playerId',{unique:false});
+     }
+   };
+   request.onsuccess=()=>resolve(request.result);
+   request.onerror=()=>reject(request.error);
+ });
+}
+async function addPlayer(){
+ const name=document.getElementById('playerName').value.trim();
+ const email=document.getElementById('playerEmail').value.trim();
+ const position=document.getElementById('playerPosition').value;
+ const notes=document.getElementById('playerNotes').value.trim();
+ if(!name){alert('Please enter a player name.');return;}
+ try{
+   const database=await openCoachDatabase();
+   const record={id:Date.now()+'-'+Math.random().toString(36).slice(2),coachEmail:getCoachEmail(),name:name,email:email,position:position,notes:notes,createdAt:new Date().toISOString()};
+   await new Promise((resolve,reject)=>{
+     const transaction=database.transaction('players','readwrite');
+     transaction.objectStore('players').put(record);
+     transaction.oncomplete=resolve;
+     transaction.onerror=()=>reject(transaction.error);
+   });
+   document.getElementById('playerName').value='';
+   document.getElementById('playerEmail').value='';
+   document.getElementById('playerNotes').value='';
+   await renderPlayers();
+ }catch(error){alert('Could not add player.');}
+}
+async function getCoachPlayers(){
+ const database=await openCoachDatabase();
+ return new Promise((resolve,reject)=>{
+   const transaction=database.transaction('players','readonly');
+   const index=transaction.objectStore('players').index('coachEmail');
+   const request=index.getAll(getCoachEmail());
+   request.onsuccess=()=>resolve(request.result||[]);
+   request.onerror=()=>reject(request.error);
+ });
+}
+async function getCoachSessions(){
+ const database=await openCoachDatabase();
+ return new Promise((resolve,reject)=>{
+   const transaction=database.transaction('sessions','readonly');
+   const index=transaction.objectStore('sessions').index('coachEmail');
+   const request=index.getAll(getCoachEmail());
+   request.onsuccess=()=>resolve(request.result||[]);
+   request.onerror=()=>reject(request.error);
+ });
+}
+function average(values){
+ const valid=values.filter(value=>typeof value==='number' && !isNaN(value));
+ return valid.length?valid.reduce((total,value)=>total+value,0)/valid.length:0;
+}
+async function renderPlayers(){
+ const list=document.getElementById('playerList');
+ const stats=document.getElementById('playerStats');
+ list.innerHTML='<div class="player-item"><span>Loading players…</span></div>';
+ try{
+   playersCache=await getCoachPlayers();
+   sessionsCache=await getCoachSessions();
+   playersCache.sort((a,b)=>a.name.localeCompare(b.name));
+   const totalSessions=sessionsCache.length;
+   const averageScore=average(sessionsCache.map(session=>session.score));
+   const weekAgo=Date.now()-(7*24*60*60*1000);
+   const sessionsThisWeek=sessionsCache.filter(session=>new Date(session.date).getTime()>=weekAgo).length;
+   stats.innerHTML='<div class="stat-card"><div class="stat-top"><div><div class="label">Players</div><div class="stat">'+playersCache.length+'</div></div><div class="icon blue">👥</div></div></div><div class="stat-card"><div class="stat-top"><div><div class="label">Training sessions</div><div class="stat">'+totalSessions+'</div></div><div class="icon green">🏈</div></div></div><div class="stat-card"><div class="stat-top"><div><div class="label">Average score</div><div class="stat">'+(totalSessions?Math.round(averageScore):'—')+'</div></div><div class="icon purple">🎯</div></div><div class="bar"><span style="width:'+(totalSessions?Math.round(averageScore):0)+'%"></span></div></div><div class="stat-card"><div class="stat-top"><div><div class="label">Sessions this week</div><div class="stat">'+sessionsThisWeek+'</div></div><div class="icon orange">📅</div></div></div>';
+   if(!playersCache.length){
+     list.innerHTML='<div class="player-item"><span>No players added yet.</span></div>';
+     return;
+   }
+   list.innerHTML=playersCache.map(player=>{
+     const sessions=sessionsCache.filter(session=>session.playerId===player.id);
+     const playerAverage=average(sessions.map(session=>session.score));
+     const lastSession=sessions.sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
+     const lastTrained=lastSession?new Date(lastSession.date).toLocaleDateString():'No sessions yet';
+     const decisionTime=average(sessions.map(session=>session.decisionTime));
+     const accuracy=average(sessions.map(session=>session.accuracy));
+     const pressure=average(sessions.map(session=>session.pressureResponse));
+     return '<div class="player-item"><div><b>'+player.name+'</b><br><small>'+player.position+(player.email?' • '+player.email:'')+'</small><br><small>Sessions: '+sessions.length+' • Avg score: '+(sessions.length?Math.round(playerAverage):'—')+' • Last trained: '+lastTrained+'</small><br><small>Decision time: '+(sessions.length?decisionTime.toFixed(1)+'s':'—')+' • Accuracy: '+(sessions.length?Math.round(accuracy)+'%':'—')+' • Pressure response: '+(sessions.length?Math.round(pressure)+'%':'—')+'</small>'+(player.notes?'<br><small>Notes: '+player.notes+'</small>':'')+'</div><div class="player-actions"><button class="btn ghost" onclick=\'startSessionForm("'+player.id+'")\'>Log session</button><button class="btn ghost" onclick=\'deletePlayer("'+player.id+'")\'>Delete</button></div></div><div class="bar" style="margin:-4px 0 14px"><span style="width:'+(sessions.length?Math.round(playerAverage):0)+'%"></span></div>';
+   }).join('');
+ }catch(error){
+   list.innerHTML='<div class="player-item"><span>Could not load players.</span></div>';
+ }
+}
+function startSessionForm(playerId){
+ const player=playersCache.find(record=>record.id===playerId);
+ if(!player)return;
+ activePlayerId=playerId;
+ document.getElementById('sessionPlayerName').textContent='Log training session — '+player.name;
+ document.getElementById('sessionCard').style.display='block';
+ document.getElementById('sessionCard').scrollIntoView({behavior:'smooth'});
+}
+function closeSessionForm(){
+ activePlayerId=null;
+ document.getElementById('sessionCard').style.display='none';
+}
+async function logSession(){
+ if(!activePlayerId)return;
+ const player=playersCache.find(record=>record.id===activePlayerId);
+ const drill=document.getElementById('sessionDrill').value.trim();
+ const score=Number(document.getElementById('sessionScore').value);
+ const decisionTime=Number(document.getElementById('sessionDecisionTime').value);
+ const accuracy=Number(document.getElementById('sessionAccuracy').value);
+ const pressure=Number(document.getElementById('sessionPressure').value);
+ const notes=document.getElementById('sessionNotes').value.trim();
+ if(!drill || isNaN(score) || score<0 || score>100){alert('Please enter a drill and a score from 0 to 100.');return;}
+ try{
+   const database=await openCoachDatabase();
+   const record={id:Date.now()+'-'+Math.random().toString(36).slice(2),coachEmail:getCoachEmail(),playerId:activePlayerId,playerName:player.name,date:new Date().toISOString(),drill:drill,score:score,decisionTime:isNaN(decisionTime)?null:decisionTime,accuracy:isNaN(accuracy)?null:accuracy,pressureResponse:isNaN(pressure)?null:pressure,notes:notes};
+   await new Promise((resolve,reject)=>{
+     const transaction=database.transaction('sessions','readwrite');
+     transaction.objectStore('sessions').put(record);
+     transaction.oncomplete=resolve;
+     transaction.onerror=()=>reject(transaction.error);
+   });
+   document.getElementById('sessionDrill').value='';
+   document.getElementById('sessionScore').value='';
+   document.getElementById('sessionDecisionTime').value='';
+   document.getElementById('sessionAccuracy').value='';
+   document.getElementById('sessionPressure').value='';
+   document.getElementById('sessionNotes').value='';
+   closeSessionForm();
+   await renderPlayers();
+ }catch(error){alert('Could not save session.');}
+}
+async function deletePlayer(playerId){
+ try{
+   const database=await openCoachDatabase();
+   const player=playersCache.find(record=>record.id===playerId);
+   if(!player)return;
+   if(!confirm('Delete '+player.name+' and all of their training sessions?'))return;
+   const sessions=sessionsCache.filter(session=>session.playerId===playerId);
+   await new Promise((resolve,reject)=>{
+     const transaction=database.transaction(['players','sessions'],'readwrite');
+     transaction.objectStore('players').delete(playerId);
+     sessions.forEach(session=>transaction.objectStore('sessions').delete(session.id));
+     transaction.oncomplete=resolve;
+     transaction.onerror=()=>reject(transaction.error);
+   });
+   await renderPlayers();
+ }catch(error){}
+}
 updateScenario();
 renderPlaybooks();
+renderPlayers();
 </script>
 </body>
 </html>
