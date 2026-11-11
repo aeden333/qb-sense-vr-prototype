@@ -53,6 +53,14 @@ nav button.active{background:linear-gradient(135deg,var(--blue),#6d8dff);color:#
 .tag{font-size:11px;background:#eaf1ff;color:#2f6bff;padding:5px 10px;border-radius:999px;font-weight:800;white-space:nowrap}
 .pulse{animation:pulse .55s ease}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,77,90,.65)}100%{box-shadow:0 0 0 20px rgba(255,77,90,0)}}
+.vr-view{position:relative;aspect-ratio:16/9;border-radius:18px;overflow:hidden;background:linear-gradient(180deg,#0b1f3a 0%,#123a6b 55%,#1c4d8f 100%);margin-bottom:14px}
+.vr-view:before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px);background-size:48px 48px;opacity:.35}
+.vr-overlay{position:absolute;inset:auto 0 0 0;padding:16px;background:linear-gradient(transparent,rgba(0,0,0,.65));color:#fff}
+.vr-badge{position:absolute;top:14px;left:14px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);color:#fff;padding:6px 12px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.coach-status{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.coach-item{background:#f7fafc;border:1px solid #e4ebf5;border-radius:14px;padding:12px}
+.coach-item b{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.coach-item span{font-weight:800;color:var(--navy)}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 @media(max-width:640px){header{flex-direction:column;align-items:flex-start;gap:8px}.vest{text-align:left}.hero{padding:30px 22px}.hero-actions .btn{width:100%}}
 </style>
@@ -116,6 +124,24 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 <button class="btn ghost" onclick="triggerPressure()">Simulate blitz pressure</button>
 <button class="btn ghost" id="liveUseTimeout" onclick="useTimeout()">Use timeout</button>
 <button class="btn ghost" onclick="endRep()">End rep</button>
+</div>
+<div class="card">
+<h2>Coach View</h2>
+<p>The coach can watch what the player sees through the VR headset and monitor the live training session.</p>
+<div class="vr-view">
+<span class="vr-badge">VR Headset View</span>
+<div class="vr-overlay">
+<b id="coachScenario">Normal Down and Distance</b><br>
+<small id="coachPressure">Waiting for rep to start…</small>
+</div>
+</div>
+<div class="coach-status">
+<div class="coach-item"><b>Headset</b><span id="coachHeadset">Not connected</span></div>
+<div class="coach-item"><b>Rep status</b><span id="coachRepStatus">Idle</span></div>
+<div class="coach-item"><b>Pressure</b><span id="coachPressureSide">None</span></div>
+<div class="coach-item"><b>Haptic vest</b><span id="coachVest">Waiting</span></div>
+<div class="coach-item"><b>Timeouts</b><span id="coachTimeouts">—</span></div>
+</div>
 </div>
 </section>
 
@@ -286,6 +312,7 @@ function assignTimeouts(){
    document.getElementById('useTimeoutBtn').disabled=true;
    document.getElementById('liveUseTimeout').disabled=true;
  }
+ updateCoachView();
 }
 function updateScenario(){
  const value=document.getElementById('gameSituation').value;
@@ -300,6 +327,7 @@ function useTimeout(){
  document.getElementById('liveTimeoutInfo').innerHTML='<b>Timeout called. Clock stopped.</b> Timeouts remaining: '+timeoutsRemaining;
  document.getElementById('useTimeoutBtn').disabled=timeoutsRemaining===0;
  document.getElementById('liveUseTimeout').disabled=timeoutsRemaining===0;
+ updateCoachView();
 }
 function randomChoice(select){
  const options=Array.from(select.options).filter(option=>option.value!=='random');
@@ -340,9 +368,20 @@ document.querySelectorAll('#mainNav button').forEach(button=>{
 document.querySelectorAll('[data-goto]').forEach(button=>{
   button.addEventListener('click',()=>go(button.dataset.goto));
 });
+function updateCoachView(){
+ const situation=document.getElementById('gameSituation');
+ const selectedText=situation.options[situation.selectedIndex].text;
+ document.getElementById('coachScenario').textContent=selectedText;
+ document.getElementById('coachTimeouts').textContent=timeoutsRemaining;
+}
 function startRep(){
  document.getElementById('vestStatus').textContent='Connected';
  document.getElementById('vestText').textContent='Rep active. Reading defense…';
+ document.getElementById('coachHeadset').textContent='Connected';
+ document.getElementById('coachRepStatus').textContent='Active';
+ document.getElementById('coachPressureSide').textContent='None';
+ document.getElementById('coachVest').textContent='Waiting';
+ document.getElementById('coachPressure').textContent='Player is reading the defense…';
  assignTimeouts();
 }
 function speak(text){
@@ -386,6 +425,9 @@ function triggerPressure(){
   }else if(level===8){
     document.getElementById('pressureBar').style.width='92%';
   }
+  document.getElementById('coachPressureSide').textContent=side;
+  document.getElementById('coachVest').textContent='Pressure detected';
+  document.getElementById('coachPressure').textContent='Pressure incoming from the '+side.toLowerCase()+' side.';
 }
 function endRep(){go('results');}
 updateScenario();
