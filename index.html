@@ -5,51 +5,55 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>QB Sense VR</title>
 <style>
-:root{--navy:#081729;--blue:#2f6bff;--cyan:#22d3ee;--green:#22c55e;--red:#ff4d5a;--bg:#f2f6fc;--card:#ffffff;--muted:#64748b}
+:root{--navy:#081729;--blue:#2f6bff;--cyan:#22d3ee;--green:#22c55e;--red:#ff4d5a;--bg:#f2f6fc;--card:#fff;--muted:#64748b}
 *{box-sizing:border-box;font-family:'Inter',system-ui,Arial,sans-serif}
 body{margin:0;background:var(--bg);color:#0f172a}
-header{background:rgba(8,23,41,.92);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;backdrop-filter:blur(10px)}
+header{background:rgba(8,23,41,.94);color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;gap:16px;position:sticky;top:0;z-index:20;backdrop-filter:blur(10px)}
 header h1{margin:0;font-size:20px;letter-spacing:-.02em}
 header p{margin:2px 0 0;font-size:12px;color:#9fb3d1}
-.vest{font-size:12px;color:#9fb3d1;text-align:right}
+.vest{font-size:12px;color:#9fb3d1;text-align:right;white-space:nowrap}
 .vest strong{color:#fff}
-main{max-width:1080px;margin:0 auto;padding:24px 18px 48px}
-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 22px}
-nav button{border:0;background:#e6edf8;color:#243b53;padding:10px 16px;border-radius:999px;font-weight:700;cursor:pointer;transition:.2s}
+main{max-width:1080px;margin:0 auto;padding:18px 14px 48px}
+.nav-wrap{overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.nav-wrap::-webkit-scrollbar{display:none}
+nav{display:flex;gap:8px;min-width:max-content;margin:14px 0 20px}
+nav button{border:0;background:#e6edf8;color:#243b53;padding:11px 16px;border-radius:999px;font-weight:800;font-size:14px;cursor:pointer;white-space:nowrap;transition:.2s}
 nav button:hover{background:#d7e3f5}
 nav button.active{background:linear-gradient(135deg,var(--blue),#6d8dff);color:#fff;box-shadow:0 8px 20px rgba(47,107,255,.25)}
-.hero{position:relative;overflow:hidden;border-radius:28px;padding:44px 36px;color:#fff;background:radial-gradient(circle at 15% 20%,rgba(34,211,238,.35),transparent 40%),radial-gradient(circle at 85% 15%,rgba(109,141,255,.45),transparent 45%),linear-gradient(135deg,#081729,#123a6b 60%,#1c4d8f);box-shadow:0 24px 60px rgba(8,23,41,.25);margin-bottom:22px}
+.page{display:none;animation:fadeIn .25s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.hero{position:relative;overflow:hidden;border-radius:28px;padding:38px 26px;color:#fff;background:radial-gradient(circle at 15% 20%,rgba(34,211,238,.35),transparent 40%),radial-gradient(circle at 85% 15%,rgba(109,141,255,.45),transparent 45%),linear-gradient(135deg,#081729,#123a6b 60%,#1c4d8f);box-shadow:0 24px 60px rgba(8,23,41,.25);margin-bottom:20px}
 .hero:before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 20% 80%,rgba(255,255,255,.08) 0,transparent 35%),radial-gradient(circle at 75% 70%,rgba(255,255,255,.07) 0,transparent 30%)}
 .hero>*{position:relative}
-.badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);padding:7px 13px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
-.hero h2{margin:16px 0 10px;font-size:clamp(30px,5vw,46px);line-height:1.08;letter-spacing:-.03em}
-.hero p{margin:0 0 24px;max-width:620px;color:#d7e4f7;font-size:16px;line-height:1.55}
-.hero-actions{display:flex;gap:12px;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:14px;padding:13px 20px;font-weight:800;cursor:pointer;transition:.2s}
+.badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);padding:7px 13px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.hero h2{margin:16px 0 10px;font-size:clamp(28px,6vw,44px);line-height:1.08;letter-spacing:-.03em}
+.hero p{margin:0 0 22px;max-width:620px;color:#d7e4f7;font-size:15px;line-height:1.55}
+.hero-actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:14px;padding:13px 18px;font-weight:800;cursor:pointer;transition:.2s;font-size:15px}
 .btn.primary{background:#fff;color:#0b1f3a;box-shadow:0 10px 24px rgba(255,255,255,.18)}
 .btn.primary:hover{transform:translateY(-2px)}
 .btn.ghost{background:rgba(255,255,255,.13);color:#fff;border:1px solid rgba(255,255,255,.25)}
 .btn.ghost:hover{background:rgba(255,255,255,.2)}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
-.stat-card{background:var(--card);border:1px solid #e4ebf5;border-radius:20px;padding:20px;box-shadow:0 10px 25px rgba(15,35,70,.06);transition:.2s}
-.stat-card:hover{transform:translateY(-3px);box-shadow:0 16px 32px rgba(15,35,70,.1)}
-.stat-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.stat-card{background:var(--card);border:1px solid #e4ebf5;border-radius:20px;padding:18px;box-shadow:0 10px 25px rgba(15,35,70,.06)}
+.stat-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px}
 .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:800}
-.icon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:18px}
+.icon{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;font-size:17px;flex:0 0 auto}
 .icon.blue{background:#e8efff;color:#2f6bff}
 .icon.green{background:#e6f8ef;color:#16a34a}
 .icon.purple{background:#f1e9ff;color:#7c3aed}
 .icon.orange{background:#fff1e0;color:#ea580c}
-.stat{font-size:32px;font-weight:850;color:var(--navy);letter-spacing:-.03em}
+.stat{font-size:28px;font-weight:850;color:var(--navy);letter-spacing:-.03em}
 .bar{height:8px;background:#e8eef7;border-radius:999px;overflow:hidden;margin-top:12px}
 .bar span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--blue),var(--cyan))}
-.hidden{display:none}
-.card{background:var(--card);border:1px solid #e4ebf5;border-radius:20px;padding:22px;box-shadow:0 10px 25px rgba(15,35,70,.06);margin-bottom:16px}
-.drill{border:1px solid #e6edf7;border-radius:16px;padding:16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;background:#fbfdff}
+.card{background:var(--card);border:1px solid #e4ebf5;border-radius:20px;padding:20px;box-shadow:0 10px 25px rgba(15,35,70,.06);margin-bottom:14px}
+.drill{border:1px solid #e6edf7;border-radius:16px;padding:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fbfdff}
 .tag{font-size:11px;background:#eaf1ff;color:#2f6bff;padding:5px 10px;border-radius:999px;font-weight:800;white-space:nowrap}
 .pulse{animation:pulse .55s ease}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,77,90,.65)}100%{box-shadow:0 0 0 20px rgba(255,77,90,0)}}
-footer{text-align:center;color:var(--muted);font-size:12px;padding:24px}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
+@media(max-width:640px){header{flex-direction:column;align-items:flex-start;gap:8px}.vest{text-align:left}.hero{padding:30px 22px}.hero-actions .btn{width:100%}}
 </style>
 </head>
 <body>
@@ -58,7 +62,8 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:24px}
 <div class="vest"><div class="label">Haptic vest</div><strong id="vestStatus">Not connected</strong></div>
 </header>
 <main>
-<nav>
+<div class="nav-wrap">
+<nav id="mainNav">
 <button class="active" data-page="home">Home</button>
 <button data-page="drills">Drills</button>
 <button data-page="live">Live Training</button>
@@ -66,18 +71,18 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:24px}
 <button data-page="results">Results</button>
 <button data-page="progress">Progress</button>
 </nav>
+</div>
 
-<section id="home">
+<section id="home" class="page active">
 <div class="hero">
 <span class="badge">● QB Training System</span>
 <h2>Train like it’s game day.</h2>
 <p>QB Sense VR helps quarterbacks read defenses, recognize pressure, move in the pocket, and make faster decisions—without taking real hits.</p>
 <div class="hero-actions">
-<button class="btn primary" onclick="go('drills')">Start today’s workout →</button>
-<button class="btn ghost" onclick="go('live')">Enter live training</button>
+<button class="btn primary" data-goto="drills">Start today’s workout →</button>
+<button class="btn ghost" data-goto="live">Enter live training</button>
 </div>
 </div>
-
 <div class="stats">
 <div class="stat-card"><div class="stat-top"><div><div class="label">QB Rating</div><div class="stat">87</div></div><div class="icon blue">🎯</div></div><div class="bar"><span style="width:87%"></span></div></div>
 <div class="stat-card"><div class="stat-top"><div><div class="label">Decision Time</div><div class="stat">1.8s</div></div><div class="icon green">⚡</div></div><div class="bar"><span style="width:72%"></span></div></div>
@@ -86,7 +91,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:24px}
 </div>
 </section>
 
-<section id="drills" class="hidden">
+<section id="drills" class="page">
 <div class="card"><h2>Drill Library</h2><p>Choose a training focus. Each drill can be adjusted for youth, high-school, college, or pro level.</p></div>
 <div class="card">
 <div class="drill"><div><b>Blitz Recognition</b><br><small>Identify the extra rusher before the snap</small></div><span class="tag">Decision-making</span></div>
@@ -97,20 +102,20 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:24px}
 </div>
 </section>
 
-<section id="live" class="hidden">
+<section id="live" class="page">
 <div class="card">
 <h2>Live Training: Nickel Blitz</h2>
 <p>Pressure incoming from the left A-gap. Step up, reset, and throw to the open receiver.</p>
 <div class="label">Pocket pressure</div>
 <div class="bar"><span id="pressureBar" style="width:20%"></span></div>
-<div id="vestCard" class="card" style="box-shadow:none;border:1px solid #e4ebf5"><b>Haptic vest:</b> <span id="vestText">Waiting for pressure…</span></div>
+<div id="vestCard" class="card" style="box-shadow:none"><b>Haptic vest:</b> <span id="vestText">Waiting for pressure…</span></div>
 <button class="btn primary" onclick="startRep()">Start rep</button>
 <button class="btn ghost" onclick="triggerPressure()">Simulate blitz pressure</button>
 <button class="btn ghost" onclick="endRep()">End rep</button>
 </div>
 </section>
 
-<section id="coach" class="hidden">
+<section id="coach" class="page">
 <div class="card"><h2>Coach Mode</h2><p>Create a custom defensive look and control the intensity of haptic feedback.</p></div>
 <div class="card">
 <label>Defensive front</label><br>
@@ -120,11 +125,11 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:24px}
 <label>Haptic intensity</label><br>
 <input type="range" min="1" max="10" value="4" oninput="document.getElementById('intensityVal').textContent=this.value"><br>
 <b>Intensity: <span id="intensityVal">4</span>/10</b><br><br>
-<button class="btn primary" onclick="go('live')">Send drill to headset</button>
+<button class="btn primary" data-goto="live">Send drill to headset</button>
 </div>
 </section>
 
-<section id="results" class="hidden">
+<section id="results" class="page">
 <div class="card"><h2>Latest Rep</h2><p>AI feedback: You identified the blitz late and held the ball 0.4 seconds too long. Step toward the pressure and reset your feet before throwing.</p></div>
 <div class="stats">
 <div class="stat-card"><div class="label">Correct Read</div><div class="stat">Yes</div></div>
@@ -134,7 +139,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:24px}
 </div>
 </section>
 
-<section id="progress" class="hidden">
+<section id="progress" class="page">
 <div class="card"><h2>Progress</h2><p>Your decision time has improved by 18% over the last four weeks.</p></div>
 <div class="card">
 <div class="label">Weekly reps</div>
@@ -148,7 +153,22 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:24px}
 </main>
 <footer>QB Sense VR prototype • Train the read. Feel the pressure. Make the throw.</footer>
 <script>
-function go(page){document.querySelectorAll('main > section').forEach(s=>s.classList.add('hidden'));document.getElementById(page).classList.remove('hidden');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===page));}
+function go(page){
+  const target=document.getElementById(page);
+  if(!target)return;
+  document.querySelectorAll('.page').forEach(section=>section.classList.remove('active'));
+  target.classList.add('active');
+  document.querySelectorAll('#mainNav button').forEach(button=>{
+    button.classList.toggle('active',button.dataset.page===page);
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.querySelectorAll('#mainNav button').forEach(button=>{
+  button.addEventListener('click',()=>go(button.dataset.page));
+});
+document.querySelectorAll('[data-goto]').forEach(button=>{
+  button.addEventListener('click',()=>go(button.dataset.goto));
+});
 function startRep(){document.getElementById('vestStatus').textContent='Connected';document.getElementById('vestText').textContent='Rep active. Reading defense…';}
 function triggerPressure(){const side=document.getElementById('blitzSide').value;const card=document.getElementById('vestCard');card.classList.remove('pulse');void card.offsetWidth;card.classList.add('pulse');document.getElementById('vestText').textContent='Pressure detected from the '+side.toLowerCase()+' side. Haptic pulse sent.';document.getElementById('pressureBar').style.width='92%';}
 function endRep(){go('results');}
