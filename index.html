@@ -119,9 +119,78 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 <div class="card"><h2>Coach Mode</h2><p>Create a custom defensive look and control the intensity of haptic feedback.</p></div>
 <div class="card">
 <label>Defensive front</label><br>
-<select><option>4-3 Cover 2</option><option>3-4 Cover 3</option><option>Nickel Blitz</option><option>Pressure Package</option></select><br><br>
+<select id="front">
+<optgroup label="Base Fronts">
+<option>4-3 Front</option>
+<option>3-4 Front</option>
+<option>4-2-5 Nickel</option>
+<option>3-3-5 Nickel</option>
+</optgroup>
+<optgroup label="Nickel, Dime, and Dollar">
+<option>4-2-5 Nickel</option>
+<option>3-3-5 Nickel</option>
+<option>4-1-6 Dime</option>
+<option>3-2-6 Dime</option>
+<option>4-0-7 Dollar</option>
+</optgroup>
+<optgroup label="Front Adjustments">
+<option>Odd Front</option>
+<option>Even Front</option>
+<option>Over Front</option>
+<option>Under Front</option>
+<option>Bear Front</option>
+<option>Wide Front</option>
+</optgroup>
+<optgroup label="Goal-Line Fronts">
+<option>Goal-Line Front</option>
+<option>5-2 Front</option>
+<option>6-1 Front</option>
+</optgroup>
+</select><br><br>
+<label>Coverage</label><br>
+<select id="coverage">
+<optgroup label="Man Coverage">
+<option>Cover 0 — All-Out Blitz</option>
+<option>Cover 1 — Man Free</option>
+<option>Cover 1 Robber</option>
+<option>Cover 1 Double Robber</option>
+<option>Cover 2 Man — Under</option>
+<option>Cover 5 / 2-Man — Man Under</option>
+<option>Cover 6 — 1/4, 1/4, 1/2</option>
+<option>Cover 7 — 3 Deep, 4 Under</option>
+<option>Cover 9 — 1 High, 5 Under</option>
+</optgroup>
+<optgroup label="Zone Coverage">
+<option>Cover 2 Zone</option>
+<option>Cover 2 Invert / Tampa 2</option>
+<option>Cover 3 Sky / Sky / Sky</option>
+<option>Cover 3 Buzz / Buzz / Match</option>
+<option>Cover 3 Cloud</option>
+<option>Cover 3 Seams</option>
+<option>Cover 4 Quarters</option>
+<option>Cover 4 Palms</option>
+<option>Cover 6 — 1/4, 1/4, 1/2</option>
+<option>Cover 8 — 3 Deep, 3 Under Fire Zone</option>
+</optgroup>
+<optgroup label="Match Coverage">
+<option>Cover 3 Match</option>
+<option>Cover 4 Match / Quarters Match</option>
+<option>Cover 6 Match</option>
+<option>Cover 7 Match</option>
+<option>Cover 9 Match</option>
+</optgroup>
+<optgroup label="Pressure Packages">
+<option>Cover 0 Blitz</option>
+<option>Cover 1 Blitz</option>
+<option>Cover 2 Man Blitz</option>
+<option>Cover 5 Blitz</option>
+<option>Cover 6 Blitz</option>
+<option>Fire Zone Blitz</option>
+<option>All-Out Blitz</option>
+</optgroup>
+</select><br><br>
 <label>Blitz side</label><br>
-<select id="blitzSide"><option>Left</option><option>Right</option><option>Middle</option></select><br><br>
+<select id="blitzSide"><option>Left</option><option>Right</option><option>Middle</option><option>None</option></select><br><br>
 <label>Haptic intensity</label><br>
 <input type="range" min="1" max="10" value="4" oninput="document.getElementById('intensityVal').textContent=this.value"><br>
 <b>Intensity: <span id="intensityVal">4</span>/10</b><br><br>
