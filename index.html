@@ -221,9 +221,9 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 <select id="blitzSide"><option>Left</option><option>Right</option><option>Middle</option><option>Random</option><option>None</option></select><br><br>
 <label>Training difficulty</label><br>
 <input type="range" min="1" max="10" value="1" id="intensitySlider" oninput="document.getElementById('intensityVal').textContent=this.value">
-<button class="btn ghost" onclick="randomizeDrill()">🎲 Randomize drill</button><br>
+<button class="btn ghost" style="color:#000" onclick="randomizeDrill()">🎲 Random Drill</button><br>
 <b>Level: <span id="intensityVal">1</span>/10</b><br>
-<small>Level 1 = easiest, most help. Level 10 = hardest, least help. Randomize changes the front, coverage, blitz side, and game situation but keeps your chosen intensity.</small><br><br>
+<small>Level 1 = easiest, most help. Level 10 = hardest, least help. Random Drill changes the front, coverage, blitz side, and game situation but keeps your chosen intensity.</small><br><br>
 <button class="btn primary" data-goto="live">Send drill to headset</button>
 </div>
 </section>
