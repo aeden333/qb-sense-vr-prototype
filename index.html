@@ -145,7 +145,8 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 <button class="btn ghost" id="useTimeoutBtn" onclick="useTimeout()" disabled>Use timeout</button><br><br>
 
 <label>Defensive front</label><br>
-<select id="front">
+<select id="front" onchange="handleFrontChange()">
+<option value="random">Random</option>
 <optgroup label="Base Fronts">
 <option>4-3 Front</option>
 <option>3-4 Front</option>
@@ -174,7 +175,8 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 </optgroup>
 </select><br><br>
 <label>Coverage</label><br>
-<select id="coverage">
+<select id="coverage" onchange="handleCoverageChange()">
+<option value="random">Random</option>
 <optgroup label="Man Coverage">
 <option>Cover 0 — All-Out Blitz</option>
 <option>Cover 1 — Man Free</option>
@@ -218,9 +220,10 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 <label>Blitz side</label><br>
 <select id="blitzSide"><option>Left</option><option>Right</option><option>Middle</option><option>Random</option><option>None</option></select><br><br>
 <label>Training difficulty</label><br>
-<input type="range" min="1" max="10" value="1" oninput="document.getElementById('intensityVal').textContent=this.value"><br>
+<input type="range" min="1" max="10" value="1" id="intensitySlider" oninput="document.getElementById('intensityVal').textContent=this.value">
+<button class="btn ghost" onclick="randomizeDrill()">🎲 Randomize drill</button><br>
 <b>Level: <span id="intensityVal">1</span>/10</b><br>
-<small>Level 1 = easiest, most help. Level 10 = hardest, least help.</small><br><br>
+<small>Level 1 = easiest, most help. Level 10 = hardest, least help. Randomize changes the front, coverage, blitz side, and game situation but keeps your chosen intensity.</small><br><br>
 <button class="btn primary" data-goto="live">Send drill to headset</button>
 </div>
 </section>
@@ -268,6 +271,29 @@ const scenarioDescriptions={
 };
 const timeScenarios=['twoMinute','endHalf','gameWinner','comeback','overtime'];
 let timeoutsRemaining=0;
+function randomChoice(select){
+ const options=Array.from(select.options).filter(option=>option.value!=='random');
+ return options[Math.floor(Math.random()*options.length)].value;
+}
+function handleFrontChange(){
+ const front=document.getElementById('front');
+ if(front.value==='random'){front.value=randomChoice(front);}
+}
+function handleCoverageChange(){
+ const coverage=document.getElementById('coverage');
+ if(coverage.value==='random'){coverage.value=randomChoice(coverage);}
+}
+function randomizeDrill(){
+ const situations=Object.keys(scenarioDescriptions);
+ document.getElementById('gameSituation').value=situations[Math.floor(Math.random()*situations.length)];
+ const front=document.getElementById('front');
+ front.value=randomChoice(front);
+ const coverage=document.getElementById('coverage');
+ coverage.value=randomChoice(coverage);
+ const blitzSides=['Left','Right','Middle','None'];
+ document.getElementById('blitzSide').value=blitzSides[Math.floor(Math.random()*blitzSides.length)];
+ updateScenario();
+}
 function updateScenario(){
  const value=document.getElementById('gameSituation').value;
  document.getElementById('scenarioText').innerHTML=scenarioDescriptions[value];
