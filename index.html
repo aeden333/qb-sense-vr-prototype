@@ -5,44 +5,146 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>QB Sense VR</title>
 <style>
-:root{--navy:#0b1f3a;--blue:#1657ff;--green:#19c37d;--red:#ff4d5a;--bg:#f4f7fb;--card:#fff}
-*{box-sizing:border-box;font-family:Inter,Arial,sans-serif}
-body{margin:0;background:var(--bg);color:#12213a}
-header{background:var(--navy);color:#fff;padding:18px 20px;display:flex;justify-content:space-between;align-items:center}
-header h1{margin:0;font-size:20px}
-header p{margin:3px 0 0;font-size:12px;opacity:.75}
-main{max-width:1000px;margin:20px auto;padding:0 16px}
-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
-nav button{border:0;background:#e5ecf8;color:#123;padding:10px 14px;border-radius:999px;font-weight:700;cursor:pointer}
-nav button.active{background:var(--blue);color:#fff}
-.card{background:var(--card);border-radius:16px;padding:18px;box-shadow:0 6px 18px rgba(16,35,68,.08);margin-bottom:14px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
-.stat{font-size:28px;font-weight:800;color:var(--navy)}
-.label{font-size:12px;color:#67748b;text-transform:uppercase;letter-spacing:.06em}
-.btn{display:inline-block;border:0;border-radius:12px;padding:12px 18px;font-weight:700;cursor:pointer;background:var(--blue);color:#fff}
-.btn.green{background:var(--green)}
-.btn.red{background:var(--red)}
-.btn.ghost{background:#eef3fb;color:#123}
+:root{--navy:#081729;--blue:#2f6bff;--cyan:#22d3ee;--green:#22c55e;--red:#ff4d5a;--bg:#f2f6fc;--card:#ffffff;--muted:#64748b}
+*{box-sizing:border-box;font-family:'Inter',system-ui,Arial,sans-serif}
+body{margin:0;background:var(--bg);color:#0f172a}
+header{background:rgba(8,23,41,.92);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;backdrop-filter:blur(10px)}
+header h1{margin:0;font-size:20px;letter-spacing:-.02em}
+header p{margin:2px 0 0;font-size:12px;color:#9fb3d1}
+.vest{font-size:12px;color:#9fb3d1;text-align:right}
+.vest strong{color:#fff}
+main{max-width:1080px;margin:0 auto;padding:24px 18px 48px}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 22px}
+nav button{border:0;background:#e6edf8;color:#243b53;padding:10px 16px;border-radius:999px;font-weight:700;cursor:pointer;transition:.2s}
+nav button:hover{background:#d7e3f5}
+nav button.active{background:linear-gradient(135deg,var(--blue),#6d8dff);color:#fff;box-shadow:0 8px 20px rgba(47,107,255,.25)}
+.hero{position:relative;overflow:hidden;border-radius:28px;padding:44px 36px;color:#fff;background:radial-gradient(circle at 15% 20%,rgba(34,211,238,.35),transparent 40%),radial-gradient(circle at 85% 15%,rgba(109,141,255,.45),transparent 45%),linear-gradient(135deg,#081729,#123a6b 60%,#1c4d8f);box-shadow:0 24px 60px rgba(8,23,41,.25);margin-bottom:22px}
+.hero:before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 20% 80%,rgba(255,255,255,.08) 0,transparent 35%),radial-gradient(circle at 75% 70%,rgba(255,255,255,.07) 0,transparent 30%)}
+.hero>*{position:relative}
+.badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);padding:7px 13px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.hero h2{margin:16px 0 10px;font-size:clamp(30px,5vw,46px);line-height:1.08;letter-spacing:-.03em}
+.hero p{margin:0 0 24px;max-width:620px;color:#d7e4f7;font-size:16px;line-height:1.55}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:14px;padding:13px 20px;font-weight:800;cursor:pointer;transition:.2s}
+.btn.primary{background:#fff;color:#0b1f3a;box-shadow:0 10px 24px rgba(255,255,255,.18)}
+.btn.primary:hover{transform:translateY(-2px)}
+.btn.ghost{background:rgba(255,255,255,.13);color:#fff;border:1px solid rgba(255,255,255,.25)}
+.btn.ghost:hover{background:rgba(255,255,255,.2)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.stat-card{background:var(--card);border:1px solid #e4ebf5;border-radius:20px;padding:20px;box-shadow:0 10px 25px rgba(15,35,70,.06);transition:.2s}
+.stat-card:hover{transform:translateY(-3px);box-shadow:0 16px 32px rgba(15,35,70,.1)}
+.stat-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:800}
+.icon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:18px}
+.icon.blue{background:#e8efff;color:#2f6bff}
+.icon.green{background:#e6f8ef;color:#16a34a}
+.icon.purple{background:#f1e9ff;color:#7c3aed}
+.icon.orange{background:#fff1e0;color:#ea580c}
+.stat{font-size:32px;font-weight:850;color:var(--navy);letter-spacing:-.03em}
+.bar{height:8px;background:#e8eef7;border-radius:999px;overflow:hidden;margin-top:12px}
+.bar span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--blue),var(--cyan))}
 .hidden{display:none}
-.bar{height:10px;background:#e6ecf5;border-radius:999px;overflow:hidden;margin:6px 0 12px}
-.bar span{display:block;height:100%;background:var(--blue)}
-.pulse{animation:pulse .5s ease}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,77,90,.7)}100%{box-shadow:0 0 0 18px rgba(255,77,90,0)}}
-.drill{border:1px solid #e3eaf4;border-radius:14px;padding:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px}
-.tag{font-size:11px;background:#eaf1ff;color:#1657ff;padding:4px 8px;border-radius:999px;font-weight:700}
-footer{text-align:center;color:#67748b;font-size:12px;padding:20px}
+.card{background:var(--card);border:1px solid #e4ebf5;border-radius:20px;padding:22px;box-shadow:0 10px 25px rgba(15,35,70,.06);margin-bottom:16px}
+.drill{border:1px solid #e6edf7;border-radius:16px;padding:16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;background:#fbfdff}
+.tag{font-size:11px;background:#eaf1ff;color:#2f6bff;padding:5px 10px;border-radius:999px;font-weight:800;white-space:nowrap}
+.pulse{animation:pulse .55s ease}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,77,90,.65)}100%{box-shadow:0 0 0 20px rgba(255,77,90,0)}}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:24px}
 </style>
 </head>
 <body>
-<header><div><h1>QB Sense VR</h1><p>Train the read. Feel the pressure. Make the throw.</p></div><div style="text-align:right"><div class="label">Connected vest</div><div id="vestStatus">Not connected</div></div></header>
+<header>
+<div><h1>QB Sense VR</h1><p>Train the read. Feel the pressure. Make the throw.</p></div>
+<div class="vest"><div class="label">Haptic vest</div><strong id="vestStatus">Not connected</strong></div>
+</header>
 <main>
-<nav><button class="active" data-page="home">Home</button><button data-page="drills">Drills</button><button data-page="live">Live Training</button><button data-page="coach">Coach Mode</button><button data-page="results">Results</button><button data-page="progress">Progress</button></nav>
-<section id="home"><div class="card"><h2>Welcome back, QB</h2><p>Your next session focuses on blitz recognition and stepping up under pressure.</p><button class="btn" onclick="go('drills')">Start today’s workout</button></div><div class="grid"><div class="card"><div class="label">QB Rating</div><div class="stat">87</div><div class="bar"><span style="width:87%"></span></div></div><div class="card"><div class="label">Decision Time</div><div class="stat">1.8s</div><div class="bar"><span style="width:72%"></span></div></div><div class="card"><div class="label">Pressure Response</div><div class="stat">82%</div><div class="bar"><span style="width:82%"></span></div></div><div class="card"><div class="label">Reps This Week</div><div class="stat">46</div><div class="bar"><span style="width:65%"></span></div></div></div></section>
-<section id="drills" class="hidden"><div class="card"><h2>Drill Library</h2><p>Choose a training focus. Each drill can be adjusted for youth, high-school, college, or pro level.</p></div><div class="card"><div class="drill"><div><b>Blitz Recognition</b><br><small>Identify the extra rusher before the snap</small></div><span class="tag">Decision-making</span></div><div class="drill"><div><b>Pocket Pressure</b><br><small>Feel pressure and move in the pocket</small></div><span class="tag">Haptics</span></div><div class="drill"><div><b>Progression Reads</b><br><small>Scan receivers in the correct order</small></div><span class="tag">Eye tracking</span></div><div class="drill"><div><b>Red-Zone Decisions</b><br><small>Make fast reads in tight spaces</small></div><span class="tag">Game IQ</span></div><div class="drill"><div><b>Two-Minute Drill</b><br><small>Manage the clock under pressure</small></div><span class="tag">Composure</span></div></div></section>
-<section id="live" class="hidden"><div class="card"><h2>Live Training: Nickel Blitz</h2><p>Pressure incoming from the left A-gap. Step up, reset, and throw to the open receiver.</p><div class="label">Pocket pressure</div><div class="bar"><span id="pressureBar" style="width:20%"></span></div><div id="vestCard" class="card" style="box-shadow:none;border:1px solid #e3eaf4"><b>Haptic vest:</b> <span id="vestText">Waiting for pressure…</span></div><button class="btn green" onclick="startRep()">Start rep</button><button class="btn red" onclick="triggerPressure()">Simulate blitz pressure</button><button class="btn ghost" onclick="endRep()">End rep</button></div></section>
-<section id="coach" class="hidden"><div class="card"><h2>Coach Mode</h2><p>Create a custom defensive look and control the intensity of haptic feedback.</p></div><div class="card"><label>Defensive front</label><br><select><option>4-3 Cover 2</option><option>3-4 Cover 3</option><option>Nickel Blitz</option><option>Pressure Package</option></select><br><br><label>Blitz side</label><br><select id="blitzSide"><option>Left</option><option>Right</option><option>Middle</option></select><br><br><label>Haptic intensity</label><br><input type="range" min="1" max="10" value="4" oninput="document.getElementById('intensityVal').textContent=this.value"><br><b>Intensity: <span id="intensityVal">4</span>/10</b><br><br><button class="btn" onclick="go('live')">Send drill to headset</button></div></section>
-<section id="results" class="hidden"><div class="card"><h2>Latest Rep</h2><p>AI feedback: You identified the blitz late and held the ball 0.4 seconds too long. Step toward the pressure and reset your feet before throwing.</p></div><div class="grid"><div class="card"><div class="label">Correct Read</div><div class="stat">Yes</div></div><div class="card"><div class="label">Decision Time</div><div class="stat">2.2s</div></div><div class="card"><div class="label">Throw Accuracy</div><div class="stat">78%</div></div><div class="card"><div class="label">Pocket Movement</div><div class="stat">Good</div></div></div></section>
-<section id="progress" class="hidden"><div class="card"><h2>Progress</h2><p>Your decision time has improved by 18% over the last four weeks.</p></div><div class="card"><div class="label">Weekly reps</div><div class="bar"><span style="width:55%"></span></div><div class="label">Pressure response</div><div class="bar"><span style="width:82%"></span></div><div class="label">Accuracy under pressure</div><div class="bar"><span style="width:74%"></span></div></div></section>
+<nav>
+<button class="active" data-page="home">Home</button>
+<button data-page="drills">Drills</button>
+<button data-page="live">Live Training</button>
+<button data-page="coach">Coach Mode</button>
+<button data-page="results">Results</button>
+<button data-page="progress">Progress</button>
+</nav>
+
+<section id="home">
+<div class="hero">
+<span class="badge">● QB Training System</span>
+<h2>Train like it’s game day.</h2>
+<p>QB Sense VR helps quarterbacks read defenses, recognize pressure, move in the pocket, and make faster decisions—without taking real hits.</p>
+<div class="hero-actions">
+<button class="btn primary" onclick="go('drills')">Start today’s workout →</button>
+<button class="btn ghost" onclick="go('live')">Enter live training</button>
+</div>
+</div>
+
+<div class="stats">
+<div class="stat-card"><div class="stat-top"><div><div class="label">QB Rating</div><div class="stat">87</div></div><div class="icon blue">🎯</div></div><div class="bar"><span style="width:87%"></span></div></div>
+<div class="stat-card"><div class="stat-top"><div><div class="label">Decision Time</div><div class="stat">1.8s</div></div><div class="icon green">⚡</div></div><div class="bar"><span style="width:72%"></span></div></div>
+<div class="stat-card"><div class="stat-top"><div><div class="label">Pressure Response</div><div class="stat">82%</div></div><div class="icon purple">🛡️</div></div><div class="bar"><span style="width:82%"></span></div></div>
+<div class="stat-card"><div class="stat-top"><div><div class="label">Reps This Week</div><div class="stat">46</div></div><div class="icon orange">🏈</div></div><div class="bar"><span style="width:65%"></span></div></div>
+</div>
+</section>
+
+<section id="drills" class="hidden">
+<div class="card"><h2>Drill Library</h2><p>Choose a training focus. Each drill can be adjusted for youth, high-school, college, or pro level.</p></div>
+<div class="card">
+<div class="drill"><div><b>Blitz Recognition</b><br><small>Identify the extra rusher before the snap</small></div><span class="tag">Decision-making</span></div>
+<div class="drill"><div><b>Pocket Pressure</b><br><small>Feel pressure and move in the pocket</small></div><span class="tag">Haptics</span></div>
+<div class="drill"><div><b>Progression Reads</b><br><small>Scan receivers in the correct order</small></div><span class="tag">Eye tracking</span></div>
+<div class="drill"><div><b>Red-Zone Decisions</b><br><small>Make fast reads in tight spaces</small></div><span class="tag">Game IQ</span></div>
+<div class="drill"><div><b>Two-Minute Drill</b><br><small>Manage the clock under pressure</small></div><span class="tag">Composure</span></div>
+</div>
+</section>
+
+<section id="live" class="hidden">
+<div class="card">
+<h2>Live Training: Nickel Blitz</h2>
+<p>Pressure incoming from the left A-gap. Step up, reset, and throw to the open receiver.</p>
+<div class="label">Pocket pressure</div>
+<div class="bar"><span id="pressureBar" style="width:20%"></span></div>
+<div id="vestCard" class="card" style="box-shadow:none;border:1px solid #e4ebf5"><b>Haptic vest:</b> <span id="vestText">Waiting for pressure…</span></div>
+<button class="btn primary" onclick="startRep()">Start rep</button>
+<button class="btn ghost" onclick="triggerPressure()">Simulate blitz pressure</button>
+<button class="btn ghost" onclick="endRep()">End rep</button>
+</div>
+</section>
+
+<section id="coach" class="hidden">
+<div class="card"><h2>Coach Mode</h2><p>Create a custom defensive look and control the intensity of haptic feedback.</p></div>
+<div class="card">
+<label>Defensive front</label><br>
+<select><option>4-3 Cover 2</option><option>3-4 Cover 3</option><option>Nickel Blitz</option><option>Pressure Package</option></select><br><br>
+<label>Blitz side</label><br>
+<select id="blitzSide"><option>Left</option><option>Right</option><option>Middle</option></select><br><br>
+<label>Haptic intensity</label><br>
+<input type="range" min="1" max="10" value="4" oninput="document.getElementById('intensityVal').textContent=this.value"><br>
+<b>Intensity: <span id="intensityVal">4</span>/10</b><br><br>
+<button class="btn primary" onclick="go('live')">Send drill to headset</button>
+</div>
+</section>
+
+<section id="results" class="hidden">
+<div class="card"><h2>Latest Rep</h2><p>AI feedback: You identified the blitz late and held the ball 0.4 seconds too long. Step toward the pressure and reset your feet before throwing.</p></div>
+<div class="stats">
+<div class="stat-card"><div class="label">Correct Read</div><div class="stat">Yes</div></div>
+<div class="stat-card"><div class="label">Decision Time</div><div class="stat">2.2s</div></div>
+<div class="stat-card"><div class="label">Throw Accuracy</div><div class="stat">78%</div></div>
+<div class="stat-card"><div class="label">Pocket Movement</div><div class="stat">Good</div></div>
+</div>
+</section>
+
+<section id="progress" class="hidden">
+<div class="card"><h2>Progress</h2><p>Your decision time has improved by 18% over the last four weeks.</p></div>
+<div class="card">
+<div class="label">Weekly reps</div>
+<div class="bar"><span style="width:55%"></span></div>
+<div class="label">Pressure response</div>
+<div class="bar"><span style="width:82%"></span></div>
+<div class="label">Accuracy under pressure</div>
+<div class="bar"><span style="width:74%"></span></div>
+</div>
+</section>
 </main>
 <footer>QB Sense VR prototype • Train the read. Feel the pressure. Make the throw.</footer>
 <script>
