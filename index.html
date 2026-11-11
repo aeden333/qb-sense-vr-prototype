@@ -99,13 +99,14 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 <div class="drill"><div><b>Progression Reads</b><br><small>Scan receivers in the correct order</small></div><span class="tag">Eye tracking</span></div>
 <div class="drill"><div><b>Red-Zone Decisions</b><br><small>Make fast reads in tight spaces</small></div><span class="tag">Game IQ</span></div>
 <div class="drill"><div><b>Two-Minute Drill</b><br><small>Manage the clock under pressure</small></div><span class="tag">Composure</span></div>
+<div class="drill"><div><b>Game Situations</b><br><small>Practice real football moments and decision-making</small></div><span class="tag">Game IQ</span></div>
 </div>
 </section>
 
 <section id="live" class="page">
 <div class="card">
 <h2>Live Training: Nickel Blitz</h2>
-<p>Pressure incoming from the left A-gap. Step up, reset, and throw to the open receiver.</p>
+<p id="liveScenario">Pressure incoming from the left A-gap. Step up, reset, and throw to the open receiver.</p>
 <div class="label">Pocket pressure</div>
 <div class="bar"><span id="pressureBar" style="width:20%"></span></div>
 <div id="vestCard" class="card" style="box-shadow:none"><b>Haptic vest:</b> <span id="vestText">Waiting for pressure…</span></div>
@@ -116,8 +117,28 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 </section>
 
 <section id="coach" class="page">
-<div class="card"><h2>Coach Mode</h2><p>Create a custom defensive look and choose the training difficulty. Level 1 gives the most help; Level 10 gives the least help.</p></div>
+<div class="card"><h2>Coach Mode</h2><p>Create a custom defensive look, choose a game situation, and choose the training difficulty. Level 1 gives the most help; Level 10 gives the least help.</p></div>
 <div class="card">
+<label>Game situation</label><br>
+<select id="gameSituation" onchange="updateScenario()">
+<option value="normal">Normal Down and Distance</option>
+<option value="twoMinute">2-Minute Drill — Score in 2 Minutes or Less</option>
+<option value="redZone">Red Zone — Inside the Opponent’s 20</option>
+<option value="goalToGo">Goal-to-Go — Inside the Opponent’s 10</option>
+<option value="backedUp">Backed Up at Your Own 10 — Drive the Full Field</option>
+<option value="thirdLong">Third-and-Long — Convert a Tough Down</option>
+<option value="fourthDown">Fourth Down — Convert or Punt</option>
+<option value="endHalf">End of Half — Score Before Halftime</option>
+<option value="gameWinner">End of Game — Winning Drive</option>
+<option value="hailMary">Hail Mary — Final Play of the Game</option>
+<option value="blitzHeavy">Blitz-Heavy Defense — Handle Extra Pressure</option>
+<option value="twoPoint">Two-Point Conversion — Win the Game</option>
+<option value="overtime">Overtime Drive — Win or Go Home</option>
+<option value="noHuddle">No-Huddle Offense — Play Fast</option>
+<option value="comeback">Comeback Drive — Trail Late in the Game</option>
+</select><br><br>
+<div id="scenarioText" class="card" style="box-shadow:none;margin-bottom:14px"><b>Normal Down and Distance:</b> Read the defense, take what the coverage gives you, and move the chains.</div>
+
 <label>Defensive front</label><br>
 <select id="front">
 <optgroup label="Base Fronts">
@@ -223,6 +244,28 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 </main>
 <footer>QB Sense VR prototype • Train the read. Feel the pressure. Make the throw.</footer>
 <script>
+const scenarioDescriptions={
+ normal:'<b>Normal Down and Distance:</b> Read the defense, take what the coverage gives you, and move the chains.',
+ twoMinute:'<b>2-Minute Drill:</b> You have 2 minutes or less to score. Use the clock wisely, find completions, get out of bounds when needed, and stay calm under pressure.',
+ redZone:'<b>Red Zone:</b> You are inside the opponent’s 20-yard line. The field is smaller, defenders are tighter, and every decision matters.',
+ goalToGo:'<b>Goal-to-Go:</b> You are inside the opponent’s 10-yard line. Find the open man quickly and finish the drive with a touchdown.',
+ backedUp:'<b>Backed Up at Your Own 10:</b> Start at your own 10-yard line and drive the full length of the field. Avoid mistakes, move the chains, and stay patient.',
+ thirdLong:'<b>Third-and-Long:</b> Convert a difficult third down. Read the coverage, protect the football, and find the open receiver.',
+ fourthDown:'<b>Fourth Down:</b> Convert the first down or score. Make a fast, decisive read under pressure.',
+ endHalf:'<b>End of Half:</b> Score before halftime. Manage the clock, use timeouts wisely, and take a shot if the opportunity is there.',
+ gameWinner:'<b>End of Game — Winning Drive:</b> Lead a game-winning drive. Stay composed, move the chains, and make the right decision at the end.',
+ hailMary:'<b>Hail Mary:</b> Final play of the game. Give your receivers a chance to make a play in the end zone.',
+ blitzHeavy:'<b>Blitz-Heavy Defense:</b> The defense is sending extra rushers. Identify the pressure, get rid of the ball quickly, or make them pay.',
+ twoPoint:'<b>Two-Point Conversion:</b> One play to win the game. Make the right read and execute under maximum pressure.',
+ overtime:'<b>Overtime Drive:</b> Win or go home. Stay composed, make smart decisions, and finish the drive.',
+ noHuddle:'<b>No-Huddle Offense:</b> Play fast, communicate clearly, and make quick decisions between plays.',
+ comeback:'<b>Comeback Drive:</b> You are trailing late. Stay patient, make completions, and keep the drive alive.'
+};
+function updateScenario(){
+ const value=document.getElementById('gameSituation').value;
+ document.getElementById('scenarioText').innerHTML=scenarioDescriptions[value];
+ document.getElementById('liveScenario').innerHTML=scenarioDescriptions[value];
+}
 function go(page){
   const target=document.getElementById(page);
   if(!target)return;
