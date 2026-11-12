@@ -1,2 +1,632 @@
-<the complete 39,698-character updated_index.html generated from the user's attached original file>
-  d37d00ede0f531ff5d915796425e94cc9d6ed68c
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QB Sense VR</title>
+<style>
+:root{--navy:#081729;--blue:#2f6bff;--cyan:#22d3ee;--green:#22c55e;--red:#ff4d5a;--bg:#f2f6fc;--card:#fff;--muted:#64748b}
+*{box-sizing:border-box;font-family:'Inter',system-ui,Arial,sans-serif}
+body{margin:0;background:var(--bg);color:#0f172a}
+header{background:rgba(8,23,41,.94);color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;gap:16px;position:sticky;top:0;z-index:20;backdrop-filter:blur(10px)}
+header h1{margin:0;font-size:20px;letter-spacing:-.02em}
+header p{margin:2px 0 0;font-size:12px;color:#9fb3d1}
+.vest{font-size:12px;color:#9fb3d1;text-align:right;white-space:nowrap}
+.vest strong{color:#fff}
+main{max-width:1080px;margin:0 auto;padding:18px 14px 48px}
+.nav-wrap{overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.nav-wrap::-webkit-scrollbar{display:none}
+nav{display:flex;gap:8px;min-width:max-content;margin:14px 0 20px}
+nav button{border:0;background:#e6edf8;color:#243b53;padding:11px 16px;border-radius:999px;font-weight:800;font-size:14px;cursor:pointer;white-space:nowrap;transition:.2s}
+nav button:hover{background:#d7e3f5}
+nav button.active{background:linear-gradient(135deg,var(--blue),#6d8dff);color:#fff;box-shadow:0 8px 20px rgba(47,107,255,.25)}
+.page{display:none;animation:fadeIn .25s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.hero{position:relative;overflow:hidden;border-radius:28px;padding:38px 26px;color:#fff;background:radial-gradient(circle at 15% 20%,rgba(34,211,238,.35),transparent 40%),radial-gradient(circle at 85% 15%,rgba(109,141,255,.45),transparent 45%),linear-gradient(135deg,#081729,#123a6b 60%,#1c4d8f);box-shadow:0 24px 60px rgba(8,23,41,.25);margin-bottom:20px}
+.hero:before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 20% 80%,rgba(255,255,255,.08) 0,transparent 35%),radial-gradient(circle at 75% 70%,rgba(255,255,255,.07) 0,transparent 30%)}
+.hero>*{position:relative}
+.badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);padding:7px 13px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.hero h2{margin:16px 0 10px;font-size:clamp(28px,6vw,44px);line-height:1.08;letter-spacing:-.03em}
+.hero p{margin:0 0 22px;max-width:620px;color:#d7e4f7;font-size:15px;line-height:1.55}
+.hero-actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:14px;padding:13px 18px;font-weight:800;cursor:pointer;transition:.2s;font-size:15px}
+.btn.primary{background:#fff;color:#0b1f3a;box-shadow:0 10px 24px rgba(255,255,255,.18)}
+.btn.primary:hover{transform:translateY(-2px)}
+.btn.ghost{background:rgba(255,255,255,.13);color:#fff;border:1px solid rgba(255,255,255,.25)}
+.btn.ghost:hover{background:rgba(255,255,255,.2)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.stat-card{background:var(--card);border:1px solid #e4ebf5;border-radius:20px;padding:18px;box-shadow:0 10px 25px rgba(15,35,70,.06)}
+.stat-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px}
+.label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:800}
+.icon{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;font-size:17px;flex:0 0 auto}
+.icon.blue{background:#e8efff;color:#2f6bff}
+.icon.green{background:#e6f8ef;color:#16a34a}
+.icon.purple{background:#f1e9ff;color:#7c3aed}
+.icon.orange{background:#fff1e0;color:#ea580c}
+.stat{font-size:28px;font-weight:850;color:var(--navy);letter-spacing:-.03em}
+.bar{height:8px;background:#e8eef7;border-radius:999px;overflow:hidden;margin-top:12px}
+.bar span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--blue),var(--cyan))}
+.card{background:var(--card);border:1px solid #e4ebf5;border-radius:20px;padding:20px;box-shadow:0 10px 25px rgba(15,35,70,.06);margin-bottom:14px}
+.drill{border:1px solid #e6edf7;border-radius:16px;padding:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fbfdff}
+.tag{font-size:11px;background:#eaf1ff;color:#2f6bff;padding:5px 10px;border-radius:999px;font-weight:800;white-space:nowrap}
+.pulse{animation:pulse .55s ease}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,77,90,.65)}100%{box-shadow:0 0 0 20px rgba(255,77,90,0)}}
+.vr-view{position:relative;aspect-ratio:16/9;border-radius:18px;overflow:hidden;background:linear-gradient(180deg,#0b1f3a 0%,#123a6b 55%,#1c4d8f 100%);margin-bottom:14px}
+.vr-view:before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px);background-size:48px 48px;opacity:.35}
+.vr-overlay{position:absolute;inset:auto 0 0 0;padding:16px;background:linear-gradient(transparent,rgba(0,0,0,.65));color:#fff}
+.vr-badge{position:absolute;top:14px;left:14px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);color:#fff;padding:6px 12px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.coach-status{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.coach-item{background:#f7fafc;border:1px solid #e4ebf5;border-radius:14px;padding:12px}
+.coach-item b{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.coach-item span{font-weight:800;color:var(--navy)}
+.playbook-item,.player-item{display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid #e4ebf5;border-radius:14px;padding:14px;margin-bottom:10px;background:#fbfdff;flex-wrap:wrap}
+.playbook-actions,.player-actions{display:flex;gap:8px;flex-wrap:wrap}
+.pdf-frame{width:100%;height:70vh;border:1px solid #e4ebf5;border-radius:14px;background:#fff}
+.private-note{font-size:12px;color:var(--muted);margin-top:10px}
+.price-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.price-card{background:var(--card);border:1px solid #e4ebf5;border-radius:20px;padding:20px;box-shadow:0 10px 25px rgba(15,35,70,.06);display:flex;flex-direction:column;gap:12px}
+.price-card.featured{border:2px solid var(--blue);box-shadow:0 16px 40px rgba(47,107,255,.15)}
+.price{font-size:32px;font-weight:850;color:var(--navy)}
+.price small{font-size:14px;color:var(--muted);font-weight:700}
+.price-list{list-style:none;padding:0;margin:0}
+.price-list li{margin-bottom:8px;font-size:14px}
+.vest-box{background:#f7fafc;border:1px dashed #c7d6ea;border-radius:14px;padding:12px;font-size:13px}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
+input,select,textarea{width:100%;max-width:520px;padding:12px;border:1px solid #d7e1ef;border-radius:12px;font-size:15px;background:#fff;color:#0f172a}
+.field{margin-bottom:16px}
+.field label{display:block;margin-bottom:6px;font-weight:700}
+@media(max-width:640px){header{flex-direction:column;align-items:flex-start;gap:8px}.vest{text-align:left}.hero{padding:30px 22px}.hero-actions .btn{width:100%}}
+</style>
+</head>
+<body>
+<header>
+<div><h1>QB Sense VR</h1><p>Train the read. Feel the pressure. Make the throw.</p></div>
+<div class="vest"><div class="label">Haptic vest</div><strong id="vestStatus">Not connected</strong></div>
+</header>
+<main>
+<div class="nav-wrap">
+<nav id="mainNav">
+<button class="active" data-page="home">Home</button>
+<button data-page="drills">Drills</button>
+<button data-page="live">Live Training</button>
+<button data-page="coach">Coach Mode</button>
+<button data-page="pricing">Pricing</button>
+<button data-page="players">Players</button>
+<button data-page="playbook">Playbook</button>
+<button data-page="results">Results</button>
+<button data-page="progress">Progress</button>
+</nav>
+</div>
+
+<section id="home" class="page active">
+<div class="hero">
+<span class="badge">● QB Training System</span>
+<h2>Train like it’s game day.</h2>
+<p>QB Sense VR helps quarterbacks read defenses, recognize pressure, move in the pocket, and make faster decisions—without taking real hits.</p>
+<div class="hero-actions">
+<button class="btn primary" data-goto="drills">Start today’s workout →</button>
+<button class="btn ghost" data-goto="live">Enter live training</button>
+</div>
+</div>
+<div class="stats">
+<div class="stat-card"><div class="stat-top"><div><div class="label">QB Rating</div><div class="stat">87</div></div><div class="icon blue">🎯</div></div><div class="bar"><span style="width:87%"></span></div></div>
+<div class="stat-card"><div class="stat-top"><div><div class="label">Decision Time</div><div class="stat">1.8s</div></div><div class="icon green">⚡</div></div><div class="bar"><span style="width:72%"></span></div></div>
+<div class="stat-card"><div class="stat-top"><div><div class="label">Pressure Response</div><div class="stat">82%</div></div><div class="icon purple">🛡️</div></div><div class="bar"><span style="width:82%"></span></div></div>
+<div class="stat-card"><div class="stat-top"><div><div class="label">Reps This Week</div><div class="stat">46</div></div><div class="icon orange">🏈</div></div><div class="bar"><span style="width:65%"></span></div></div>
+</div>
+</section>
+
+<section id="drills" class="page">
+<div class="card"><h2>Drill Library</h2><p>Choose a training focus. Each drill can be adjusted for youth, high-school, college, or pro level.</p></div>
+<div class="card">
+<div class="drill"><div><b>Blitz Recognition</b><br><small>Identify the extra rusher before the snap</small></div><span class="tag">Decision-making</span></div>
+<div class="drill"><div><b>Pocket Pressure</b><br><small>Feel pressure and move in the pocket</small></div><span class="tag">Haptics</span></div>
+<div class="drill"><div><b>Progression Reads</b><br><small>Scan receivers in the correct order</small></div><span class="tag">Eye tracking</span></div>
+<div class="drill"><div><b>Red-Zone Decisions</b><br><small>Make fast reads in tight spaces</small></div><span class="tag">Game IQ</span></div>
+<div class="drill"><div><b>Two-Minute Drill</b><br><small>Manage the clock under pressure</small></div><span class="tag">Composure</span></div>
+<div class="drill"><div><b>Game Situations</b><br><small>Practice real football moments and decision-making</small></div><span class="tag">Game IQ</span></div>
+</div>
+</section>
+
+<section id="live" class="page">
+<div class="card">
+<h2>Live Training: Nickel Blitz</h2>
+<p id="liveScenario">Pressure incoming from the left A-gap. Step up, reset, and throw to the open receiver.</p>
+<div id="livePlayInfo" class="card" style="box-shadow:none"><b>Coach playbook:</b> <span id="livePlayText">No play selected</span></div>
+<div class="label">Pocket pressure</div>
+<div class="bar"><span id="pressureBar" style="width:20%"></span></div>
+<div id="vestCard" class="card" style="box-shadow:none"><b>Haptic vest:</b> <span id="vestText">Waiting for pressure…</span></div>
+<div id="liveTimeoutInfo" class="card" style="box-shadow:none"><b>Timeouts remaining:</b> <span id="liveTimeoutCount">—</span></div>
+<button class="btn primary" onclick="startRep()">Start rep</button>
+<button class="btn ghost" onclick="triggerPressure()">Simulate blitz pressure</button>
+<button class="btn ghost" id="liveUseTimeout" onclick="useTimeout()">Use timeout</button>
+<button class="btn ghost" id="openSelectedPlaybookBtn" onclick="openSelectedPlaybook()" disabled>Open selected playbook</button>
+<button class="btn ghost" onclick="endRep()">End rep</button>
+</div>
+<div class="card">
+<h2>Coach View</h2>
+<p>The coach can watch what the player sees through the VR headset and monitor the live training session.</p>
+<div class="vr-view">
+<span class="vr-badge">VR Headset View</span>
+<div class="vr-overlay">
+<b id="coachScenario">Normal Down and Distance</b><br>
+<small id="coachPressure">Waiting for rep to start…</small>
+</div>
+</div>
+<div class="coach-status">
+<div class="coach-item"><b>Headset</b><span id="coachHeadset">Not connected</span></div>
+<div class="coach-item"><b>Rep status</b><span id="coachRepStatus">Idle</span></div>
+<div class="coach-item"><b>Pressure</b><span id="coachPressureSide">None</span></div>
+<div class="coach-item"><b>Haptic vest</b><span id="coachVest">Waiting</span></div>
+<div class="coach-item"><b>Timeouts</b><span id="coachTimeouts">—</span></div>
+<div class="coach-item"><b>Selected play</b><span id="coachSelectedPlay">None</span></div>
+</div>
+</div>
+</section>
+
+<section id="coach" class="page">
+<div class="card"><h2>Coach Mode</h2><p>Create a custom defensive look, choose a game situation, choose a play from your uploaded playbook, and set the training difficulty. Level 1 gives the most help; Level 10 gives the least help.</p></div>
+<div class="card">
+<label>Game situation</label><br>
+<select id="gameSituation" onchange="updateScenario()">
+<option value="normal">Normal Down and Distance</option>
+<option value="twoMinute">2-Minute Drill — Score in 2 Minutes or Less</option>
+<option value="redZone">Red Zone — Inside the Opponent’s 20</option>
+<option value="goalToGo">Goal-to-Go — Inside the Opponent’s 10</option>
+<option value="backedUp">Backed Up at Your Own 10 — Drive the Full Field</option>
+<option value="thirdLong">Third-and-Long — Convert a Tough Down</option>
+<option value="fourthDown">Fourth Down — Convert or Punt</option>
+<option value="endHalf">End of Half — Score Before Halftime</option>
+<option value="gameWinner">End of Game — Winning Drive</option>
+<option value="hailMary">Hail Mary — Final Play of the Game</option>
+<option value="blitzHeavy">Blitz-Heavy Defense — Handle Extra Pressure</option>
+<option value="twoPoint">Two-Point Conversion — Win the Game</option>
+<option value="overtime">Overtime Drive — Win or Go Home</option>
+<option value="noHuddle">No-Huddle Offense — Play Fast</option>
+<option value="comeback">Comeback Drive — Trail Late in the Game</option>
+</select><br><br>
+<div id="scenarioText" class="card" style="box-shadow:none;margin-bottom:14px"><b>Normal Down and Distance:</b> Read the defense, take what the coverage gives you, and move the chains.</div>
+<div id="timeoutInfo" class="card" style="box-shadow:none;margin-bottom:14px"><b>Timeouts remaining:</b> <span id="timeoutCount">—</span></div>
+<button class="btn ghost" id="useTimeoutBtn" onclick="useTimeout()" disabled>Use timeout</button><br><br>
+
+<label>Choose playbook</label><br>
+<select id="coachPlaybook" onchange="updateSelectedPlay()">
+<option value="">No playbook selected</option>
+</select><br><br>
+<label>Play name or page</label><br>
+<input id="coachPlaySelection" placeholder="Example: Trips Right — Flood, or page 12" oninput="updateSelectedPlay()">
+<div id="selectedPlayInfo" class="card" style="box-shadow:none;margin:14px 0"><b>Selected play:</b> <span id="selectedPlayText">None</span></div>
+<button class="btn ghost" onclick="useSelectedPlay()">Use selected play</button><br><br>
+
+<label>Defensive front</label><br>
+<select id="front" onchange="handleFrontChange()">
+<option value="random">Random</option>
+<optgroup label="Base Fronts">
+<option>4-3 Front</option>
+<option>3-4 Front</option>
+<option>4-2-5 Nickel</option>
+<option>3-3-5 Nickel</option>
+</optgroup>
+<optgroup label="Nickel, Dime, and Dollar">
+<option>4-2-5 Nickel</option>
+<option>3-3-5 Nickel</option>
+<option>4-1-6 Dime</option>
+<option>3-2-6 Dime</option>
+<option>4-0-7 Dollar</option>
+</optgroup>
+<optgroup label="Front Adjustments">
+<option>Odd Front</option>
+<option>Even Front</option>
+<option>Over Front</option>
+<option>Under Front</option>
+<option>Bear Front</option>
+<option>Wide Front</option>
+</optgroup>
+<optgroup label="Goal-Line Fronts">
+<option>Goal-Line Front</option>
+<option>5-2 Front</option>
+<option>6-1 Front</option>
+</optgroup>
+</select><br><br>
+<label>Coverage</label><br>
+<select id="coverage" onchange="handleCoverageChange()">
+<option value="random">Random</option>
+<optgroup label="Man Coverage">
+<option>Cover 0 — All-Out Blitz</option>
+<option>Cover 1 — Man Free</option>
+<option>Cover 1 Robber</option>
+<option>Cover 1 Double Robber</option>
+<option>Cover 2 Man — Under</option>
+<option>Cover 5 / 2-Man — Man Under</option>
+<option>Cover 6 — 1/4, 1/4, 1/2</option>
+<option>Cover 7 — 3 Deep, 4 Under</option>
+<option>Cover 9 — 1 High, 5 Under</option>
+</optgroup>
+<optgroup label="Zone Coverage">
+<option>Cover 2 Zone</option>
+<option>Cover 2 Invert / Tampa 2</option>
+<option>Cover 3 Sky / Sky / Sky</option>
+<option>Cover 3 Buzz / Buzz / Match</option>
+<option>Cover 3 Cloud</option>
+<option>Cover 3 Seams</option>
+<option>Cover 4 Quarters</option>
+<option>Cover 4 Palms</option>
+<option>Cover 6 — 1/4, 1/4, 1/2</option>
+<option>Cover 8 — 3 Deep, 3 Under Fire Zone</option>
+</optgroup>
+<optgroup label="Match Coverage">
+<option>Cover 3 Match</option>
+<option>Cover 4 Match / Quarters Match</option>
+<option>Cover 6 Match</option>
+<option>Cover 7 Match</option>
+<option>Cover 9 Match</option>
+</optgroup>
+<optgroup label="Pressure Packages">
+<option>Cover 0 Blitz</option>
+<option>Cover 1 Blitz</option>
+<option>Cover 2 Man Blitz</option>
+<option>Cover 5 Blitz</option>
+<option>Cover 6 Blitz</option>
+<option>Fire Zone Blitz</option>
+<option>All-Out Blitz</option>
+</optgroup>
+</select><br><br>
+<label>Blitz side</label><br>
+<select id="blitzSide"><option>Left</option><option>Right</option><option>Middle</option><option>Random</option><option>None</option></select><br><br>
+<label>Training difficulty</label><br>
+<input type="range" min="1" max="10" value="1" id="intensitySlider" oninput="document.getElementById('intensityVal').textContent=this.value">
+<button class="btn ghost" style="color:#000" onclick="randomizeDrill()">🎲 Random Drill</button><br>
+<b>Level: <span id="intensityVal">1</span>/10</b><br>
+<small>Level 1 = easiest, most help. Level 10 = hardest, least help. Random Drill changes the front, coverage, blitz side, and game situation but keeps your chosen intensity.</small><br><br>
+<button class="btn primary" data-goto="live">Send drill to headset</button>
+</div>
+</section>
+
+<section id="pricing" class="page">
+<div class="card"><h2>Choose Your Plan</h2><p>Choose the training tier that fits your quarterback or program. No payment is collected in this prototype.</p></div>
+<div class="price-grid">
+<div class="price-card"><div><div class="label">Starter</div><div class="price">$19<small>/month</small></div><p>$190/year</p></div><ul class="price-list"><li>Basic drill library</li><li>Limited live reps and scenarios</li><li>Basic results and personal progress</li><li>No coach tools or vest support</li></ul><button class="btn primary" onclick="choosePlan('Starter')">Choose Starter</button></div>
+<div class="price-card featured"><div><div class="label">QB Pro</div><div class="price">$39<small>/month</small></div><p>$390/year</p></div><ul class="price-list"><li>Full individual drill library and unlimited reps</li><li>All game situations, fronts and coverages</li><li>Difficulty levels 1–10</li><li>Detailed feedback and progress</li><li>Optional haptic vest rental</li></ul><button class="btn primary" onclick="choosePlan('QB Pro')">Choose QB Pro</button><button class="btn ghost" onclick="choosePlan('QB Pro + Haptic Vest')">Add haptic vest</button></div>
+<div class="price-card"><div><div class="label">Coach & Team</div><div class="price">$99<small>/month</small></div><p>$990/year · Up to 20 quarterbacks</p></div><ul class="price-list"><li>Everything in QB Pro</li><li>Coach Mode and Coach View</li><li>Player profiles, sessions and coach notes</li><li>Private PDF playbooks and live play selection</li><li>Team reporting and priority support</li><li>One coach account</li></ul><button class="btn primary" onclick="choosePlan('Coach & Team')">Choose Coach & Team</button><button class="btn ghost" onclick="choosePlan('Coach & Team + Haptic Vest')">Add haptic vest</button></div>
+<div class="price-card"><div><div class="label">Enterprise</div><div class="price">Custom</div><p>For schools, colleges, and facilities</p></div><ul class="price-list"><li>Custom quarterback and coach counts</li><li>Custom hardware package</li><li>Custom scenarios and advanced reports</li><li>Data export/API and onboarding</li><li>Dedicated support</li></ul><button class="btn primary" onclick="choosePlan('Enterprise')">Request custom quote</button></div>
+</div>
+<div class="card"><h2>Haptic vest option</h2><p>Add the haptic vest for $29/month plus a $150 refundable deposit after 3 months of use.</p><ul class="price-list"><li>$29/month per vest</li><li>$150 refundable deposit after 3 months of use</li><li>Deposit refundable upon return in good condition</li><li>Vests are rented, not owned</li><li>VR headset not included</li></ul></div>
+</section>
+
+<section id="players" class="page">
+<div class="card"><h2>Player Overview</h2><p>Add players, track how often they train, review their scores and performance trends, and keep coach notes for each athlete.</p></div>
+<div class="stats" id="playerStats"></div>
+<div class="card">
+<h2>Add player</h2>
+<div class="field"><label for="playerName">Player name</label><input id="playerName" placeholder="Example: Jordan Smith"></div>
+<div class="field"><label for="playerEmail">Player email</label><input id="playerEmail" placeholder="Example: jordan@example.com"></div>
+<div class="field"><label for="playerPosition">Position</label><select id="playerPosition">
+<option>Quarterback</option>
+</select></div>
+<div class="field"><label for="playerNotes">Coach notes</label><input id="playerNotes" placeholder="Example: Working on pocket presence and blitz recognition"></div>
+<button class="btn primary" onclick="addPlayer()">Add player</button>
+</div>
+<div class="card">
+<h2>Your players</h2>
+<div id="playerList"></div>
+</div>
+<div class="card" id="sessionCard" style="display:none">
+<h2 id="sessionPlayerName">Log training session</h2>
+<div class="field"><label for="sessionDrill">Drill</label><input id="sessionDrill" placeholder="Example: Blitz Recognition"></div>
+<div class="field"><label for="sessionScore">Overall score (0-100)</label><input type="number" id="sessionScore" min="0" max="100" placeholder="Example: 85"></div>
+<div class="field"><label for="sessionDecisionTime">Decision time (seconds)</label><input type="number" id="sessionDecisionTime" step="0.1" min="0" placeholder="Example: 1.8"></div>
+<div class="field"><label for="sessionAccuracy">Throw accuracy (%)</label><input type="number" id="sessionAccuracy" min="0" max="100" placeholder="Example: 82"></div>
+<div class="field"><label for="sessionPressure">Pressure response (%)</label><input type="number" id="sessionPressure" min="0" max="100" placeholder="Example: 78"></div>
+<div class="field"><label for="sessionNotes">Coach notes</label><input id="sessionNotes" placeholder="Example: Great pocket movement; needs faster second read"></div>
+<button class="btn primary" onclick="logSession()">Save session</button>
+<button class="btn ghost" onclick="closeSessionForm()">Close</button>
+</div>
+</section>
+
+<section id="playbook" class="page">
+<div class="card">
+<h2>Coach Playbook</h2>
+<p>Upload PDF playbooks for your own private use. Each coach can only see, open, and delete the playbooks they upload.</p>
+<label for="playbookFile">Upload PDF playbook</label><br>
+<input type="file" id="playbookFile" accept="application/pdf,.pdf" onchange="uploadPlaybook(this)">
+<div id="playbookMessage" class="private-note"></div>
+</div>
+<div class="card">
+<h2>Your playbooks</h2>
+<div id="playbookList"></div>
+</div>
+<div class="card" id="playbookViewerCard" style="display:none">
+<h2 id="playbookViewerTitle">Playbook</h2>
+<iframe id="playbookViewer" class="pdf-frame" title="PDF playbook viewer"></iframe>
+<button class="btn ghost" onclick="closePlaybookViewer()">Close playbook</button>
+</div>
+</section>
+
+<section id="results" class="page">
+<div class="card"><h2>Latest Rep</h2><p>AI feedback: You identified the blitz late and held the ball 0.4 seconds too long. Step toward the pressure and reset your feet before throwing.</p></div>
+<div class="stats">
+<div class="stat-card"><div class="label">Correct Read</div><div class="stat">Yes</div></div>
+<div class="stat-card"><div class="label">Decision Time</div><div class="stat">2.2s</div></div>
+<div class="stat-card"><div class="label">Throw Accuracy</div><div class="stat">78%</div></div>
+<div class="stat-card"><div class="label">Pocket Movement</div><div class="stat">Good</div></div>
+</div>
+</section>
+
+<section id="progress" class="page">
+<div class="card"><h2>Progress</h2><p>Your decision time has improved by 18% over the last four weeks.</p></div>
+<div class="card">
+<div class="label">Weekly reps</div>
+<div class="bar"><span style="width:55%"></span></div>
+<div class="label">Pressure response</div>
+<div class="bar"><span style="width:82%"></span></div>
+<div class="label">Accuracy under pressure</div>
+<div class="bar"><span style="width:74%"></span></div>
+</div>
+</section>
+</main>
+<footer>QB Sense VR prototype • Train the read. Feel the pressure. Make the throw.</footer>
+<script>
+const scenarioDescriptions={
+ normal:'<b>Normal Down and Distance:</b> Read the defense, take what the coverage gives you, and move the chains.',
+ twoMinute:'<b>2-Minute Drill:</b> You have 2 minutes or less to score. Use the clock wisely, find completions, get out of bounds when needed, and stay calm under pressure.',
+ redZone:'<b>Red Zone:</b> You are inside the opponent’s 20-yard line. The field is smaller, defenders are tighter, and every decision matters.',
+ goalToGo:'<b>Goal-to-Go:</b> You are inside the opponent’s 10-yard line. Find the open man quickly and finish the drive with a touchdown.',
+ backedUp:'<b>Backed Up at Your Own 10:</b> Start at your own 10-yard line and drive the full length of the field. Avoid mistakes, move the chains, and stay patient.',
+ thirdLong:'<b>Third-and-Long:</b> Convert a difficult third down. Read the coverage, protect the football, and find the open receiver.',
+ fourthDown:'<b>Fourth Down:</b> Convert the first down or score. Make a fast, decisive read under pressure.',
+ endHalf:'<b>End of Half:</b> Score before halftime. Manage the clock, use timeouts wisely, and take a shot if the opportunity is there.',
+ gameWinner:'<b>End of Game — Winning Drive:</b> Lead a game-winning drive. Stay composed, move the chains, and make the right decision at the end.',
+ hailMary:'<b>Hail Mary:</b> Final play of the game. Give your receivers a chance to make a play in the end zone.',
+ blitzHeavy:'<b>Blitz-Heavy Defense:</b> The defense is sending extra rushers. Identify the pressure, get rid of the ball quickly, or make them pay.',
+ twoPoint:'<b>Two-Point Conversion:</b> One play to win the game. Make the right read and execute under maximum pressure.',
+ overtime:'<b>Overtime Drive:</b> Win or go home. Stay composed, make smart decisions, and finish the drive.',
+ noHuddle:'<b>No-Huddle Offense:</b> Play fast, communicate clearly, and make quick decisions between plays.',
+ comeback:'<b>Comeback Drive:</b> You are trailing late. Stay patient, make completions, and keep the drive alive.'
+};
+const timeScenarios=['twoMinute','endHalf','gameWinner','comeback','overtime'];
+let timeoutsRemaining=0;
+let selectedPlaybook=null;
+let selectedPlayText='None';
+let playersCache=[];
+let sessionsCache=[];
+let activePlayerId=null;
+function assignTimeouts(){
+ const value=document.getElementById('gameSituation').value;
+ if(timeScenarios.includes(value)){
+   timeoutsRemaining=Math.floor(Math.random()*4);
+   document.getElementById('timeoutInfo').innerHTML='<b>Timeouts remaining:</b> '+timeoutsRemaining;
+   document.getElementById('liveTimeoutInfo').innerHTML='<b>Timeouts remaining:</b> '+timeoutsRemaining;
+   document.getElementById('useTimeoutBtn').disabled=timeoutsRemaining===0;
+   document.getElementById('liveUseTimeout').disabled=timeoutsRemaining===0;
+ }else{
+   timeoutsRemaining=0;
+   document.getElementById('timeoutInfo').innerHTML='<b>No timeouts needed for this scenario.</b>';
+   document.getElementById('liveTimeoutInfo').innerHTML='<b>No timeouts needed for this scenario.</b>';
+   document.getElementById('useTimeoutBtn').disabled=true;
+   document.getElementById('liveUseTimeout').disabled=true;
+ }
+ updateCoachView();
+}
+function updateScenario(){
+ const value=document.getElementById('gameSituation').value;
+ document.getElementById('scenarioText').innerHTML=scenarioDescriptions[value];
+ document.getElementById('liveScenario').innerHTML=scenarioDescriptions[value];
+ assignTimeouts();
+}
+function useTimeout(){
+ if(timeoutsRemaining<=0)return;
+ timeoutsRemaining--;
+ document.getElementById('timeoutInfo').innerHTML='<b>Timeout called. Clock stopped.</b> Timeouts remaining: '+timeoutsRemaining;
+ document.getElementById('liveTimeoutInfo').innerHTML='<b>Timeout called. Clock stopped.</b> Timeouts remaining: '+timeoutsRemaining;
+ document.getElementById('useTimeoutBtn').disabled=timeoutsRemaining===0;
+ document.getElementById('liveUseTimeout').disabled=timeoutsRemaining===0;
+ updateCoachView();
+}
+function randomChoice(select){
+ const options=Array.from(select.options).filter(option=>option.value!=='random');
+ return options[Math.floor(Math.random()*options.length)].value;
+}
+function handleFrontChange(){
+ const front=document.getElementById('front');
+ if(front.value==='random'){front.value=randomChoice(front);}
+}
+function handleCoverageChange(){
+ const coverage=document.getElementById('coverage');
+ if(coverage.value==='random'){coverage.value=randomChoice(coverage);}
+}
+function randomizeDrill(){
+ const situations=Object.keys(scenarioDescriptions);
+ document.getElementById('gameSituation').value=situations[Math.floor(Math.random()*situations.length)];
+ const front=document.getElementById('front');
+ front.value=randomChoice(front);
+ const coverage=document.getElementById('coverage');
+ coverage.value=randomChoice(coverage);
+ const blitzSides=['Left','Right','Middle','None'];
+ document.getElementById('blitzSide').value=blitzSides[Math.floor(Math.random()*blitzSides.length)];
+ updateScenario();
+}
+function go(page){
+  const target=document.getElementById(page);
+  if(!target)return;
+  document.querySelectorAll('.page').forEach(section=>section.classList.remove('active'));
+  target.classList.add('active');
+  document.querySelectorAll('#mainNav button').forEach(button=>{
+    button.classList.toggle('active',button.dataset.page===page);
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(page==='playbook'){renderPlaybooks();}
+  if(page==='coach'){populateCoachPlaybooks();}
+  if(page==='players'){renderPlayers();}
+}
+document.querySelectorAll('#mainNav button').forEach(button=>{
+  button.addEventListener('click',()=>go(button.dataset.page));
+});
+document.querySelectorAll('[data-goto]').forEach(button=>{
+  button.addEventListener('click',()=>go(button.dataset.goto));
+});
+function choosePlan(plan){
+  alert(plan+' selected. Checkout coming soon.');
+}
+function updateCoachView(){
+ const situation=document.getElementById('gameSituation');
+ const selectedText=situation.options[situation.selectedIndex].text;
+ document.getElementById('coachScenario').textContent=selectedText;
+ const pressure=document.getElementById('blitzSide').value;
+ document.getElementById('coachPressureSide').textContent=pressure;
+ const intensity=document.getElementById('intensitySlider').value;
+ document.getElementById('coachVest').textContent='Level '+intensity;
+}
+function startRep(){
+ document.getElementById('coachRepStatus').textContent='Rep active';
+ document.getElementById('vestStatus').textContent='Connected';
+ document.getElementById('vestText').textContent='Waiting for pressure…';
+ document.getElementById('pressureBar').style.width='20%';
+}
+function triggerPressure(){
+ const side=document.getElementById('blitzSide').value;
+ document.getElementById('pressureBar').style.width='85%';
+ document.getElementById('vestText').textContent='Pressure from '+side;
+ document.getElementById('vestCard').classList.add('pulse');
+ setTimeout(()=>document.getElementById('vestCard').classList.remove('pulse'),600);
+}
+function endRep(){
+ document.getElementById('coachRepStatus').textContent='Idle';
+ document.getElementById('pressureBar').style.width='20%';
+ document.getElementById('vestText').textContent='Waiting for pressure…';
+}
+function populateCoachPlaybooks(){
+ const select=document.getElementById('coachPlaybook');
+ select.innerHTML='<option value="">No playbook selected</option>';
+ playbooksCache.forEach(pb=>{
+   const opt=document.createElement('option');
+   opt.value=pb.id;
+   opt.textContent=pb.name;
+   select.appendChild(opt);
+ });
+}
+function updateSelectedPlay(){
+ const pbId=document.getElementById('coachPlaybook').value;
+ const text=document.getElementById('coachPlaySelection').value;
+ const pb=playbooksCache.find(p=>p.id===pbId);
+ selectedPlayText=pb?pb.name+' — '+(text||'No page/play'):'None';
+ document.getElementById('selectedPlayText').textContent=selectedPlayText;
+}
+function useSelectedPlay(){
+ if(selectedPlayText==='None'){alert('Select a playbook and play first.');return;}
+ document.getElementById('livePlayText').textContent=selectedPlayText;
+ document.getElementById('coachSelectedPlay').textContent=selectedPlayText;
+ document.getElementById('openSelectedPlaybookBtn').disabled=false;
+}
+function openSelectedPlaybook(){
+ const pbId=document.getElementById('coachPlaybook').value;
+ const pb=playbooksCache.find(p=>p.id===pbId);
+ if(pb){openPlaybook(pb);}
+}
+function uploadPlaybook(input){
+ const file=input.files[0];
+ if(!file)return;
+ if(file.type!=='application/pdf'){alert('Please upload a PDF file.');return;}
+ const reader=new FileReader();
+ reader.onload=function(e){
+   const id='pb'+Date.now();
+   playbooksCache.push({id:id,name:file.name,data:e.target.result});
+   renderPlaybooks();
+   document.getElementById('playbookMessage').textContent='Playbook uploaded: '+file.name;
+ };
+ reader.readAsDataURL(file);
+}
+function renderPlaybooks(){
+ const list=document.getElementById('playbookList');
+ list.innerHTML='';
+ if(playbooksCache.length===0){list.innerHTML='<p class="private-note">No playbooks uploaded yet.</p>';return;}
+ playbooksCache.forEach(pb=>{
+   const div=document.createElement('div');
+   div.className='playbook-item';
+   div.innerHTML='<div><b>'+pb.name+'</b></div><div class="playbook-actions"><button class="btn ghost" style="color:#000" onclick="openPlaybookById(\''+pb.id+'\')">Open</button><button class="btn ghost" style="color:#000" onclick="deletePlaybook(\''+pb.id+'\')">Delete</button></div>';
+   list.appendChild(div);
+ });
+}
+function openPlaybookById(id){
+ const pb=playbooksCache.find(p=>p.id===id);
+ if(pb)openPlaybook(pb);
+}
+function openPlaybook(pb){
+ document.getElementById('playbookViewerCard').style.display='block';
+ document.getElementById('playbookViewerTitle').textContent=pb.name;
+ document.getElementById('playbookViewer').src=pb.data;
+}
+function closePlaybookViewer(){
+ document.getElementById('playbookViewerCard').style.display='none';
+ document.getElementById('playbookViewer').src='';
+}
+function deletePlaybook(id){
+ playbooksCache=playbooksCache.filter(p=>p.id!==id);
+ renderPlaybooks();
+}
+function addPlayer(){
+ const name=document.getElementById('playerName').value.trim();
+ const email=document.getElementById('playerEmail').value.trim();
+ const notes=document.getElementById('playerNotes').value.trim();
+ if(!name){alert('Enter a player name.');return;}
+ const player={id:'p'+Date.now(),name:name,email:email,notes:notes,sessions:[]};
+ playersCache.push(player);
+ renderPlayers();
+ document.getElementById('playerName').value='';
+ document.getElementById('playerEmail').value='';
+ document.getElementById('playerNotes').value='';
+}
+function renderPlayers(){
+ const list=document.getElementById('playerList');
+ list.innerHTML='';
+ const stats=document.getElementById('playerStats');
+ stats.innerHTML='';
+ if(playersCache.length===0){list.innerHTML='<p class="private-note">No players added yet.</p>';return;}
+ playersCache.forEach(p=>{
+   const div=document.createElement('div');
+   div.className='player-item';
+   div.innerHTML='<div><b>'+p.name+'</b><br><small>'+(p.email||'')+'</small></div><div class="player-actions"><button class="btn ghost" style="color:#000" onclick="openSessionForm(\''+p.id+'\')">Log session</button><button class="btn ghost" style="color:#000" onclick="deletePlayer(\''+p.id+'\')">Delete</button></div>';
+   list.appendChild(div);
+ });
+ const totalReps=playersCache.reduce((sum,p)=>sum+p.sessions.length,0);
+ stats.innerHTML='<div class="stat-card"><div class="stat-top"><div><div class="label">Players</div><div class="stat">'+playersCache.length+'</div></div><div class="icon blue">👥</div></div></div><div class="stat-card"><div class="stat-top"><div><div class="label">Total Sessions</div><div class="stat">'+totalReps+'</div></div><div class="icon green">📋</div></div></div>';
+}
+function openSessionForm(id){
+ activePlayerId=id;
+ const p=playersCache.find(x=>x.id===id);
+ document.getElementById('sessionCard').style.display='block';
+ document.getElementById('sessionPlayerName').textContent='Log training session — '+p.name;
+}
+function closeSessionForm(){
+ document.getElementById('sessionCard').style.display='none';
+ activePlayerId=null;
+}
+function logSession(){
+ if(!activePlayerId)return;
+ const p=playersCache.find(x=>x.id===activePlayerId);
+ const drill=document.getElementById('sessionDrill').value;
+ const score=document.getElementById('sessionScore').value;
+ const dt=document.getElementById('sessionDecisionTime').value;
+ const acc=document.getElementById('sessionAccuracy').value;
+ const press=document.getElementById('sessionPressure').value;
+ const notes=document.getElementById('sessionNotes').value;
+ if(!drill||!score){alert('Enter at least a drill and score.');return;}
+ p.sessions.push({drill:drill,score:score,decisionTime:dt,accuracy:acc,pressure:press,notes:notes});
+ renderPlayers();
+ closeSessionForm();
+}
+function deletePlayer(id){
+ playersCache=playersCache.filter(p=>p.id!==id);
+ renderPlayers();
+}
+let playbooksCache=[];
+init();
+function init(){
+ updateScenario();
+ renderPlaybooks();
+ renderPlayers();
+}
+</script>
+</body>
+</html>
