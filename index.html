@@ -65,6 +65,14 @@ nav button.active{background:linear-gradient(135deg,var(--blue),#6d8dff);color:#
 .playbook-actions,.player-actions{display:flex;gap:8px;flex-wrap:wrap}
 .pdf-frame{width:100%;height:70vh;border:1px solid #e4ebf5;border-radius:14px;background:#fff}
 .private-note{font-size:12px;color:var(--muted);margin-top:10px}
+.price-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.price-card{background:var(--card);border:1px solid #e4ebf5;border-radius:20px;padding:20px;box-shadow:0 10px 25px rgba(15,35,70,.06);display:flex;flex-direction:column;gap:12px}
+.price-card.featured{border:2px solid var(--blue);box-shadow:0 16px 40px rgba(47,107,255,.15)}
+.price{font-size:32px;font-weight:850;color:var(--navy)}
+.price small{font-size:14px;color:var(--muted);font-weight:700}
+.price-list{list-style:none;padding:0;margin:0}
+.price-list li{margin-bottom:8px;font-size:14px}
+.vest-box{background:#f7fafc;border:1px dashed #c7d6ea;border-radius:14px;padding:12px;font-size:13px}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 input,select,textarea{width:100%;max-width:520px;padding:12px;border:1px solid #d7e1ef;border-radius:12px;font-size:15px;background:#fff;color:#0f172a}
 .field{margin-bottom:16px}
@@ -84,6 +92,7 @@ input,select,textarea{width:100%;max-width:520px;padding:12px;border:1px solid #
 <button data-page="drills">Drills</button>
 <button data-page="live">Live Training</button>
 <button data-page="coach">Coach Mode</button>
+<button data-page="pricing">Pricing</button>
 <button data-page="players">Players</button>
 <button data-page="playbook">Playbook</button>
 <button data-page="results">Results</button>
@@ -275,6 +284,17 @@ input,select,textarea{width:100%;max-width:520px;padding:12px;border:1px solid #
 </div>
 </section>
 
+<section id="pricing" class="page">
+<div class="card"><h2>Choose Your Plan</h2><p>Choose the training tier that fits your quarterback or program. No payment is collected in this prototype.</p></div>
+<div class="price-grid">
+<div class="price-card"><div><div class="label">Starter</div><div class="price">$19<small>/month</small></div><p>$190/year</p></div><ul class="price-list"><li>Basic drill library</li><li>Limited live reps and scenarios</li><li>Basic results and personal progress</li><li>No coach tools or vest support</li></ul><button class="btn primary" onclick="choosePlan('Starter')">Choose Starter</button></div>
+<div class="price-card featured"><div><div class="label">QB Pro</div><div class="price">$39<small>/month</small></div><p>$390/year</p></div><ul class="price-list"><li>Full individual drill library and unlimited reps</li><li>All game situations, fronts and coverages</li><li>Difficulty levels 1–10</li><li>Detailed feedback and progress</li><li>Optional haptic vest rental</li></ul><button class="btn primary" onclick="choosePlan('QB Pro')">Choose QB Pro</button><button class="btn ghost" onclick="choosePlan('QB Pro + Haptic Vest')">Add haptic vest</button></div>
+<div class="price-card"><div><div class="label">Coach & Team</div><div class="price">$99<small>/month</small></div><p>$990/year · Up to 20 quarterbacks</p></div><ul class="price-list"><li>Everything in QB Pro</li><li>Coach Mode and Coach View</li><li>Player profiles, sessions and coach notes</li><li>Private PDF playbooks and live play selection</li><li>Team reporting and priority support</li><li>One coach account</li></ul><button class="btn primary" onclick="choosePlan('Coach & Team')">Choose Coach & Team</button><button class="btn ghost" onclick="choosePlan('Coach & Team + Haptic Vest')">Add haptic vest</button></div>
+<div class="price-card"><div><div class="label">Enterprise</div><div class="price">Custom</div><p>For schools, colleges, and facilities</p></div><ul class="price-list"><li>Custom quarterback and coach counts</li><li>Custom hardware package</li><li>Custom scenarios and advanced reports</li><li>Data export/API and onboarding</li><li>Dedicated support</li></ul><button class="btn primary" onclick="choosePlan('Enterprise')">Request custom quote</button></div>
+</div>
+<div class="card"><h2>Haptic vest option</h2><p>Add the haptic vest for $29/month plus a $150 refundable deposit after 3 months of use.</p><ul class="price-list"><li>$29/month per vest</li><li>$150 refundable deposit after 3 months of use</li><li>Deposit refundable upon return in good condition</li><li>Vests are rented, not owned</li><li>VR headset not included</li></ul></div>
+</section>
+
 <section id="players" class="page">
 <div class="card"><h2>Player Overview</h2><p>Add players, track how often they train, review their scores and performance trends, and keep coach notes for each athlete.</p></div>
 <div class="stats" id="playerStats"></div>
@@ -446,393 +466,167 @@ document.querySelectorAll('#mainNav button').forEach(button=>{
 document.querySelectorAll('[data-goto]').forEach(button=>{
   button.addEventListener('click',()=>go(button.dataset.goto));
 });
+function choosePlan(plan){
+  alert(plan+' selected. Checkout coming soon.');
+}
 function updateCoachView(){
  const situation=document.getElementById('gameSituation');
  const selectedText=situation.options[situation.selectedIndex].text;
  document.getElementById('coachScenario').textContent=selectedText;
- document.getElementById('coachTimeouts').textContent=timeoutsRemaining;
- document.getElementById('coachSelectedPlay').textContent=selectedPlayText;
+ const pressure=document.getElementById('blitzSide').value;
+ document.getElementById('coachPressureSide').textContent=pressure;
+ const intensity=document.getElementById('intensitySlider').value;
+ document.getElementById('coachVest').textContent='Level '+intensity;
 }
 function startRep(){
+ document.getElementById('coachRepStatus').textContent='Rep active';
  document.getElementById('vestStatus').textContent='Connected';
- document.getElementById('vestText').textContent='Rep active. Reading defense…';
- document.getElementById('coachHeadset').textContent='Connected';
- document.getElementById('coachRepStatus').textContent='Active';
- document.getElementById('coachPressureSide').textContent='None';
- document.getElementById('coachVest').textContent='Waiting';
- document.getElementById('coachPressure').textContent='Player is reading the defense…';
- assignTimeouts();
-}
-function speak(text){
-  if(!('speechSynthesis' in window))return;
-  const message=new SpeechSynthesisUtterance(text);
-  message.rate=1;
-  message.pitch=1;
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(message);
-}
-function hapticPulse(){
-  if('vibrate' in navigator){navigator.vibrate(180);}
+ document.getElementById('vestText').textContent='Waiting for pressure…';
+ document.getElementById('pressureBar').style.width='20%';
 }
 function triggerPressure(){
-  let side=document.getElementById('blitzSide').value;
-  const level=Number(document.getElementById('intensityVal').textContent);
-  if(side==='Random' || level>=7){
-    const sides=['Left','Right','Middle','None'];
-    side=sides[Math.floor(Math.random()*sides.length)];
-  }
-  const card=document.getElementById('vestCard');
-  card.classList.remove('pulse');
-  void card.offsetWidth;
-  if(side==='None'){
-    return;
-  }
-  if(level<=3){
-    card.classList.add('pulse');
-    document.getElementById('vestText').textContent='Pressure detected from the '+side.toLowerCase()+' side. Haptic pulse sent.';
-    document.getElementById('pressureBar').style.width='92%';
-    hapticPulse();
-    speak('Pressure coming from the '+side.toLowerCase()+' side.');
-  }else if(level===4){
-    card.classList.add('pulse');
-    document.getElementById('vestText').textContent='Pressure detected from the '+side.toLowerCase()+' side.';
-    document.getElementById('pressureBar').style.width='92%';
-  }else if(level===5){
-    hapticPulse();
-  }else if(level===6){
-    setTimeout(hapticPulse,700);
-  }else if(level===8){
-    document.getElementById('pressureBar').style.width='92%';
-  }
-  document.getElementById('coachPressureSide').textContent=side;
-  document.getElementById('coachVest').textContent='Pressure detected';
-  document.getElementById('coachPressure').textContent='Pressure incoming from the '+side.toLowerCase()+' side.';
+ const side=document.getElementById('blitzSide').value;
+ document.getElementById('pressureBar').style.width='85%';
+ document.getElementById('vestText').textContent='Pressure from '+side;
+ document.getElementById('vestCard').classList.add('pulse');
+ setTimeout(()=>document.getElementById('vestCard').classList.remove('pulse'),600);
 }
-function endRep(){go('results');}
-function getCoachEmail(){
- return localStorage.getItem('qbsense_user') || 'guest';
+function endRep(){
+ document.getElementById('coachRepStatus').textContent='Idle';
+ document.getElementById('pressureBar').style.width='20%';
+ document.getElementById('vestText').textContent='Waiting for pressure…';
 }
-function openPlaybookDatabase(){
- return new Promise((resolve,reject)=>{
-   const request=indexedDB.open('qbsense_playbooks',1);
-   request.onupgradeneeded=()=>{
-     const database=request.result;
-     if(!database.objectStoreNames.contains('playbooks')){
-       const store=database.createObjectStore('playbooks',{keyPath:'id'});
-       store.createIndex('coachEmail','coachEmail',{unique:false});
-     }
-   };
-   request.onsuccess=()=>resolve(request.result);
-   request.onerror=()=>reject(request.error);
- });
-}
-async function uploadPlaybook(input){
- const file=input.files[0];
- const message=document.getElementById('playbookMessage');
- if(!file){return;}
- if(file.type!=='application/pdf' && !file.name.toLowerCase().endsWith('.pdf')){
-   message.textContent='Please choose a PDF file.';
-   return;
- }
- message.textContent='Saving playbook…';
- try{
-   const database=await openPlaybookDatabase();
-   const record={
-     id:Date.now()+'-'+Math.random().toString(36).slice(2),
-     coachEmail:getCoachEmail(),
-     name:file.name,
-     size:file.size,
-     addedAt:new Date().toISOString(),
-     file:file
-   };
-   await new Promise((resolve,reject)=>{
-     const transaction=database.transaction('playbooks','readwrite');
-     transaction.objectStore('playbooks').put(record);
-     transaction.oncomplete=resolve;
-     transaction.onerror=()=>reject(transaction.error);
-   });
-   input.value='';
-   message.textContent='Playbook saved privately to your account.';
-   await renderPlaybooks();
-   await populateCoachPlaybooks();
- }catch(error){
-   message.textContent='Could not save the playbook. Please try again.';
- }
-}
-async function getMyPlaybooks(){
- const database=await openPlaybookDatabase();
- return new Promise((resolve,reject)=>{
-   const transaction=database.transaction('playbooks','readonly');
-   const index=transaction.objectStore('playbooks').index('coachEmail');
-   const request=index.getAll(getCoachEmail());
-   request.onsuccess=()=>resolve(request.result||[]);
-   request.onerror=()=>reject(request.error);
- });
-}
-async function populateCoachPlaybooks(){
+function populateCoachPlaybooks(){
  const select=document.getElementById('coachPlaybook');
- const previous=select.value;
  select.innerHTML='<option value="">No playbook selected</option>';
- try{
-   const records=await getMyPlaybooks();
-   records.sort((a,b)=>new Date(b.addedAt)-new Date(a.addedAt));
-   records.forEach(record=>{
-     const option=document.createElement('option');
-     option.value=record.id;
-     option.textContent=record.name;
-     select.appendChild(option);
-   });
-   if(previous && records.some(record=>record.id===previous)){
-     select.value=previous;
-   }
-   updateSelectedPlay();
- }catch(error){}
+ playbooksCache.forEach(pb=>{
+   const opt=document.createElement('option');
+   opt.value=pb.id;
+   opt.textContent=pb.name;
+   select.appendChild(opt);
+ });
 }
 function updateSelectedPlay(){
- const select=document.getElementById('coachPlaybook');
- const selection=document.getElementById('coachPlaySelection').value.trim();
- const id=select.value;
- selectedPlaybook=recordsCache.find(record=>record.id===id)||null;
- if(!selectedPlaybook){
-   selectedPlayText='None';
- }else{
-   selectedPlayText=selectedPlaybook.name+(selection?' — '+selection:'');
- }
+ const pbId=document.getElementById('coachPlaybook').value;
+ const text=document.getElementById('coachPlaySelection').value;
+ const pb=playbooksCache.find(p=>p.id===pbId);
+ selectedPlayText=pb?pb.name+' — '+(text||'No page/play'):'None';
  document.getElementById('selectedPlayText').textContent=selectedPlayText;
- document.getElementById('livePlayText').textContent=selectedPlayText;
- document.getElementById('coachSelectedPlay').textContent=selectedPlayText;
- document.getElementById('openSelectedPlaybookBtn').disabled=!selectedPlaybook;
 }
 function useSelectedPlay(){
- const select=document.getElementById('coachPlaybook');
- if(!select.value){
-   document.getElementById('selectedPlayText').textContent='Choose a playbook first.';
-   return;
- }
- updateSelectedPlay();
- go('live');
+ if(selectedPlayText==='None'){alert('Select a playbook and play first.');return;}
+ document.getElementById('livePlayText').textContent=selectedPlayText;
+ document.getElementById('coachSelectedPlay').textContent=selectedPlayText;
+ document.getElementById('openSelectedPlaybookBtn').disabled=false;
 }
 function openSelectedPlaybook(){
- if(selectedPlaybook){viewPlaybook(selectedPlaybook.id);}
+ const pbId=document.getElementById('coachPlaybook').value;
+ const pb=playbooksCache.find(p=>p.id===pbId);
+ if(pb){openPlaybook(pb);}
 }
-async function renderPlaybooks(){
+function uploadPlaybook(input){
+ const file=input.files[0];
+ if(!file)return;
+ if(file.type!=='application/pdf'){alert('Please upload a PDF file.');return;}
+ const reader=new FileReader();
+ reader.onload=function(e){
+   const id='pb'+Date.now();
+   playbooksCache.push({id:id,name:file.name,data:e.target.result});
+   renderPlaybooks();
+   document.getElementById('playbookMessage').textContent='Playbook uploaded: '+file.name;
+ };
+ reader.readAsDataURL(file);
+}
+function renderPlaybooks(){
  const list=document.getElementById('playbookList');
- list.innerHTML='<div class="playbook-item"><span>Loading your playbooks…</span></div>';
- try{
-   const records=await getMyPlaybooks();
-   recordsCache=records;
-   records.sort((a,b)=>new Date(b.addedAt)-new Date(a.addedAt));
-   if(!records.length){
-     list.innerHTML='<div class="playbook-item"><span>No playbooks uploaded yet.</span></div>';
-   }else{
-     list.innerHTML=records.map(record=>{
-       const date=new Date(record.addedAt).toLocaleString();
-       const size=(record.size/1024/1024).toFixed(2)+' MB';
-       return '<div class="playbook-item"><div><b>'+record.name+'</b><br><small>'+date+' • '+size+'</small></div><div class="playbook-actions"><button class="btn ghost" onclick=\'viewPlaybook("'+record.id+'")\'>View</button><button class="btn ghost" onclick=\'deletePlaybook("'+record.id+'")\'>Delete</button></div></div>';
-     }).join('');
-   }
-   await populateCoachPlaybooks();
- }catch(error){
-   list.innerHTML='<div class="playbook-item"><span>Could not load your playbooks.</span></div>';
- }
+ list.innerHTML='';
+ if(playbooksCache.length===0){list.innerHTML='<p class="private-note">No playbooks uploaded yet.</p>';return;}
+ playbooksCache.forEach(pb=>{
+   const div=document.createElement('div');
+   div.className='playbook-item';
+   div.innerHTML='<div><b>'+pb.name+'</b></div><div class="playbook-actions"><button class="btn ghost" style="color:#000" onclick="openPlaybookById(\''+pb.id+'\')">Open</button><button class="btn ghost" style="color:#000" onclick="deletePlaybook(\''+pb.id+'\')">Delete</button></div>';
+   list.appendChild(div);
+ });
 }
-async function viewPlaybook(id){
- try{
-   const database=await openPlaybookDatabase();
-   const record=await new Promise((resolve,reject)=>{
-     const transaction=database.transaction('playbooks','readonly');
-     const request=transaction.objectStore('playbooks').get(id);
-     request.onsuccess=()=>resolve(request.result);
-     request.onerror=()=>reject(request.error);
-   });
-   if(!record || record.coachEmail!==getCoachEmail()){return;}
-   const url=URL.createObjectURL(record.file);
-   document.getElementById('playbookViewer').src=url;
-   document.getElementById('playbookViewerTitle').textContent=record.name;
-   document.getElementById('playbookViewerCard').style.display='block';
-   document.getElementById('playbookViewerCard').scrollIntoView({behavior:'smooth'});
- }catch(error){}
+function openPlaybookById(id){
+ const pb=playbooksCache.find(p=>p.id===id);
+ if(pb)openPlaybook(pb);
+}
+function openPlaybook(pb){
+ document.getElementById('playbookViewerCard').style.display='block';
+ document.getElementById('playbookViewerTitle').textContent=pb.name;
+ document.getElementById('playbookViewer').src=pb.data;
 }
 function closePlaybookViewer(){
- document.getElementById('playbookViewer').src='';
  document.getElementById('playbookViewerCard').style.display='none';
+ document.getElementById('playbookViewer').src='';
 }
-async function deletePlaybook(id){
- try{
-   const database=await openPlaybookDatabase();
-   const record=await new Promise((resolve,reject)=>{
-     const transaction=database.transaction('playbooks','readonly');
-     const request=transaction.objectStore('playbooks').get(id);
-     request.onsuccess=()=>resolve(request.result);
-     request.onerror=()=>reject(request.error);
-   });
-   if(!record || record.coachEmail!==getCoachEmail()){return;}
-   await new Promise((resolve,reject)=>{
-     const transaction=database.transaction('playbooks','readwrite');
-     transaction.objectStore('playbooks').delete(id);
-     transaction.oncomplete=resolve;
-     transaction.onerror=()=>reject(transaction.error);
-   });
-   await renderPlaybooks();
- }catch(error){}
+function deletePlaybook(id){
+ playbooksCache=playbooksCache.filter(p=>p.id!==id);
+ renderPlaybooks();
 }
-let recordsCache=[];
-function openCoachDatabase(){
- return new Promise((resolve,reject)=>{
-   const request=indexedDB.open('qbsense_coach_data',1);
-   request.onupgradeneeded=()=>{
-     const database=request.result;
-     if(!database.objectStoreNames.contains('players')){
-       const players=database.createObjectStore('players',{keyPath:'id'});
-       players.createIndex('coachEmail','coachEmail',{unique:false});
-     }
-     if(!database.objectStoreNames.contains('sessions')){
-       const sessions=database.createObjectStore('sessions',{keyPath:'id'});
-       sessions.createIndex('coachEmail','coachEmail',{unique:false});
-       sessions.createIndex('playerId','playerId',{unique:false});
-     }
-   };
-   request.onsuccess=()=>resolve(request.result);
-   request.onerror=()=>reject(request.error);
- });
-}
-async function addPlayer(){
+function addPlayer(){
  const name=document.getElementById('playerName').value.trim();
  const email=document.getElementById('playerEmail').value.trim();
- const position=document.getElementById('playerPosition').value;
  const notes=document.getElementById('playerNotes').value.trim();
- if(!name){alert('Please enter a player name.');return;}
- try{
-   const database=await openCoachDatabase();
-   const record={id:Date.now()+'-'+Math.random().toString(36).slice(2),coachEmail:getCoachEmail(),name:name,email:email,position:position,notes:notes,createdAt:new Date().toISOString()};
-   await new Promise((resolve,reject)=>{
-     const transaction=database.transaction('players','readwrite');
-     transaction.objectStore('players').put(record);
-     transaction.oncomplete=resolve;
-     transaction.onerror=()=>reject(transaction.error);
-   });
-   document.getElementById('playerName').value='';
-   document.getElementById('playerEmail').value='';
-   document.getElementById('playerNotes').value='';
-   await renderPlayers();
- }catch(error){alert('Could not add player.');}
+ if(!name){alert('Enter a player name.');return;}
+ const player={id:'p'+Date.now(),name:name,email:email,notes:notes,sessions:[]};
+ playersCache.push(player);
+ renderPlayers();
+ document.getElementById('playerName').value='';
+ document.getElementById('playerEmail').value='';
+ document.getElementById('playerNotes').value='';
 }
-async function getCoachPlayers(){
- const database=await openCoachDatabase();
- return new Promise((resolve,reject)=>{
-   const transaction=database.transaction('players','readonly');
-   const index=transaction.objectStore('players').index('coachEmail');
-   const request=index.getAll(getCoachEmail());
-   request.onsuccess=()=>resolve(request.result||[]);
-   request.onerror=()=>reject(request.error);
- });
-}
-async function getCoachSessions(){
- const database=await openCoachDatabase();
- return new Promise((resolve,reject)=>{
-   const transaction=database.transaction('sessions','readonly');
-   const index=transaction.objectStore('sessions').index('coachEmail');
-   const request=index.getAll(getCoachEmail());
-   request.onsuccess=()=>resolve(request.result||[]);
-   request.onerror=()=>reject(request.error);
- });
-}
-function average(values){
- const valid=values.filter(value=>typeof value==='number' && !isNaN(value));
- return valid.length?valid.reduce((total,value)=>total+value,0)/valid.length:0;
-}
-async function renderPlayers(){
+function renderPlayers(){
  const list=document.getElementById('playerList');
+ list.innerHTML='';
  const stats=document.getElementById('playerStats');
- list.innerHTML='<div class="player-item"><span>Loading players…</span></div>';
- try{
-   playersCache=await getCoachPlayers();
-   sessionsCache=await getCoachSessions();
-   playersCache.sort((a,b)=>a.name.localeCompare(b.name));
-   const totalSessions=sessionsCache.length;
-   const averageScore=average(sessionsCache.map(session=>session.score));
-   const weekAgo=Date.now()-(7*24*60*60*1000);
-   const sessionsThisWeek=sessionsCache.filter(session=>new Date(session.date).getTime()>=weekAgo).length;
-   stats.innerHTML='<div class="stat-card"><div class="stat-top"><div><div class="label">Players</div><div class="stat">'+playersCache.length+'</div></div><div class="icon blue">👥</div></div></div><div class="stat-card"><div class="stat-top"><div><div class="label">Training sessions</div><div class="stat">'+totalSessions+'</div></div><div class="icon green">🏈</div></div></div><div class="stat-card"><div class="stat-top"><div><div class="label">Average score</div><div class="stat">'+(totalSessions?Math.round(averageScore):'—')+'</div></div><div class="icon purple">🎯</div></div><div class="bar"><span style="width:'+(totalSessions?Math.round(averageScore):0)+'%"></span></div></div><div class="stat-card"><div class="stat-top"><div><div class="label">Sessions this week</div><div class="stat">'+sessionsThisWeek+'</div></div><div class="icon orange">📅</div></div></div>';
-   if(!playersCache.length){
-     list.innerHTML='<div class="player-item"><span>No players added yet.</span></div>';
-     return;
-   }
-   list.innerHTML=playersCache.map(player=>{
-     const sessions=sessionsCache.filter(session=>session.playerId===player.id);
-     const playerAverage=average(sessions.map(session=>session.score));
-     const lastSession=sessions.sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
-     const lastTrained=lastSession?new Date(lastSession.date).toLocaleDateString():'No sessions yet';
-     const decisionTime=average(sessions.map(session=>session.decisionTime));
-     const accuracy=average(sessions.map(session=>session.accuracy));
-     const pressure=average(sessions.map(session=>session.pressureResponse));
-     return '<div class="player-item"><div><b>'+player.name+'</b><br><small>'+player.position+(player.email?' • '+player.email:'')+'</small><br><small>Sessions: '+sessions.length+' • Avg score: '+(sessions.length?Math.round(playerAverage):'—')+' • Last trained: '+lastTrained+'</small><br><small>Decision time: '+(sessions.length?decisionTime.toFixed(1)+'s':'—')+' • Accuracy: '+(sessions.length?Math.round(accuracy)+'%':'—')+' • Pressure response: '+(sessions.length?Math.round(pressure)+'%':'—')+'</small>'+(player.notes?'<br><small>Notes: '+player.notes+'</small>':'')+'</div><div class="player-actions"><button class="btn ghost" onclick=\'startSessionForm("'+player.id+'")\'>Log session</button><button class="btn ghost" onclick=\'deletePlayer("'+player.id+'")\'>Delete</button></div></div><div class="bar" style="margin:-4px 0 14px"><span style="width:'+(sessions.length?Math.round(playerAverage):0)+'%"></span></div>';
-   }).join('');
- }catch(error){
-   list.innerHTML='<div class="player-item"><span>Could not load players.</span></div>';
- }
+ stats.innerHTML='';
+ if(playersCache.length===0){list.innerHTML='<p class="private-note">No players added yet.</p>';return;}
+ playersCache.forEach(p=>{
+   const div=document.createElement('div');
+   div.className='player-item';
+   div.innerHTML='<div><b>'+p.name+'</b><br><small>'+(p.email||'')+'</small></div><div class="player-actions"><button class="btn ghost" style="color:#000" onclick="openSessionForm(\''+p.id+'\')">Log session</button><button class="btn ghost" style="color:#000" onclick="deletePlayer(\''+p.id+'\')">Delete</button></div>';
+   list.appendChild(div);
+ });
+ const totalReps=playersCache.reduce((sum,p)=>sum+p.sessions.length,0);
+ stats.innerHTML='<div class="stat-card"><div class="stat-top"><div><div class="label">Players</div><div class="stat">'+playersCache.length+'</div></div><div class="icon blue">👥</div></div></div><div class="stat-card"><div class="stat-top"><div><div class="label">Total Sessions</div><div class="stat">'+totalReps+'</div></div><div class="icon green">📋</div></div></div>';
 }
-function startSessionForm(playerId){
- const player=playersCache.find(record=>record.id===playerId);
- if(!player)return;
- activePlayerId=playerId;
- document.getElementById('sessionPlayerName').textContent='Log training session — '+player.name;
+function openSessionForm(id){
+ activePlayerId=id;
+ const p=playersCache.find(x=>x.id===id);
  document.getElementById('sessionCard').style.display='block';
- document.getElementById('sessionCard').scrollIntoView({behavior:'smooth'});
+ document.getElementById('sessionPlayerName').textContent='Log training session — '+p.name;
 }
 function closeSessionForm(){
- activePlayerId=null;
  document.getElementById('sessionCard').style.display='none';
+ activePlayerId=null;
 }
-async function logSession(){
+function logSession(){
  if(!activePlayerId)return;
- const player=playersCache.find(record=>record.id===activePlayerId);
- const drill=document.getElementById('sessionDrill').value.trim();
- const score=Number(document.getElementById('sessionScore').value);
- const decisionTime=Number(document.getElementById('sessionDecisionTime').value);
- const accuracy=Number(document.getElementById('sessionAccuracy').value);
- const pressure=Number(document.getElementById('sessionPressure').value);
- const notes=document.getElementById('sessionNotes').value.trim();
- if(!drill || isNaN(score) || score<0 || score>100){alert('Please enter a drill and a score from 0 to 100.');return;}
- try{
-   const database=await openCoachDatabase();
-   const record={id:Date.now()+'-'+Math.random().toString(36).slice(2),coachEmail:getCoachEmail(),playerId:activePlayerId,playerName:player.name,date:new Date().toISOString(),drill:drill,score:score,decisionTime:isNaN(decisionTime)?null:decisionTime,accuracy:isNaN(accuracy)?null:accuracy,pressureResponse:isNaN(pressure)?null:pressure,notes:notes};
-   await new Promise((resolve,reject)=>{
-     const transaction=database.transaction('sessions','readwrite');
-     transaction.objectStore('sessions').put(record);
-     transaction.oncomplete=resolve;
-     transaction.onerror=()=>reject(transaction.error);
-   });
-   document.getElementById('sessionDrill').value='';
-   document.getElementById('sessionScore').value='';
-   document.getElementById('sessionDecisionTime').value='';
-   document.getElementById('sessionAccuracy').value='';
-   document.getElementById('sessionPressure').value='';
-   document.getElementById('sessionNotes').value='';
-   closeSessionForm();
-   await renderPlayers();
- }catch(error){alert('Could not save session.');}
+ const p=playersCache.find(x=>x.id===activePlayerId);
+ const drill=document.getElementById('sessionDrill').value;
+ const score=document.getElementById('sessionScore').value;
+ const dt=document.getElementById('sessionDecisionTime').value;
+ const acc=document.getElementById('sessionAccuracy').value;
+ const press=document.getElementById('sessionPressure').value;
+ const notes=document.getElementById('sessionNotes').value;
+ if(!drill||!score){alert('Enter at least a drill and score.');return;}
+ p.sessions.push({drill:drill,score:score,decisionTime:dt,accuracy:acc,pressure:press,notes:notes});
+ renderPlayers();
+ closeSessionForm();
 }
-async function deletePlayer(playerId){
- try{
-   const database=await openCoachDatabase();
-   const player=playersCache.find(record=>record.id===playerId);
-   if(!player)return;
-   if(!confirm('Delete '+player.name+' and all of their training sessions?'))return;
-   const sessions=sessionsCache.filter(session=>session.playerId===playerId);
-   await new Promise((resolve,reject)=>{
-     const transaction=database.transaction(['players','sessions'],'readwrite');
-     transaction.objectStore('players').delete(playerId);
-     sessions.forEach(session=>transaction.objectStore('sessions').delete(session.id));
-     transaction.oncomplete=resolve;
-     transaction.onerror=()=>reject(transaction.error);
-   });
-   await renderPlayers();
- }catch(error){}
+function deletePlayer(id){
+ playersCache=playersCache.filter(p=>p.id!==id);
+ renderPlayers();
 }
-updateScenario();
-renderPlaybooks();
-renderPlayers();
+let playbooksCache=[];
+init();
+function init(){
+ updateScenario();
+ renderPlaybooks();
+ renderPlayers();
+}
 </script>
 </body>
 </html>
