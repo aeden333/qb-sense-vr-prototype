@@ -69,7 +69,30 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:22px}
 input,select,textarea{width:100%;max-width:520px;padding:12px;border:1px solid #d7e1ef;border-radius:12px;font-size:15px;background:#fff;color:#0f172a}
 .field{margin-bottom:16px}
 .field label{display:block;margin-bottom:6px;font-weight:700}
-@media(max-width:640px){header{flex-direction:column;align-items:flex-start;gap:8px}.vest{text-align:left}.hero{padding:30px 22px}.hero-actions .btn{width:100%}}
+.pricing-hero{background:linear-gradient(135deg,#081729,#123a6b 60%,#1c4d8f);border-radius:28px;padding:38px 26px;color:#fff;margin-bottom:20px;box-shadow:0 24px 60px rgba(8,23,41,.25);position:relative;overflow:hidden}
+.pricing-hero:before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 20% 80%,rgba(255,255,255,.08) 0,transparent 35%),radial-gradient(circle at 75% 70%,rgba(255,255,255,.07) 0,transparent 30%)}
+.pricing-hero>*{position:relative}
+.pricing-hero h2{margin:12px 0 10px;font-size:clamp(26px,5vw,40px);letter-spacing:-.03em}
+.pricing-hero p{margin:0;color:#d7e4f7;max-width:640px;line-height:1.55}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:16px}
+.price-card{position:relative;background:var(--card);border:1px solid #e4ebf5;border-radius:22px;padding:24px;box-shadow:0 10px 25px rgba(15,35,70,.06);display:flex;flex-direction:column;gap:12px}
+.price-card.featured{border:2px solid var(--blue);box-shadow:0 16px 40px rgba(47,107,255,.18);transform:scale(1.02)}
+.price-tag{position:absolute;top:-12px;right:18px;background:linear-gradient(135deg,var(--blue),#6d8dff);color:#fff;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:6px 12px;border-radius:999px}
+.price-tier{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.price-amount{font-size:38px;font-weight:850;color:var(--navy);letter-spacing:-.03em}
+.price-amount span{font-size:15px;font-weight:700;color:var(--muted)}
+.price-sub{font-size:12px;color:var(--muted)}
+.price-features{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:14px}
+.price-features li{color:#334155}
+.price-total{background:#f1f6ff;border-radius:12px;padding:10px 12px;font-size:13px;color:#243b53;line-height:1.5}
+.price-card.enterprise{grid-column:1/-1;flex-direction:row;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+.price-card.enterprise .price-amount{font-size:24px}
+.pricing-table{width:100%;border-collapse:collapse;font-size:13px;min-width:980px}
+.pricing-table th{background:#eaf1ff;color:#243b53;text-align:left;padding:12px 10px;border-bottom:2px solid #d7e1ef;white-space:nowrap;font-weight:800}
+.pricing-table td{padding:12px 10px;border-bottom:1px solid #e4ebf5;color:#334155;vertical-align:top}
+.pricing-table tr:last-child td{border-bottom:0}
+.pricing-table td:first-child{font-weight:800;color:var(--navy)}
+@media(max-width:640px){header{flex-direction:column;align-items:flex-start;gap:8px}.vest{text-align:left}.hero{padding:30px 22px}.hero-actions .btn{width:100%}.price-card.featured{transform:none}}
 </style>
 </head>
 <body>
@@ -348,80 +371,132 @@ input,select,textarea{width:100%;max-width:520px;padding:12px;border:1px solid #
 </section>
 
 <section id="pricing" class="page">
-<div class="card">
-<h2>Pricing</h2>
-<p>Choose the QB Sense VR plan that fits your training needs. All plans include access to the VR training drills, progress tracking, and coach tools.</p>
+<div class="pricing-hero">
+<span class="badge">● Pricing</span>
+<h2>Choose your training plan.</h2>
+<p>Flexible plans for individual quarterbacks, coaches, and full programs. Every plan includes VR training drills, progress tracking, and coach tools.</p>
+</div>
+
+<div class="pricing-grid">
+<div class="price-card">
+<div class="price-tier">Starter</div>
+<div class="price-amount">$19<span>/mo</span></div>
+<div class="price-sub">Software only</div>
+<ul class="price-features">
+<li>✓ Core VR drills</li>
+<li>✓ Basic progress tracking</li>
+<li>✓ 1 player profile</li>
+<li>✓ Standard support</li>
+<li>✕ Haptic vest not available</li>
+</ul>
+<div class="price-total"><b>$68/month</b> with headset rental<br><b>$49/month</b> on the annual plan<br><b>$778</b> first year on annual</div>
+<button class="btn primary" style="width:100%;margin-top:auto;">Choose Starter</button>
+</div>
+
+<div class="price-card featured">
+<div class="price-tag">Most popular</div>
+<div class="price-tier">QB Pro</div>
+<div class="price-amount">$39<span>/mo</span></div>
+<div class="price-sub">Software only</div>
+<ul class="price-features">
+<li>✓ Everything in Starter</li>
+<li>✓ Live training &amp; coach mode</li>
+<li>✓ Advanced performance analytics</li>
+<li>✓ Up to 3 player profiles</li>
+<li>✓ Optional haptic vest</li>
+</ul>
+<div class="price-total"><b>$88/month</b> without vest<br><b>$117/month</b> with vest<br><b>$978</b> first year without vest<br><b>$1,326</b> first year with vest</div>
+<button class="btn primary" style="width:100%;margin-top:auto;">Choose QB Pro</button>
+</div>
+
+<div class="price-card">
+<div class="price-tier">Coach &amp; Team</div>
+<div class="price-amount">$99<span>/mo</span></div>
+<div class="price-sub">Software only</div>
+<ul class="price-features">
+<li>✓ Everything in QB Pro</li>
+<li>✓ Up to 20 quarterbacks</li>
+<li>✓ Coach dashboard</li>
+<li>✓ Playbook uploads</li>
+<li>✓ Optional haptic vests</li>
+</ul>
+<div class="price-total"><b>$148/month</b> without vest<br><b>$177/month</b> with one vest<br><b>$1,578</b> first year without vest<br><b>$1,926</b> first year with one vest</div>
+<button class="btn primary" style="width:100%;margin-top:auto;">Choose Coach &amp; Team</button>
+</div>
+</div>
+
+<div class="price-card enterprise">
+<div>
+<div class="price-tier">Enterprise</div>
+<p style="margin:8px 0 0;color:#334155;">Custom pricing for schools, colleges, facilities, and large organizations.</p>
+</div>
+<div class="price-total" style="background:#f1f6ff;">Custom quote</div>
+<button class="btn ghost">Request a quote</button>
 </div>
 
 <div class="card" style="overflow-x:auto;">
-<h2>Plan comparison</h2>
-<table style="width:100%;border-collapse:collapse;font-size:13px;min-width:980px;">
+<h2>Full plan comparison</h2>
+<table class="pricing-table">
 <thead>
-<tr style="background:#eaf1ff;">
-<th style="text-align:left;padding:10px;border-bottom:2px solid #d7e1ef;white-space:nowrap;">Tier</th>
-<th style="text-align:left;padding:10px;border-bottom:2px solid #d7e1ef;white-space:nowrap;">Monthly software</th>
-<th style="text-align:left;padding:10px;border-bottom:2px solid #d7e1ef;white-space:nowrap;">Annual software upfront</th>
-<th style="text-align:left;padding:10px;border-bottom:2px solid #d7e1ef;white-space:nowrap;">VR headset rental</th>
-<th style="text-align:left;padding:10px;border-bottom:2px solid #d7e1ef;white-space:nowrap;">Haptic vest</th>
-<th style="text-align:left;padding:10px;border-bottom:2px solid #d7e1ef;white-space:nowrap;">Monthly plan: total per month</th>
-<th style="text-align:left;padding:10px;border-bottom:2px solid #d7e1ef;white-space:nowrap;">Annual plan: total per month</th>
-<th style="text-align:left;padding:10px;border-bottom:2px solid #d7e1ef;white-space:nowrap;">Annual plan: first-year total</th>
-<th style="text-align:left;padding:10px;border-bottom:2px solid #d7e1ef;white-space:nowrap;">Best for</th>
+<tr>
+<th>Tier</th>
+<th>Monthly software</th>
+<th>Annual software upfront</th>
+<th>VR headset rental</th>
+<th>Haptic vest</th>
+<th>Monthly plan: total per month</th>
+<th>Annual plan: total per month</th>
+<th>Annual plan: first-year total</th>
+<th>Best for</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;"><b>Starter</b></td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">$19/month</td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">$190/year — 2 months free</td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">Required: $49/month + $250 refundable deposit</td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">Not available</td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">$68/month</td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">$49/month</td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">$778 first year</td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">A quarterback who wants basic drills and progress tracking</td>
+<td>Starter</td>
+<td>$19/month</td>
+<td>$190/year — 2 months free</td>
+<td>Required: $49/month + $250 refundable deposit</td>
+<td>Not available</td>
+<td>$68/month</td>
+<td>$49/month</td>
+<td>$778 first year</td>
+<td>A quarterback who wants basic drills and progress tracking</td>
 </tr>
 <tr>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;"><b>QB Pro</b></td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">$39/month</td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">$390/year — 2 months free</td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">Required: $49/month + $250 refundable deposit</td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">Optional: $29/month + $150 refundable deposit</td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">$88/month without vest; $117/month with vest</td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">$49/month without vest; $78/month with vest</td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">$978 without vest; $1,326 with vest</td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">A serious quarterback who wants full training and pressure feedback</td>
+<td>QB Pro</td>
+<td>$39/month</td>
+<td>$390/year — 2 months free</td>
+<td>Required: $49/month + $250 refundable deposit</td>
+<td>Optional: $29/month + $150 refundable deposit</td>
+<td>$88/month without vest; $117/month with vest</td>
+<td>$49/month without vest; $78/month with vest</td>
+<td>$978 without vest; $1,326 with vest</td>
+<td>A serious quarterback who wants full training and pressure feedback</td>
 </tr>
 <tr>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;"><b>Coach &amp; Team</b></td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">$99/month</td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">$990/year — 2 months free</td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">Required: $49/month + $250 refundable deposit</td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">Optional: $29/month per vest + $150 refundable deposit per vest</td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">$148/month without vest; $177/month with one vest</td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">$49/month without vest; $78/month with one vest</td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">$1,578 without vest; $1,926 with one vest</td>
-<td style="padding:10px;border-bottom:1px solid #e4ebf5;">A QB coach, academy, or program training up to 20 quarterbacks</td>
+<td>Coach &amp; Team</td>
+<td>$99/month</td>
+<td>$990/year — 2 months free</td>
+<td>Required: $49/month + $250 refundable deposit</td>
+<td>Optional: $29/month per vest + $150 refundable deposit per vest</td>
+<td>$148/month without vest; $177/month with one vest</td>
+<td>$49/month without vest; $78/month with one vest</td>
+<td>$1,578 without vest; $1,926 with one vest</td>
+<td>A QB coach, academy, or program training up to 20 quarterbacks</td>
 </tr>
 <tr>
-<td style="padding:10px;"><b>Enterprise</b></td>
-<td style="padding:10px;">Custom quote</td>
-<td style="padding:10px;">Custom annual quote</td>
-<td style="padding:10px;">Required: custom rental</td>
-<td style="padding:10px;">Custom hardware package</td>
-<td style="padding:10px;">Custom monthly quote</td>
-<td style="padding:10px;">Custom monthly quote</td>
-<td style="padding:10px;">Custom annual quote</td>
-<td style="padding:10px;">Schools, colleges, facilities, and large organizations</td>
+<td>Enterprise</td>
+<td>Custom quote</td>
+<td>Custom annual quote</td>
+<td>Required: custom rental</td>
+<td>Custom hardware package</td>
+<td>Custom monthly quote</td>
+<td>Custom monthly quote</td>
+<td>Custom annual quote</td>
+<td>Schools, colleges, facilities, and large organizations</td>
 </tr>
 </tbody>
 </table>
-</div>
-
-<div class="card">
-<h2>Need a custom plan?</h2>
-<p>For schools, academies, or larger organizations, contact us for a customized QB Sense VR package.</p>
-<button class="btn ghost">Request a quote</button>
 </div>
 </section>
 </main>
