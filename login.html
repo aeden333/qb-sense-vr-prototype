@@ -7,9 +7,9 @@
 <style>
 :root{--navy:#0A1628;--green:#14532D;--green-2:#166534;--gold:#F59E0B;--bg:#F6F7F9;--card:#fff;--muted:#5B6B7C;--border:#E2E8F0}
 *{box-sizing:border-box;font-family:'Archivo',system-ui,Arial,sans-serif}
-body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy);color:#111827;position:relative;overflow:hidden}
-body:before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 2px,transparent 2px 90px)}
-body:after{content:'';position:absolute;left:0;right:0;bottom:0;height:6px;background:var(--green)}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;color:#111827;position:relative;overflow:hidden;background:radial-gradient(circle at 12% 88%,rgba(20,83,45,.6),transparent 45%),radial-gradient(circle at 88% 12%,rgba(245,158,11,.14),transparent 42%),radial-gradient(circle at 50% 40%,rgba(255,255,255,.04),transparent 55%),linear-gradient(160deg,#0A1628 0%,#0E2136 55%,#0A1628 100%)}
+body:before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 5px),repeating-linear-gradient(90deg,rgba(255,255,255,.04) 0 2px,transparent 2px 90px)}
+body:after{content:'';position:absolute;left:0;right:0;bottom:0;height:6px;background:linear-gradient(90deg,var(--green),var(--gold))}
 .login-wrap{position:relative;z-index:1;width:100%;max-width:420px;padding:20px}
 .logo{ text-align:center;margin-bottom:24px }
 .logo h1{margin:0;font-size:28px;font-weight:900;letter-spacing:-.02em;text-transform:uppercase;color:#fff}
