@@ -30,6 +30,12 @@ body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:c
 .btn.primary:hover{background:var(--green-2)}
 .note{margin-top:15px;font-size:12px;color:var(--muted);text-align:center}
 .error{margin-top:10px;font-size:13px;color:#DC2626;text-align:center;display:none}
+.success{margin-top:10px;font-size:13px;color:var(--green);font-weight:800;text-align:center;display:none}
+.links{margin-top:14px;text-align:center}
+.link-btn{background:none;border:0;padding:0;color:var(--green);font-weight:800;font-size:13px;cursor:pointer;text-decoration:underline}
+.link-btn:hover{color:var(--green-2)}
+.reset-title{margin:0 0 6px;font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:-.01em;color:var(--navy)}
+.reset-help{margin:0 0 18px;font-size:13px;line-height:1.5;color:var(--muted)}
 .hidden{display:none}
 </style>
 </head>
@@ -55,6 +61,7 @@ body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:c
 <div class="field"><label for="signinPassword">Password</label><input type="password" id="signinPassword" placeholder="••••••••" required></div>
 <button class="btn primary" type="submit">Sign In</button>
 <div class="error" id="signinError">Invalid email or password.</div>
+<div class="links"><button type="button" class="link-btn" onclick="showTab('reset')">Forgot password?</button></div>
 </form>
 <form id="signupForm" class="hidden" onsubmit="return handleSignup(event)">
 <div class="field"><label for="signupName">Player/Coach name</label><input type="text" id="signupName" placeholder="Player/Coach Name" required></div>
@@ -62,6 +69,18 @@ body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:c
 <div class="field"><label for="signupPassword">Password</label><input type="password" id="signupPassword" placeholder="Create a password" minlength="6" required></div>
 <button class="btn primary" type="submit">Create Account</button>
 <div class="error" id="signupError">Could not create account. Try again.</div>
+</form>
+<form id="resetForm" class="hidden" onsubmit="return handleReset(event)">
+<h2 class="reset-title">Reset password</h2>
+<p class="reset-help">Enter your account email and the name you used when you created your account, then choose a new password.</p>
+<div class="field"><label for="resetEmail">Player/Coach email</label><input type="email" id="resetEmail" placeholder="you@team.com" required></div>
+<div class="field"><label for="resetName">Player/Coach name</label><input type="text" id="resetName" placeholder="Name used at sign-up" required></div>
+<div class="field"><label for="resetPassword">New password</label><input type="password" id="resetPassword" placeholder="New password" minlength="6" required></div>
+<div class="field"><label for="resetConfirm">Confirm new password</label><input type="password" id="resetConfirm" placeholder="Repeat new password" minlength="6" required></div>
+<button class="btn primary" type="submit">Reset Password</button>
+<div class="error" id="resetError"></div>
+<div class="success" id="resetSuccess">Password updated. Taking you back to sign in…</div>
+<div class="links"><button type="button" class="link-btn" onclick="showTab('signin')">Back to sign in</button></div>
 </form>
 <div class="note">By signing in you agree to the QB Sense VR terms.</div>
 </div>
@@ -72,6 +91,9 @@ function showTab(tab){
  document.getElementById('tabSignup').classList.toggle('active',tab==='signup');
  document.getElementById('signinForm').classList.toggle('hidden',tab!=='signin');
  document.getElementById('signupForm').classList.toggle('hidden',tab!=='signup');
+ document.getElementById('resetForm').classList.toggle('hidden',tab!=='reset');
+ document.getElementById('resetError').style.display='none';
+ document.getElementById('resetSuccess').style.display='none';
 }
 function handleSignin(e){
  e.preventDefault();
@@ -97,6 +119,39 @@ function handleSignup(e){
  localStorage.setItem('qbsense_users',JSON.stringify(users));
  localStorage.setItem('qbsense_user',email);
  window.location.href='index.html';
+ return false;
+}
+function handleReset(e){
+ e.preventDefault();
+ const email=document.getElementById('resetEmail').value.trim();
+ const name=document.getElementById('resetName').value.trim().toLowerCase();
+ const password=document.getElementById('resetPassword').value;
+ const confirmPassword=document.getElementById('resetConfirm').value;
+ const error=document.getElementById('resetError');
+ const success=document.getElementById('resetSuccess');
+ error.style.display='none';
+ success.style.display='none';
+ if(password!==confirmPassword){
+   error.textContent='Passwords do not match.';
+   error.style.display='block';
+   return false;
+ }
+ const users=JSON.parse(localStorage.getItem('qbsense_users')||'{}');
+ const user=Object.prototype.hasOwnProperty.call(users,email) ? users[email] : null;
+ if(!user || String(user.name||'').trim().toLowerCase()!==name){
+   error.textContent='We could not verify that email and name on this device.';
+   error.style.display='block';
+   return false;
+ }
+ user.password=password;
+ localStorage.setItem('qbsense_users',JSON.stringify(users));
+ document.getElementById('resetForm').reset();
+ success.style.display='block';
+ setTimeout(function(){
+   showTab('signin');
+   document.getElementById('signinEmail').value=email;
+   document.getElementById('signinPassword').focus();
+ },1500);
  return false;
 }
 </script>
