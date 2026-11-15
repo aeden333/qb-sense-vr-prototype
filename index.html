@@ -119,7 +119,10 @@ input,select,textarea{width:100%;max-width:520px;padding:11px;border:1px solid v
 </div>
 
 <section id="home" class="page active">
-<div class="hero"> <div>
+<div class="hero">
+<div id="welcomeBanner" hidden style="margin-bottom:18px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:14px 18px;color:#fff;overflow-wrap:anywhere">
+<span style="font-size:13px;font-weight:800;letter-spacing:.05em;color:#CBD5E1">Welcome back, </span><span id="welcomeName" style="font-size:22px;font-weight:900"></span>
+</div>
 <span class="badge">QB Training System</span>
 <h2>Train like it’s game day.</h2>
 <p>QB Sense VR helps quarterbacks read defenses, recognize pressure, move in the pocket, and make faster decisions—without taking real hits.</p>
@@ -991,5 +994,17 @@ updateScenario();
 renderPlaybooks();
 renderPlayers();
 </script>
-</body> <script>
+<script>
+(function(){
+ try{
+  const email=localStorage.getItem('qbsense_user');
+  const users=JSON.parse(localStorage.getItem('qbsense_users')||'{}');
+  const user=email && Object.prototype.hasOwnProperty.call(users,email) ? users[email] : null;
+  if(!user || typeof user.name!=='string' || !user.name.trim())return;
+  document.getElementById('welcomeName').textContent=user.name.trim();
+  document.getElementById('welcomeBanner').hidden=false;
+ }catch(error){}
+})();
+</script>
+</body>
 </html>
