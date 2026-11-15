@@ -3,53 +3,92 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>QB Sense VR — Log In</title>
+<title>QB Sense VR — Coach Sign In</title>
 <style>
-:root{--navy:#081729;--blue:#2f6bff;--cyan:#22d3ee;--muted:#9fb3d1}
-*{box-sizing:border-box;font-family:'Inter',system-ui,Arial,sans-serif}
-body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;color:#fff;background:radial-gradient(circle at 15% 20%,rgba(34,211,238,.28),transparent 40%),radial-gradient(circle at 85% 15%,rgba(109,141,255,.38),transparent 45%),linear-gradient(135deg,#081729,#123a6b 60%,#1c4d8f)}
-.card{position:relative;width:100%;max-width:430px;border-radius:26px;padding:36px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);box-shadow:0 30px 70px rgba(0,0,0,.35);backdrop-filter:blur(18px)}
-.card:before{content:'';position:absolute;inset:0;border-radius:26px;background:radial-gradient(circle at 20% 15%,rgba(255,255,255,.1),transparent 35%);pointer-events:none}
-.badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);padding:7px 13px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
-h1{margin:18px 0 8px;font-size:34px;letter-spacing:-.03em;line-height:1.1}
-p{margin:0 0 26px;color:#d7e4f7;font-size:15px;line-height:1.5}
-label{display:block;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#c9d8ee;margin:0 0 7px}
-input{width:100%;padding:14px 16px;border:1px solid rgba(255,255,255,.2);border-radius:14px;margin-bottom:16px;font-size:15px;color:#fff;background:rgba(255,255,255,.08)}
-input::placeholder{color:#9fb3d1}
-input:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 4px rgba(34,211,238,.18)}
-button{width:100%;padding:15px;border:0;border-radius:14px;background:#fff;color:#081729;font-size:16px;font-weight:850;cursor:pointer;transition:.2s;box-shadow:0 12px 28px rgba(255,255,255,.15)}
-button:hover{transform:translateY(-2px)}
-.error{display:none;background:rgba(255,77,90,.16);border:1px solid rgba(255,77,90,.35);color:#ffd7db;padding:11px 14px;border-radius:12px;font-size:13px;margin-bottom:16px}
-.demo{margin:18px 0 0;font-size:12px;color:var(--muted);text-align:center}
+:root{--navy:#0A1628;--green:#14532D;--green-2:#166534;--gold:#F59E0B;--bg:#F6F7F9;--card:#fff;--muted:#5B6B7C;--border:#E2E8F0}
+*{box-sizing:border-box;font-family:'Archivo',system-ui,Arial,sans-serif}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy);color:#111827;position:relative;overflow:hidden}
+body:before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 2px,transparent 2px 90px)}
+body:after{content:'';position:absolute;left:0;right:0;bottom:0;height:6px;background:var(--green)}
+.login-wrap{position:relative;z-index:1;width:100%;max-width:420px;padding:20px}
+.logo{ text-align:center;margin-bottom:24px }
+.logo h1{margin:0;font-size:28px;font-weight:900;letter-spacing:-.02em;text-transform:uppercase;color:#fff}
+.logo p{margin:4px 0 0;font-size:11px;color:#9CA3AF;letter-spacing:.08em;text-transform:uppercase}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.tabs{display:flex;gap:8px;margin-bottom:20px}
+.tabs button{flex:1;border:1px solid var(--border);background:#fff;color:var(--navy);padding:10px;border-radius:6px;font-weight:800;font-size:12px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:.15s}
+.tabs button.active{background:var(--green);color:#fff;border-color:var(--green)}
+.field{margin-bottom:16px}
+.field label{display:block;margin-bottom:6px;font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.field input{width:100%;padding:12px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:#fff;color:#111827}
+.field input:focus{outline:2px solid var(--green);outline-offset:1px}
+.btn{display:inline-flex;align-items:center;justify-content:center;width:100%;border:0;border-radius:6px;padding:14px 20px;font-weight:800;cursor:pointer;transition:.15s;font-size:13px;letter-spacing:.05em;text-transform:uppercase}
+.btn.primary{background:var(--green);color:#fff}
+.btn.primary:hover{background:var(--green-2)}
+.note{margin-top:14px;font-size:11px;color:var(--muted);text-align:center}
+.error{margin-top:10px;font-size:12px;color:#DC2626;text-align:center;display:none}
+.hidden{display:none}
 </style>
 </head>
 <body>
+<div class="login-wrap">
+<div class="logo">
+<h1>QB Sense VR</h1>
+<p>Train the read. Feel the pressure. Make the throw.</p>
+</div>
 <div class="card">
-<span class="badge">● QB Training System</span>
-<h1>Welcome back</h1>
-<p>Log in to continue training your reads, pocket presence, and decision-making under pressure.</p>
-<div id="error" class="error">Please enter an email and password.</div>
-<form onsubmit="return login(event)">
-<label for="email">Email</label>
-<input id="email" type="email" placeholder="you@example.com" required>
-<label for="password">Password</label>
-<input id="password" type="password" placeholder="Enter your password" required>
-<button type="submit">Log In →</button>
+<div class="tabs">
+<button id="tabSignin" class="active" onclick="showTab('signin')">Sign In</button>
+<button id="tabSignup" onclick="showTab('signup')">Create Account</button>
+</div>
+<form id="signinForm" onsubmit="return handleSignin(event)">
+<div class="field"><label for="signinEmail">Coach email</label><input type="email" id="signinEmail" placeholder="you@team.com" required></div>
+<div class="field"><label for="signinPassword">Password</label><input type="password" id="signinPassword" placeholder="••••••••" required></div>
+<button class="btn primary" type="submit">Sign In</button>
+<div class="error" id="signinError">Invalid email or password.</div>
 </form>
-<p class="demo">Demo version: any email and password will open the prototype.</p>
+<form id="signupForm" class="hidden" onsubmit="return handleSignup(event)">
+<div class="field"><label for="signupName">Coach name</label><input type="text" id="signupName" placeholder="Coach Name" required></div>
+<div class="field"><label for="signupEmail">Coach email</label><input type="email" id="signupEmail" placeholder="you@team.com" required></div>
+<div class="field"><label for="signupPassword">Password</label><input type="password" id="signupPassword" placeholder="Create a password" minlength="6" required></div>
+<button class="btn primary" type="submit">Create Account</button>
+<div class="error" id="signupError">Could not create account. Try again.</div>
+</form>
+<div class="note">By signing in you agree to the QB Sense VR terms.</div>
+</div>
 </div>
 <script>
-function login(event){
-  event.preventDefault();
-  const email=document.getElementById('email').value.trim();
-  const password=document.getElementById('password').value.trim();
-  if(!email || !password){
-    document.getElementById('error').style.display='block';
-    return false;
-  }
-  localStorage.setItem('qbsense_user',email);
-  window.location.href='index.html';
-  return false;
+function showTab(tab){
+ document.getElementById('tabSignin').classList.toggle('active',tab==='signin');
+ document.getElementById('tabSignup').classList.toggle('active',tab==='signup');
+ document.getElementById('signinForm').classList.toggle('hidden',tab!=='signin');
+ document.getElementById('signupForm').classList.toggle('hidden',tab!=='signup');
+}
+function handleSignin(e){
+ e.preventDefault();
+ const email=document.getElementById('signinEmail').value.trim();
+ const password=document.getElementById('signinPassword').value;
+ const users=JSON.parse(localStorage.getItem('qbsense_users')||'{}');
+ if(users[email] && users[email].password===password){
+   localStorage.setItem('qbsense_user',email);
+   window.location.href='index.html';
+   return false;
+ }
+ document.getElementById('signinError').style.display='block';
+ return false;
+}
+function handleSignup(e){
+ e.preventDefault();
+ const name=document.getElementById('signupName').value.trim();
+ const email=document.getElementById('signupEmail').value.trim();
+ const password=document.getElementById('signupPassword').value;
+ const users=JSON.parse(localStorage.getItem('qbsense_users')||'{}');
+ if(users[email]){document.getElementById('signupError').textContent='An account with this email already exists.';document.getElementById('signupError').style.display='block';return false;}
+ users[email]={name:name,password:password,createdAt:new Date().toISOString()};
+ localStorage.setItem('qbsense_users',JSON.stringify(users));
+ localStorage.setItem('qbsense_user',email);
+ window.location.href='index.html';
+ return false;
 }
 </script>
 </body>
