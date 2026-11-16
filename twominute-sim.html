@@ -40,7 +40,7 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <label id="playerWrap" class="hidden">Player <select id="player"><option value="">Results tab (just me)</option></select></label>
 </div>
 <p><b>Level: <span id="lvlVal">1</span>/10</b><br><input type="range" id="lvl" min="1" max="10" value="1"></p>
-<small>The starting clock (0:10 to 2:00) and the number of timeouts (1 to 3) are picked at random for every drive. Play calls and coverages are random every snap. The pass rush is always full and blitzes are random. Level 10 = real pass-rush timing. Levels 1-9 add training time. More blitzers shorten the pressure window. A snap with the clock running costs 10 seconds. A timeout stops that clock for free. A spike costs 2 seconds and a down. The drive ends on a touchdown, a made or missed field goal, an interception, a turnover on downs or when time runs out. Your score is saved to the Progress tab. If players have been added to the Players tab, you can pick one to save to that player instead.</small>
+<small>The starting clock (0:10 to 2:00) and the number of timeouts (1 to 3) are picked at random for every drive. Play calls and coverages are random every snap. The pass rush is always full and blitzes are random. Level 10 = real pass-rush timing. Levels 1-9 add training time. More blitzers shorten the pressure window. The game clock counts down in real time during plays and stays running between snaps after an in-bounds play. Use a timeout or spike to stop it. A timeout stops that clock for free. A spike costs 2 seconds and a down. The drive ends on a touchdown, a made or missed field goal, an interception, a turnover on downs or when time runs out. Your score is saved to the Progress tab. If players have been added to the Players tab, you can pick one to save to that player instead.</small>
 <p><button class="btn" id="start">Start drive</button></p>
 </div>
 <div id="game" class="card hidden">
@@ -367,7 +367,7 @@ nextPlay();setPhase('pre')
 }
 function endDrive(res,win){
 G.result=res;G.win=!!win;
-if(res!=='Touchdown'){$('msg').style.color='#DC2626';$('msg').textContent='Drive over: '+res+'.'}
+if(res!=='Touchdown'){$('msg').style.color='#DC2626';$('msg').textContent='Drive over: '+res+'.';}
 G.running=false;setPhase('end')
 }
 function useTimeout(){
