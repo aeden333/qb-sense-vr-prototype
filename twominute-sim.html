@@ -202,7 +202,6 @@ g.strokeStyle='#60A5FA';g.lineWidth=3;g.beginPath();g.moveTo(0,LOSY);g.lineTo(W,
 var el=0,p=0,i,j;
 if(phase==='pre'&&st.pv){
 var al=align(true);
-[170,270,370,470].forEach(function(x){dot(x,LOSY-8)});
 al.cd.concat(al.sf,al.lb).forEach(function(o){dot(o.x,o.y)});
 g.strokeStyle='rgba(255,255,255,.5)';g.setLineDash([6,6]);g.lineWidth=2;
 for(i=0;i<st.play.r.length;i++){var a2=pts(i);g.beginPath();g.moveTo(a2[0][0],a2[0][1]);for(var k2=1;k2<a2.length;k2++)g.lineTo(a2[k2][0],a2[k2][1]);g.stroke()}
