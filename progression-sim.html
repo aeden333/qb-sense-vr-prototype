@@ -19,6 +19,7 @@ h2{text-transform:uppercase;margin:0 0 8px}
 .stats b{color:var(--navy);font-size:18px}
 .coach{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:12px;font-size:13px;font-weight:700}
 .coach select{padding:8px;border:1px solid var(--border);border-radius:6px;font-size:14px}
+.coach .btn{padding:9px 14px;font-size:12px}
 canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e;touch-action:manipulation}
 .clock{height:8px;background:#E5E7EB;border-radius:4px;overflow:hidden;margin:10px 0}
 .clock span{display:block;height:100%;width:100%;background:var(--green)}
@@ -38,14 +39,16 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <optgroup label="3 receivers"><option value="p3">3-receiver progression</option></optgroup>
 <optgroup label="4 receivers"><option value="fv">Four Verticals</option><option value="yankee">Yankee (post + dig + cross)</option><option value="dagger">Dagger (dig + curl + go)</option><option value="levels">Levels (dig + shallow in)</option><option value="snag">Snag (arrow + snag + corner)</option></optgroup>
 <optgroup label="5 receivers"><option value="flood">Flood + backside + checkdown</option><option value="mesh">Mesh (corner + sit + two drags + back)</option><option value="dagger5">Dagger full (dig + curl + two go + flat)</option></optgroup>
+<optgroup label="Random"><option value="rand">Random 4/5-receiver concept (new each rep)</option></optgroup>
 </select></label>
+<button type="button" class="btn ghost" id="rnd">&#127922; Random concept</button>
 <label id="playerWrap" class="hidden">Player <select id="player"><option value="">Results tab (just me)</option></select></label>
 <label>Coverage <select id="cov"><option>Random</option><optgroup label="Man"><option>Man</option><option>Cover 0</option><option>Cover 1</option></optgroup><optgroup label="Zone"><option>Cover 2</option><option>Tampa 2</option><option>Cover 3</option><option>Cover 4</option><option>Cover 6</option></optgroup></select></label>
 <label><input type="checkbox" id="rush" checked> Pass rush</label>
 </div>
 <p id="modeNote" style="font-size:13px;color:#5B6B7C"></p>
 <p><b>Level: <span id="lvlVal">1</span>/10</b><br><input type="range" id="lvl" min="1" max="10" value="1"></p>
-<small>Level 1 = longest clock. Level 10 = shortest clock. More receivers give you a little extra time. Cover 0 always brings the rush and shortens the clock. Your score is saved to the Results tab. If players have been added to the Players tab, you can pick one to save the session to the Players tab instead.</small>
+<small>Level 1 = longest clock. Level 10 = shortest clock. More receivers give you a little extra time. Cover 0 always brings the rush and shortens the clock. The Random concept button picks one 4 or 5 receiver concept for the session. Your score is saved to the Results tab. If players have been added to the Players tab, you can pick one to save the session to the Players tab instead.</small>
 <p><button class="btn" id="start">Start session</button></p>
 </div>
 <div id="game" class="card hidden">
@@ -84,6 +87,7 @@ flood:{n:5,name:'Flood + backside + checkdown',sx:[540,450,370,120,320],sy:[0,0,
 mesh:{n:5,name:'Mesh',sx:[540,330,200,440,320],sy:[0,0,0,0,45],lab:['Corner','Sit','Drag','Drag','Back'],fixed:[[[0,-120],[50,-170]],[[0,-100],[0,-90]],[[0,-55],[220,-55]],[[0,-65],[-220,-65]],[[80,-30]]],note:'Two shallow drags cross in the middle. Read the corner (#1), the sit (#2), the two drags (#3 and #4), then the back (#5).'},
 dagger5:{n:5,name:'Dagger (full)',sx:[380,200,100,560,320],sy:[0,0,0,0,45],lab:['Dig','Curl','Go','Go','Flat'],fixed:[[[0,-120],[-120,-120]],[[0,-130],[10,-110]],[[0,-250]],[[0,-250]],[[70,-30]]],note:'Dig (#1) is the primary read, then the curl (#2), the two clear-out go routes (#3 and #4) and the flat outlet (#5).'}
 };
+var RANDIDS=['fv','yankee','dagger','levels','snag','flood','mesh','dagger5'];
 var OPEN={
 p3:{'Man':[0.25,0.25,0.25],'Cover 2':[0.6,0.4,0.2],'Cover 3':[0.6,0.5,0.2]},
 fv:{'Man':[0.25,0.25,0.3,0.45],'Cover 2':[0.4,0.5,0.4,0.6],'Cover 3':[0.5,0.5,0.3,0.65]},
@@ -116,7 +120,7 @@ var COVNOTE={
 };
 var cfg=CFG.p3;
 var st={on:false,done:false,t0:0,fz:0,dur:4000,cov:[],ans:0,routes:[],rn:[],cvg:'',rush:true,rushOn:true,rx:320};
-var S={mode:'p3',level:1,rep:0,total:10,correct:0,times:[],sacks:0,player:null,cvSel:'Random'};
+var S={mode:'p3',rand:false,level:1,rep:0,total:10,correct:0,times:[],sacks:0,player:null,cvSel:'Random'};
 var players=[];
 function $(i){return document.getElementById(i)}
 function cl(p){return p<0?0:p>1?1:p}
@@ -185,8 +189,10 @@ draw();requestAnimationFrame(tick)
 }
 function pick(o){var k=Object.keys(o);return k[Math.floor(Math.random()*k.length)]}
 function seq(n){var a=[];for(var i=1;i<=n;i++)a.push(i);return a.join(' \u2192 ')}
+function applyCfg(m){S.mode=m;cfg=CFG[m]}
 function startRep(){
 S.rep++;
+if(S.rand){var cur=S.mode,nx=cur;while(nx===cur){nx=RANDIDS[Math.floor(Math.random()*RANDIDS.length)]}applyCfg(nx)}
 var n=cfg.n;
 st.cvg=S.cvSel==='Random'?ALLCOV[Math.floor(Math.random()*ALLCOV.length)]:S.cvSel;
 st.routes=[];st.rn=[];
@@ -206,7 +212,7 @@ $('go').disabled=true;
 $('clk').style.width='100%';
 $('msg').style.color='#111827';
 $('covNote').textContent='';
-$('msg').textContent=st.cvg+'. Read '+seq(n)+'. Who is the first open receiver?';
+$('msg').textContent=cfg.name+' vs '+st.cvg+'. Read '+seq(n)+'. Who is the first open receiver?';
 }
 function finish(p){
 if(!st.on)return;
@@ -274,6 +280,7 @@ $('game').classList.add('hidden');$('done').classList.remove('hidden');
 var acc=Math.round(S.correct/S.total*100);
 var avg=S.times.length?S.times.reduce(function(a,b){return a+b},0)/S.times.length:0;
 var pr=Math.round((S.total-S.sacks)/S.total*100);
+var cname=S.rand?'Random 4/5-receiver concepts':cfg.name,rcv=S.rand?'4-5':cfg.n;
 $('dAcc').textContent=acc+'%';$('dOk').textContent=S.correct+'/'+S.total;$('dTime').textContent=avg.toFixed(1)+'s';$('dPr').textContent=pr+'%';
 $('dTip').textContent=acc>=80&&S.level<10?'Strong session. Try level '+(S.level+1)+' next.':acc>=80?'Elite reads at the top level.':'Keep working this level. Read in order, and throw to the first open receiver.';
 var date=new Date().toISOString(),at=Number(avg.toFixed(2));
@@ -282,22 +289,31 @@ if(!S.player){
 out.style.color='#14532D';
 try{
 var b=JSON.parse(localStorage.getItem('qbsense_progression_results')||'[]');
-b.push({email:localStorage.getItem('qbsense_user')||'guest',date:date,level:S.level,accuracy:acc,correct:S.correct,total:S.total,avgTime:at,pressureResponse:pr,coverage:S.cvSel,concept:cfg.name,receivers:cfg.n});
+b.push({email:localStorage.getItem('qbsense_user')||'guest',date:date,level:S.level,accuracy:acc,correct:S.correct,total:S.total,avgTime:at,pressureResponse:pr,coverage:S.cvSel,concept:cname,receivers:rcv});
 localStorage.setItem('qbsense_progression_results',JSON.stringify(b.slice(-100)));
 out.textContent='Saved to your Results tab.';
 }catch(e){out.textContent='Could not save on this device.';out.style.color='#DC2626'}
 $('dLink').textContent='Open Results tab';$('dLink').href='index.html#results';
 return}
-var rec={id:Date.now()+'-'+Math.random().toString(36).slice(2),coachEmail:S.player.coachEmail,playerId:S.player.id,date:date,drill:'Progression Reads',score:acc,decisionTime:at,accuracy:acc,pressureResponse:pr,notes:'Progression Reads ('+cfg.name+'), level '+S.level+', coverage '+S.cvSel+', pass rush '+(st.rush?'on':'off')+', '+S.total+' reps'};
+var rec={id:Date.now()+'-'+Math.random().toString(36).slice(2),coachEmail:S.player.coachEmail,playerId:S.player.id,date:date,drill:'Progression Reads',score:acc,decisionTime:at,accuracy:acc,pressureResponse:pr,notes:'Progression Reads ('+cname+'), level '+S.level+', coverage '+S.cvSel+', pass rush '+(st.rush?'on':'off')+', '+S.total+' reps'};
 $('dLink').textContent='Open Players tab';$('dLink').href='index.html#players';
 out.textContent='Saving...';out.style.color='#5B6B7C';
 saveSession(rec).then(function(){out.textContent='Saved to '+S.player.name+' on the Players tab.';out.style.color='#14532D'}).catch(function(){out.textContent='Could not save to the Players tab.';out.style.color='#DC2626'});
 }
-function setMode(m){S.mode=m;cfg=CFG[m];$('modeNote').textContent=cfg.note}
+function setMode(m){
+if(m==='rand'){S.rand=true;applyCfg('fv');$('modeNote').textContent='A new 4 or 5 receiver concept is picked at random on every rep.';return}
+S.rand=false;applyCfg(m);$('modeNote').textContent=cfg.note
+}
 $('mode').addEventListener('change',function(){setMode($('mode').value)});
+$('rnd').addEventListener('click',function(){
+var cur=$('mode').value,nx=cur;
+while(nx===cur){nx=RANDIDS[Math.floor(Math.random()*RANDIDS.length)]}
+$('mode').value=nx;setMode(nx)
+});
 $('lvl').addEventListener('input',function(){$('lvlVal').textContent=$('lvl').value});
 $('start').addEventListener('click',function(){
 setMode($('mode').value);
+if(S.rand)S.mode='';
 S.level=Number($('lvl').value);S.rep=0;S.correct=0;S.times=[];S.sacks=0;
 S.cvSel=$('cov').value;st.rush=$('rush').checked;
 var pid=$('player').value;
@@ -309,7 +325,7 @@ $('setup').classList.add('hidden');$('done').classList.add('hidden');$('game').c
 startRep();
 });
 $('go').addEventListener('click',function(){if(S.rep>=S.total)showDone();else startRep()});
-$('again').addEventListener('click',function(){$('done').classList.add('hidden');$('setup').classList.remove('hidden');st.on=false;st.done=false});
+$('again').addEventListener('click',function(){$('done').classList.add('hidden');$('setup').classList.remove('hidden');st.on=false;st.done=false;if(S.rand)applyCfg('fv')});
 setMode('p3');
 loadPlayers();
 tick();
