@@ -129,7 +129,7 @@ while(true){
 st.cov=[];for(var j=0;j<st.play.r.length;j++){st.cov.push(Math.random()>=openP(j))}
 has=st.cov.indexOf(false)>=0;
 if(has!==none)break;
-if(++tries>200){if(none){st.cov=st.play.r.map(function(){return true}}else{st.cov[Math.floor(Math.random()*st.play.r.length)]=false}has=!none;break}
+if(++tries>200){if(none){st.cov=st.play.r.map(function(){return true})}else{st.cov[Math.floor(Math.random()*st.play.r.length)]=false}has=!none;break}
 }
 st.ans=has?st.cov.indexOf(false):st.play.r.length;
 st.dur=3000;var base=st.extra===0?3150:st.extra===1?2600:st.extra===2?2400:2200;st.press=Math.max(1500,base+(10-G.level)*150);
