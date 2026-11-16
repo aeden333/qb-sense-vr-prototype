@@ -67,11 +67,38 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 var cv=document.getElementById('c'),g=cv.getContext('2d');
 var W=640,H=440,LOSY=250,PX=5,QBX=320,QBY=312,SL=6,SR=634;
 var PLAYS=[
-{name:'Out / Dig / Checkdown',r:[{n:'Out',x:90,y:0,p:[[0,-40],[-70,-40]],c:'Q',oob:true},{n:'Dig',x:450,y:0,p:[[0,-60],[-130,-60]],c:'M'},{n:'Checkdown',x:320,y:30,p:[[60,-10]],c:'Q'}]},
-{name:'Curl / Post / Flat',r:[{n:'Curl',x:540,y:0,p:[[0,-60],[10,-45]],c:'M'},{n:'Post',x:200,y:0,p:[[0,-75],[110,-130]],c:'D'},{n:'Flat',x:400,y:30,p:[[80,-10]],c:'Q'}]},
-{name:'Hitch / Corner / Slant',r:[{n:'Hitch',x:560,y:0,p:[[0,-30],[0,-22]],c:'Q'},{n:'Corner',x:130,y:0,p:[[0,-70],[-70,-120]],c:'D',oob:true},{n:'Slant',x:410,y:0,p:[[0,-20],[60,-50]],c:'Q'}]},
-{name:'Seam / Sideline Out / Drag',r:[{n:'Seam',x:330,y:0,p:[[0,-150]],c:'D'},{n:'Out',x:545,y:0,p:[[0,-50],[60,-50]],c:'Q',oob:true},{n:'Drag',x:170,y:0,p:[[0,-25],[230,-30]],c:'Q'}]},
-{name:'Dagger / Go / Flat',r:[{n:'Dig',x:430,y:0,p:[[0,-80],[-120,-80]],c:'M'},{n:'Go',x:560,y:0,p:[[0,-160]],c:'D'},{n:'Flat',x:250,y:30,p:[[-70,-10]],c:'Q'}]}
+{name:'Four Verticals',r:[
+{n:'Seam',x:200,y:0,p:[[0,-150]],c:'D'},
+{n:'Seam',x:440,y:0,p:[[0,-150]],c:'D'},
+{n:'Post',x:560,y:0,p:[[0,-170],[-110,-250]],c:'D'},
+{n:'Go',x:320,y:0,p:[[0,-250]],c:'D'}
+]},
+{name:'Mesh',r:[
+{n:'Drag',x:170,y:0,p:[[0,-25],[230,-30]],c:'Q'},
+{n:'Drag',x:470,y:0,p:[[0,-25],[-230,-30]],c:'Q'},
+{n:'Corner',x:560,y:0,p:[[0,-170],[60,-250]],c:'D'},
+{n:'Sit',x:320,y:0,p:[[0,-100],[0,-90]],c:'M'}
+]},
+{name:'Levels',r:[
+{n:'Dig',x:440,y:0,p:[[0,-120],[-110,-120]],c:'M'},
+{n:'Shallow In',x:380,y:0,p:[[0,-55],[-100,-55]],c:'Q'},
+{n:'Go',x:560,y:0,p:[[0,-250]],c:'D'},
+{n:'Out',x:100,y:0,p:[[0,-80],[-50,-80]],c:'Q',oob:true}
+]},
+{name:'Five Verticals',r:[
+{n:'Seam',x:200,y:0,p:[[0,-150]],c:'D'},
+{n:'Seam',x:440,y:0,p:[[0,-150]],c:'D'},
+{n:'Go',x:560,y:0,p:[[0,-250]],c:'D'},
+{n:'Go',x:100,y:0,p:[[0,-250]],c:'D'},
+{n:'Post',x:320,y:0,p:[[0,-170],[-110,-250]],c:'D'}
+]},
+{name:'Flood',r:[
+{n:'Clear',x:540,y:0,p:[[0,-250]],c:'D'},
+{n:'Sail',x:450,y:0,p:[[0,-120],[50,-140]],c:'M'},
+{n:'Flat',x:370,y:0,p:[[40,-30],[90,-40]],c:'Q'},
+{n:'Slant',x:120,y:0,p:[[0,-25],[60,-80]],c:'Q'},
+{n:'Checkdown',x:320,y:30,p:[[-60,-30]],c:'Q'}
+]}
 ];
 var PROB={'Man':{Q:0.3,M:0.3,D:0.25},'Cover 0':{Q:0.45,M:0.4,D:0.45},'Cover 1':{Q:0.3,M:0.3,D:0.2},'Cover 2':{Q:0.55,M:0.35,D:0.35},'Cover 3':{Q:0.55,M:0.4,D:0.2},'Cover 4':{Q:0.5,M:0.35,D:0.15}};
 var ALLCOV=['Man','Cover 0','Cover 1','Cover 2','Cover 3','Cover 4'];
