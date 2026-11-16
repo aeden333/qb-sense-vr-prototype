@@ -15,6 +15,8 @@ h2{text-transform:uppercase;margin:0 0 8px}
 .btn{background:var(--green);color:#fff;border:0;border-radius:6px;padding:12px 18px;font-weight:800;cursor:pointer;text-transform:uppercase}
 .stats{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:10px}
 .stats b{color:var(--navy);font-size:18px}
+.coach{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:12px;font-size:13px;font-weight:700}
+.coach select{padding:8px;border:1px solid var(--border);border-radius:6px;font-size:14px}
 canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e;touch-action:manipulation}
 .clock{height:8px;background:#E5E7EB;border-radius:4px;overflow:hidden;margin:10px 0}
 .clock span{display:block;height:100%;width:100%;background:var(--green)}
@@ -24,92 +26,127 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <body>
 <header><a href="index.html">&larr; Drills</a><b>QB Sense VR</b></header>
 <main>
-<div class="card"><h2>Progression Reads</h2><p>Read #1, then #2, then #3. Throw to the first receiver who is open (defender has separation). Tap a receiver or press 1, 2 or 3 before the clock runs out.</p></div>
+<div class="card"><h2>Progression Reads</h2><p>Read #1, then #2, then #3. Throw to the first receiver who is open (defender has separation). Tap a receiver or press 1, 2 or 3 before the clock runs out. Space starts a rep.</p></div>
 <div class="card">
+<div class="coach">
+<label>Coverage <select id="cov"><option>Random</option><option>Cover 2</option><option>Cover 3</option><option>Man</option></select></label>
+<label><input type="checkbox" id="rush" checked> Pass rush</label>
+</div>
 <div class="stats"><span>Level <b id="lvl">1</b></span><span>Correct <b id="ok">0</b>/<b id="tot">0</b></span><span>Streak <b id="str">0</b></span><span>Last read <b id="rt">-</b></span></div>
 <canvas id="c" width="640" height="440"></canvas>
 <div class="clock"><span id="clk"></span></div>
 <div id="msg">Press Start rep.</div>
 <button class="btn" id="go">Start rep</button>
 </div>
-<div class="card"><b>Coaching cues</b><ul><li>Read before the drop ends.</li><li>Throw the first open receiver, not the deepest.</li><li>Do not peek at #2 before checking #1.</li></ul></div>
+<div class="card"><b>Coaching cues</b><ul><li>Read before the drop ends.</li><li>Throw the first open receiver, not the deepest.</li><li>Do not peek at #2 before checking #1.</li><li>Cover 2 leaves the deep middle and the short sidelines soft. Cover 3 leaves the short and medium zones soft.</li></ul></div>
 </main>
 <script>
 var cv=document.getElementById('c'),g=cv.getContext('2d');
-var W=640,H=440,LOS=310;
-var starts=[{x:120,y:LOS},{x:320,y:LOS},{x:520,y:LOS}];
-var ends=[{x:70,y:250},{x:320,y:170},{x:540,y:70}];
+var W=640,H=440,LOS=310,QB={x:320,y:395};
+var sx=[120,320,520];
+var RT=[
+{Slant:[[0,-25],[60,-80]],Out:[[0,-70],[-60,-70]],Hitch:[[0,-70],[0,-55]]},
+{Curl:[[0,-130],[10,-110]],Dig:[[0,-130],[-110,-130]],In:[[0,-120],[100,-120]]},
+{Post:[[0,-170],[-110,-250]],Go:[[0,-250]],Corner:[[0,-170],[60,-250]]}
+];
+var OPEN={'Man':[0.25,0.25,0.25],'Cover 2':[0.6,0.4,0.2],'Cover 3':[0.6,0.5,0.2]};
 var names=['Short','Medium','Deep'];
-var st={on:false,t0:0,dur:4000,cov:[true,true,true],ans:0,done:false,result:null};
+var st={on:false,done:false,t0:0,fz:0,dur:4000,cov:[1,1,1],ans:0,routes:[],rn:[],cvg:'',rush:true,rx:320};
 var lvl=1,ok=0,tot=0,str=0;
 function $(i){return document.getElementById(i)}
-function ease(p){return p<0?0:p>1?1:p}
-function rpos(i,p){var s=starts[i],e=ends[i],q=ease(p);return{x:s.x+(e.x-s.x)*q*q*(3-2*q),y:s.y+(e.y-s.y)*q}}
-function dpos(i,p){
-var r=rpos(i,p),b=ease((p-0.35)/0.3);
-var off=st.cov[i]?{x:10,y:14}:{x:(i===1?-1:(i===0?1:-1))*52,y:34};
-return{x:r.x+off.x*b+(1-b)*0,y:r.y+(10+off.y*b)*(b>0?1:0)+(b>0?0:12)}
+function cl(p){return p<0?0:p>1?1:p}
+function pts(i){var a=[[sx[i],LOS]],r=st.routes[i]||[];for(var k=0;k<r.length;k++)a.push([sx[i]+r[k][0],LOS+r[k][1]]);return a}
+function rpos(i,p){
+var a=pts(i),L=0,s=[];
+for(var k=1;k<a.length;k++){var d=Math.hypot(a[k][0]-a[k-1][0],a[k][1]-a[k-1][1]);s.push(d);L+=d}
+if(L===0)return{x:a[0][0],y:a[0][1]};
+var t=cl(p)*L;
+for(var j=0;j<s.length;j++){
+if(t<=s[j]||j===s.length-1){var q=s[j]?Math.min(1,t/s[j]):1;return{x:a[j][0]+(a[j+1][0]-a[j][0])*q,y:a[j][1]+(a[j+1][1]-a[j][1])*q}}
+t-=s[j]}
 }
+function dpos(i,p){
+var r=rpos(i,p),b=cl((p-0.35)/0.3);
+var sg=sx[i]<320?-1:1;
+var ox=st.cov[i]?10:sg*52,oy=st.cov[i]?14:34;
+return{x:r.x+ox*b,y:r.y+12+(oy-12)*b}
+}
+function elapsed(){return st.on?Date.now()-st.t0:st.fz}
 function draw(){
 g.clearRect(0,0,W,H);
 g.fillStyle='#1a5c2e';g.fillRect(0,0,W,H);
 g.strokeStyle='rgba(255,255,255,.25)';g.lineWidth=2;
 for(var y=LOS-60;y>0;y-=60){g.beginPath();g.moveTo(0,y);g.lineTo(W,y);g.stroke()}
 g.strokeStyle='#fff';g.lineWidth=3;g.beginPath();g.moveTo(0,LOS);g.lineTo(W,LOS);g.stroke();
-var p=st.on||st.done?Math.min(1,(Date.now()-st.t0)/ (st.dur*0.55)):0;
-if(!st.on&&!st.done)p=0;
-g.strokeStyle='rgba(255,255,255,.18)';g.setLineDash([6,6]);
-for(var i=0;i<3;i++){g.beginPath();g.moveTo(starts[i].x,starts[i].y);g.lineTo(ends[i].x,ends[i].y);g.stroke()}
+var live=st.on||st.done,el=live?elapsed():0,p=live?cl(el/(st.dur*0.55)):0;
+if(live){
+g.strokeStyle='rgba(255,255,255,.18)';g.setLineDash([6,6]);g.lineWidth=2;
+for(var i=0;i<3;i++){var a=pts(i);g.beginPath();g.moveTo(a[0][0],a[0][1]);for(var k=1;k<a.length;k++)g.lineTo(a[k][0],a[k][1]);g.stroke()}
 g.setLineDash([]);
-var scan=Math.min(2,Math.floor(((Date.now()-st.t0)/ (st.dur*0.5))*3));
+g.fillStyle='#fff';g.font='bold 13px sans-serif';g.textAlign='left';g.fillText(st.cvg,10,22);
+}
+var scan=Math.min(2,Math.floor((el/(st.dur*0.5))*3));
 for(var j=0;j<3;j++){
-var r=rpos(j,p),d=dpos(j,p);
-if(st.on||st.done){g.fillStyle='#DC2626';g.beginPath();g.arc(d.x,d.y,11,0,7);g.fill();g.fillStyle='#fff';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText('D',d.x,d.y+4)}
-g.fillStyle=(st.on&&scan===j&&!st.done)?'#F59E0B':'#fff';
+var r=rpos(j,p);
+if(live){var d=dpos(j,p);g.fillStyle='#DC2626';g.beginPath();g.arc(d.x,d.y,11,0,7);g.fill();g.fillStyle='#fff';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText('D',d.x,d.y+4)}
+g.fillStyle=(st.on&&scan===j)?'#F59E0B':'#fff';
 g.beginPath();g.arc(r.x,r.y,15,0,7);g.fill();
 g.fillStyle='#0A1628';g.font='bold 14px sans-serif';g.textAlign='center';g.fillText(''+(j+1),r.x,r.y+5);
-g.fillStyle='#fff';g.font='11px sans-serif';g.fillText(names[j],r.x,r.y+30);
+g.fillStyle='#fff';g.font='11px sans-serif';g.fillText(live?st.rn[j]:names[j],r.x,r.y+30);
 if(st.done&&!st.cov[j]){g.strokeStyle='#4ADE80';g.lineWidth=3;g.beginPath();g.arc(r.x,r.y,22,0,7);g.stroke()}
 }
-g.fillStyle='#F59E0B';g.beginPath();g.arc(320,395,15,0,7);g.fill();
-g.fillStyle='#0A1628';g.font='bold 12px sans-serif';g.textAlign='center';g.fillText('QB',320,399);
+if(live&&st.rush){
+var q=cl(el/st.dur),rx=st.rx+(QB.x-st.rx)*q,ry=LOS-10+(QB.y-(LOS-10))*q;
+g.fillStyle='#7F1D1D';g.beginPath();g.arc(rx,ry,13,0,7);g.fill();
+g.fillStyle='#fff';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText('R',rx,ry+4)}
+g.fillStyle='#F59E0B';g.beginPath();g.arc(QB.x,QB.y,15,0,7);g.fill();
+g.fillStyle='#0A1628';g.font='bold 12px sans-serif';g.textAlign='center';g.fillText('QB',QB.x,QB.y+4);
 }
 function tick(){
 if(st.on){
-var el=Date.now()-st.t0,left=Math.max(0,1-el/st.dur);
-$('clk').style.width=(left*100)+'%';
-if(el>=st.dur){finish(-1)}
+var el=Date.now()-st.t0;
+$('clk').style.width=(Math.max(0,1-el/st.dur)*100)+'%';
+if(el>=st.dur)finish(-1)
 }
 draw();requestAnimationFrame(tick)
 }
+function pick(o){var k=Object.keys(o);return k[Math.floor(Math.random()*k.length)]}
 function startRep(){
+var c=$('cov').value;
+st.cvg=c==='Random'?pick(OPEN):c;
+st.rush=$('rush').checked;
+st.routes=[];st.rn=[];
+for(var i=0;i<3;i++){var n=pick(RT[i]);st.rn.push(n);st.routes.push(RT[i][n])}
 var open=false;
-while(!open){st.cov=[Math.random()<0.55,Math.random()<0.55,Math.random()<0.55];open=!st.cov[0]||!st.cov[1]||!st.cov[2]}
+while(!open){st.cov=[];for(var j=0;j<3;j++)st.cov.push(Math.random()>=OPEN[st.cvg][j]);open=!st.cov[0]||!st.cov[1]||!st.cov[2]}
 st.ans=st.cov.indexOf(false);
-st.dur=Math.max(2200,4200-lvl*250);
+st.rx=[200,320,440][Math.floor(Math.random()*3)];
+st.dur=Math.max(2200,4200-lvl*250)*(st.rush?0.85:1);
 st.t0=Date.now();st.on=true;st.done=false;
 $('clk').style.width='100%';
-$('msg').textContent='Read 1 \u2192 2 \u2192 3. Who is the first open receiver?';
+$('msg').style.color='#111827';
+$('msg').textContent=st.cvg+'. Read 1 \u2192 2 \u2192 3. Who is the first open receiver?';
 }
-function finish(pick){
+function finish(p){
 if(!st.on)return;
-var rt=((Date.now()-st.t0)/1000).toFixed(1);
-st.on=false;st.done=true;tot++;
-if(pick===st.ans){ok++;str++;if(str%3===0&&lvl<10)lvl++;$('msg').textContent='Correct! #'+(st.ans+1)+' was the first open receiver ('+rt+'s).';$('msg').style.color='#14532D'}
-else if(pick===-1){str=0;$('msg').textContent='Sack! Clock ran out. Open receiver was #'+(st.ans+1)+'.';$('msg').style.color='#DC2626'}
-else{str=0;$('msg').textContent='Missed. #'+(pick+1)+' was '+(st.cov[pick]?'covered':'open but not first')+'. First open was #'+(st.ans+1)+'.';$('msg').style.color='#DC2626'}
-$('ok').textContent=ok;$('tot').textContent=tot;$('str').textContent=str;$('lvl').textContent=lvl;$('rt').textContent=pick===-1?'-':rt+'s';
+var el=Date.now()-st.t0,rt=(el/1000).toFixed(1);
+st.fz=Math.min(el,st.dur);st.on=false;st.done=true;tot++;
+var m=$('msg');
+if(p===st.ans){ok++;str++;if(str%3===0&&lvl<10)lvl++;m.textContent='Correct! #'+(st.ans+1)+' ('+st.rn[st.ans]+') was the first open receiver ('+rt+'s).';m.style.color='#14532D'}
+else if(p===-1){str=0;m.textContent='Sacked! The rush got home. First open was #'+(st.ans+1)+' ('+st.rn[st.ans]+').';m.style.color='#DC2626'}
+else{str=0;m.textContent='Missed. #'+(p+1)+' was '+(st.cov[p]?'covered':'open but not first')+'. First open was #'+(st.ans+1)+' ('+st.rn[st.ans]+').';m.style.color='#DC2626'}
+$('ok').textContent=ok;$('tot').textContent=tot;$('str').textContent=str;$('lvl').textContent=lvl;$('rt').textContent=p===-1?'-':rt+'s';
 }
 cv.addEventListener('click',function(e){
 if(!st.on)return;
 var b=cv.getBoundingClientRect(),x=(e.clientX-b.left)*W/b.width,y=(e.clientY-b.top)*H/b.height;
-var p=Math.min(1,(Date.now()-st.t0)/(st.dur*0.55)),best=-1,bd=60;
+var p=cl((Date.now()-st.t0)/(st.dur*0.55)),best=-1,bd=60;
 for(var i=0;i<3;i++){var r=rpos(i,p),d=Math.hypot(r.x-x,r.y-y);if(d<bd){bd=d;best=i}}
 if(best>=0)finish(best)
 });
 document.addEventListener('keydown',function(e){
 if(e.key==='1'||e.key==='2'||e.key==='3')finish(+e.key-1);
-if(e.key===' '&&!st.on){e.preventDefault();startRep()}
+if(e.key===' '&&!st.on&&e.target.tagName!=='SELECT'&&e.target.tagName!=='INPUT'){e.preventDefault();startRep()}
 });
 $('go').addEventListener('click',startRep);
 tick();
