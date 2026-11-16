@@ -6,7 +6,7 @@ function load(){
     try{
       JSON.parse(localStorage.getItem(k[0])||'[]').forEach(function(r){
         if((r.email||'guest')===me){
-          all.push({drill:k[1],date:r.date,level:r.level||1,acc:Number(r.accuracy)||0,time:r.avgTime!=null?Number(r.avgTime):null,pr:r.pressureResponse!=null?Number(r.pressureResponse):null,concept:r.concept||'',cov:r.coverage||'',result:r.result||''});
+          all.push({drill:k[1],date:r.date,level:r.level||1,acc:Number(r.accuracy)||0,time:r.avgTime!=null?Number(r.avgTime):null,pr:r.pressureResponse!=null?Number(r.pressureResponse):null,concept:r.concept||'',cov:r.coverage||'',result:r.result||'',tot:Number(r.total)||0,pa:Number(r.passAtt)||0,pc:Number(r.passComp)||0,py:Number(r.passYds)||0,pt:Number(r.passTd)||0,pi:Number(r.passInt)||0});
         }
       });
     }catch(e){}
@@ -15,11 +15,48 @@ function load(){
   return all;
 }
 function avg(a){return a.length?a.reduce(function(x,y){return x+y},0)/a.length:0}
+function rate(a,c,y,t,i){
+  if(!a)return 0;
+  function k(v){return Math.max(0,Math.min(2.375,v))}
+  return (k((c/a-0.3)*5)+k((y/a-3)*0.25)+k(t/a*20)+k(2.375-i/a*25))/6*100;
+}
 function mk(tag,txt,attrs){
   var e=document.createElement(tag);
   if(txt!=null)e.textContent=txt;
   if(attrs)for(var k in attrs)e.setAttribute(k,attrs[k]);
   return e;
+}
+function homeRender(){
+  var cards=document.querySelectorAll('#home .stat-card');
+  if(!cards.length)return;
+  var all=load(),recent=all.slice(-10);
+  var prs=recent.filter(function(a){return a.pr!=null}).map(function(a){return a.pr});
+  var prA=avg(prs);
+  var ts=recent.filter(function(a){return a.time!=null}).map(function(a){return a.time});
+  var tA=avg(ts);
+  var weekAgo=Date.now()-7*864e5;
+  var reps=all.filter(function(a){return new Date(a.date).getTime()>=weekAgo}).reduce(function(s,a){return s+a.tot},0);
+  var ps=all.filter(function(a){return a.pa>0}).slice(-10),rt=null;
+  if(ps.length){
+    var A=0,C=0,Y=0,T=0,I=0;
+    ps.forEach(function(a){A+=a.pa;C+=a.pc;Y+=a.py;T+=a.pt;I+=a.pi});
+    rt=rate(A,C,Y,T,I);
+  }
+  cards.forEach(function(c){
+    var lb=c.querySelector('.label'),v=c.querySelector('.stat'),b=c.querySelector('.bar span');
+    if(!lb||!v)return;
+    var name=lb.textContent.trim(),txt='--',w=0;
+    if(name==='QB Rating'){
+      c.title='NFL passer rating (0 to 158.3) from your Two-Minute Drill passing stats: completions, yards, touchdowns and interceptions per attempt.';
+      if(rt!==null){txt=rt.toFixed(1);w=Math.round(rt/158.3*100)}
+    }
+    else if(name==='Decision Time'){if(ts.length){txt=tA.toFixed(1)+'s';w=Math.max(5,Math.min(100,Math.round(100-(tA-1)*25)))}}
+    else if(name==='Pressure Response'){if(prs.length){txt=Math.round(prA)+'%';w=Math.round(prA)}}
+    else if(name==='Reps This Week'){txt=String(reps);w=Math.min(100,Math.round(reps/70*100))}
+    else return;
+    v.textContent=txt;
+    if(b)b.style.width=w+'%';
+  });
 }
 function chart(list){
   var NS='http://www.w3.org/2000/svg',W=600,H=170,pad=26;
@@ -53,6 +90,7 @@ function chart(list){
   return svg;
 }
 function render(){
+  homeRender();
   var sec=document.getElementById('progress');
   if(!sec)return;
   var old=document.getElementById('progressFeed');
@@ -107,7 +145,7 @@ function render(){
   sec.appendChild(card);
 }
 document.addEventListener('click',function(e){
-  if(e.target.closest&&e.target.closest('[data-page="progress"]'))setTimeout(render,0);
+  if(e.target.closest&&e.target.closest('[data-page],[data-goto]'))setTimeout(render,0);
 });
 window.addEventListener('storage',render);
 render();
