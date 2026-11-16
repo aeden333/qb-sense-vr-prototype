@@ -12,7 +12,9 @@ header a{color:#9CA3AF;text-decoration:none}
 main{max-width:760px;margin:0 auto;padding:18px 14px 48px}
 .card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px}
 h2{text-transform:uppercase;margin:0 0 8px}
-.btn{background:var(--green);color:#fff;border:0;border-radius:6px;padding:12px 18px;font-weight:800;cursor:pointer;text-transform:uppercase}
+.btn{background:var(--green);color:#fff;border:0;border-radius:6px;padding:12px 18px;font-weight:800;cursor:pointer;text-transform:uppercase;text-decoration:none;display:inline-block}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--border)}
 .stats{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:10px}
 .stats b{color:var(--navy);font-size:18px}
 .coach{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:12px;font-size:13px;font-weight:700}
@@ -21,22 +23,37 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 .clock{height:8px;background:#E5E7EB;border-radius:4px;overflow:hidden;margin:10px 0}
 .clock span{display:block;height:100%;width:100%;background:var(--green)}
 #msg{font-weight:800;min-height:24px;margin:8px 0}
+.hidden{display:none}
 </style>
 </head>
 <body>
-<header><a href="index.html">&larr; Drills</a><b>QB Sense VR</b></header>
+<header><a href="index.html#drills">&larr; Drills</a><b>QB Sense VR</b></header>
 <main>
-<div class="card"><h2>Progression Reads</h2><p>Read #1, then #2, then #3. Throw to the first receiver who is open (defender has separation). Tap a receiver or press 1, 2 or 3 before the clock runs out. Space starts a rep.</p></div>
-<div class="card">
+<div class="card"><h2>Progression Reads</h2><p>Read #1, then #2, then #3. Throw to the first receiver who is open (defender has separation). Tap a receiver or press 1, 2 or 3 before the clock runs out. A session is 10 reps.</p></div>
+<div id="setup" class="card">
+<h2>Session setup</h2>
 <div class="coach">
+<label>Player <select id="player"><option value="">Practice (not saved)</option></select></label>
 <label>Coverage <select id="cov"><option>Random</option><option>Cover 2</option><option>Cover 3</option><option>Man</option></select></label>
 <label><input type="checkbox" id="rush" checked> Pass rush</label>
 </div>
-<div class="stats"><span>Level <b id="lvl">1</b></span><span>Correct <b id="ok">0</b>/<b id="tot">0</b></span><span>Streak <b id="str">0</b></span><span>Last read <b id="rt">-</b></span></div>
+<p><b>Level: <span id="lvlVal">1</span>/10</b><br><input type="range" id="lvl" min="1" max="10" value="1"></p>
+<small>Level 1 = longest clock. Level 10 = shortest clock. Choose a player to save the session to the Players tab.</small>
+<p><button class="btn" id="start">Start session</button></p>
+</div>
+<div id="game" class="card hidden">
+<div class="stats"><span>Rep <b id="repN">0</b>/10</span><span>Correct <b id="okN">0</b></span><span>Level <b id="lvN">1</b></span><span>Last read <b id="rt">-</b></span></div>
 <canvas id="c" width="640" height="440"></canvas>
 <div class="clock"><span id="clk"></span></div>
-<div id="msg">Press Start rep.</div>
-<button class="btn" id="go">Start rep</button>
+<div id="msg">Get ready.</div>
+<button class="btn" id="go" disabled>Next rep</button>
+</div>
+<div id="done" class="card hidden">
+<h2>Session complete</h2>
+<div class="stats"><span>Accuracy <b id="dAcc">0%</b></span><span>Correct <b id="dOk">0/10</b></span><span>Avg decision time <b id="dTime">0s</b></span><span>Pressure response <b id="dPr">0%</b></span></div>
+<p id="dTip"></p>
+<p id="dSave" style="font-weight:800"></p>
+<button class="btn" id="again">Train again</button> <a class="btn ghost" href="index.html#players">Open Players tab</a> <a class="btn ghost" href="index.html#drills">Back to drills</a>
 </div>
 <div class="card"><b>Coaching cues</b><ul><li>Read before the drop ends.</li><li>Throw the first open receiver, not the deepest.</li><li>Do not peek at #2 before checking #1.</li><li>Cover 2 leaves the deep middle and the short sidelines soft. Cover 3 leaves the short and medium zones soft.</li></ul></div>
 </main>
@@ -52,7 +69,8 @@ var RT=[
 var OPEN={'Man':[0.25,0.25,0.25],'Cover 2':[0.6,0.4,0.2],'Cover 3':[0.6,0.5,0.2]};
 var names=['Short','Medium','Deep'];
 var st={on:false,done:false,t0:0,fz:0,dur:4000,cov:[1,1,1],ans:0,routes:[],rn:[],cvg:'',rush:true,rx:320};
-var lvl=1,ok=0,tot=0,str=0;
+var S={level:1,rep:0,total:10,correct:0,times:[],sacks:0,player:null,cvSel:'Random'};
+var players=[];
 function $(i){return document.getElementById(i)}
 function cl(p){return p<0?0:p>1?1:p}
 function pts(i){var a=[[sx[i],LOS]],r=st.routes[i]||[];for(var k=0;k<r.length;k++)a.push([sx[i]+r[k][0],LOS+r[k][1]]);return a}
@@ -112,17 +130,18 @@ draw();requestAnimationFrame(tick)
 }
 function pick(o){var k=Object.keys(o);return k[Math.floor(Math.random()*k.length)]}
 function startRep(){
-var c=$('cov').value;
-st.cvg=c==='Random'?pick(OPEN):c;
-st.rush=$('rush').checked;
+S.rep++;
+st.cvg=S.cvSel==='Random'?pick(OPEN):S.cvSel;
 st.routes=[];st.rn=[];
 for(var i=0;i<3;i++){var n=pick(RT[i]);st.rn.push(n);st.routes.push(RT[i][n])}
 var open=false;
 while(!open){st.cov=[];for(var j=0;j<3;j++)st.cov.push(Math.random()>=OPEN[st.cvg][j]);open=!st.cov[0]||!st.cov[1]||!st.cov[2]}
 st.ans=st.cov.indexOf(false);
 st.rx=[200,320,440][Math.floor(Math.random()*3)];
-st.dur=Math.max(2200,4200-lvl*250)*(st.rush?0.85:1);
+st.dur=Math.max(2200,4200-S.level*250)*(st.rush?0.85:1);
 st.t0=Date.now();st.on=true;st.done=false;
+$('repN').textContent=S.rep;
+$('go').disabled=true;
 $('clk').style.width='100%';
 $('msg').style.color='#111827';
 $('msg').textContent=st.cvg+'. Read 1 \u2192 2 \u2192 3. Who is the first open receiver?';
@@ -130,12 +149,15 @@ $('msg').textContent=st.cvg+'. Read 1 \u2192 2 \u2192 3. Who is the first open r
 function finish(p){
 if(!st.on)return;
 var el=Date.now()-st.t0,rt=(el/1000).toFixed(1);
-st.fz=Math.min(el,st.dur);st.on=false;st.done=true;tot++;
+st.fz=Math.min(el,st.dur);st.on=false;st.done=true;
 var m=$('msg');
-if(p===st.ans){ok++;str++;if(str%3===0&&lvl<10)lvl++;m.textContent='Correct! #'+(st.ans+1)+' ('+st.rn[st.ans]+') was the first open receiver ('+rt+'s).';m.style.color='#14532D'}
-else if(p===-1){str=0;m.textContent='Sacked! The rush got home. First open was #'+(st.ans+1)+' ('+st.rn[st.ans]+').';m.style.color='#DC2626'}
-else{str=0;m.textContent='Missed. #'+(p+1)+' was '+(st.cov[p]?'covered':'open but not first')+'. First open was #'+(st.ans+1)+' ('+st.rn[st.ans]+').';m.style.color='#DC2626'}
-$('ok').textContent=ok;$('tot').textContent=tot;$('str').textContent=str;$('lvl').textContent=lvl;$('rt').textContent=p===-1?'-':rt+'s';
+if(p===-1){S.sacks++}else{S.times.push(el/1000)}
+if(p===st.ans){S.correct++;m.textContent='Correct! #'+(st.ans+1)+' ('+st.rn[st.ans]+') was the first open receiver ('+rt+'s).';m.style.color='#14532D'}
+else if(p===-1){m.textContent='Sacked! The rush got home. First open was #'+(st.ans+1)+' ('+st.rn[st.ans]+').';m.style.color='#DC2626'}
+else{m.textContent='Missed. #'+(p+1)+' was '+(st.cov[p]?'covered':'open but not first')+'. First open was #'+(st.ans+1)+' ('+st.rn[st.ans]+').';m.style.color='#DC2626'}
+$('okN').textContent=S.correct;$('rt').textContent=p===-1?'-':rt+'s';
+$('go').disabled=false;
+$('go').textContent=S.rep>=S.total?'See results':'Next rep';
 }
 cv.addEventListener('click',function(e){
 if(!st.on)return;
@@ -146,9 +168,75 @@ if(best>=0)finish(best)
 });
 document.addEventListener('keydown',function(e){
 if(e.key==='1'||e.key==='2'||e.key==='3')finish(+e.key-1);
-if(e.key===' '&&!st.on&&e.target.tagName!=='SELECT'&&e.target.tagName!=='INPUT'){e.preventDefault();startRep()}
+if(e.key===' '&&!$('go').disabled&&!$('game').classList.contains('hidden')){e.preventDefault();$('go').click()}
 });
-$('go').addEventListener('click',startRep);
+function openDB(){
+return new Promise(function(resolve,reject){
+var rq=indexedDB.open('qbsense_coach_data',1);
+rq.onupgradeneeded=function(){
+var d=rq.result;
+if(!d.objectStoreNames.contains('players')){var p=d.createObjectStore('players',{keyPath:'id'});p.createIndex('coachEmail','coachEmail',{unique:false})}
+if(!d.objectStoreNames.contains('sessions')){var s=d.createObjectStore('sessions',{keyPath:'id'});s.createIndex('coachEmail','coachEmail',{unique:false});s.createIndex('playerId','playerId',{unique:false})}
+};
+rq.onsuccess=function(){resolve(rq.result)};
+rq.onerror=function(){reject(rq.error)};
+});
+}
+function loadPlayers(){
+openDB().then(function(db){
+return new Promise(function(res,rej){
+var r=db.transaction('players','readonly').objectStore('players').getAll();
+r.onsuccess=function(){res(r.result||[])};
+r.onerror=function(){rej(r.error)};
+});
+}).then(function(list){
+players=list.sort(function(a,b){return String(a.name).localeCompare(String(b.name))});
+var sel=$('player');
+players.forEach(function(p){var o=document.createElement('option');o.value=p.id;o.textContent=p.name;sel.appendChild(o)});
+}).catch(function(){});
+}
+function saveSession(rec){
+return openDB().then(function(db){
+return new Promise(function(res,rej){
+var t=db.transaction('sessions','readwrite');
+t.objectStore('sessions').put(rec);
+t.oncomplete=res;
+t.onerror=function(){rej(t.error)};
+});
+});
+}
+function showDone(){
+$('game').classList.add('hidden');$('done').classList.remove('hidden');
+var acc=Math.round(S.correct/S.total*100);
+var avg=S.times.length?S.times.reduce(function(a,b){return a+b},0)/S.times.length:0;
+var pr=Math.round((S.total-S.sacks)/S.total*100);
+$('dAcc').textContent=acc+'%';$('dOk').textContent=S.correct+'/'+S.total;$('dTime').textContent=avg.toFixed(1)+'s';$('dPr').textContent=pr+'%';
+$('dTip').textContent=acc>=80&&S.level<10?'Strong session. Try level '+(S.level+1)+' next.':acc>=80?'Elite reads at the top level.':'Keep working this level. Check #1 first, then #2, then #3, and throw to the first open receiver.';
+var rec={id:Date.now()+'-'+Math.random().toString(36).slice(2),coachEmail:S.player?S.player.coachEmail:'',playerId:S.player?S.player.id:'',date:new Date().toISOString(),drill:'Progression Reads',score:acc,decisionTime:Number(avg.toFixed(2)),accuracy:acc,pressureResponse:pr,notes:'Progression Reads, level '+S.level+', coverage '+S.cvSel+', pass rush '+(st.rush?'on':'off')+', '+S.total+' reps'};
+try{
+var b=JSON.parse(localStorage.getItem('qbsense_progression_results')||'[]');
+b.push({email:localStorage.getItem('qbsense_user')||'guest',date:rec.date,level:S.level,accuracy:acc,avgTime:rec.decisionTime,pressureResponse:pr});
+localStorage.setItem('qbsense_progression_results',JSON.stringify(b.slice(-100)));
+}catch(e){}
+var out=$('dSave');
+if(!S.player){out.textContent='Practice session. Not sent to the Players tab.';out.style.color='#5B6B7C';return}
+out.textContent='Saving...';out.style.color='#5B6B7C';
+saveSession(rec).then(function(){out.textContent='Saved to '+S.player.name+' on the Players tab.';out.style.color='#14532D'}).catch(function(){out.textContent='Could not save to the Players tab. Your score is still saved on this device.';out.style.color='#DC2626'});
+}
+$('lvl').addEventListener('input',function(){$('lvlVal').textContent=$('lvl').value});
+$('start').addEventListener('click',function(){
+S.level=Number($('lvl').value);S.rep=0;S.correct=0;S.times=[];S.sacks=0;
+S.cvSel=$('cov').value;st.rush=$('rush').checked;
+var pid=$('player').value;
+S.player=null;
+for(var i=0;i<players.length;i++){if(players[i].id===pid)S.player=players[i]}
+$('lvN').textContent=S.level;$('okN').textContent=0;
+$('setup').classList.add('hidden');$('done').classList.add('hidden');$('game').classList.remove('hidden');
+startRep();
+});
+$('go').addEventListener('click',function(){if(S.rep>=S.total)showDone();else startRep()});
+$('again').addEventListener('click',function(){$('done').classList.add('hidden');$('setup').classList.remove('hidden')});
+loadPlayers();
 tick();
 </script>
 </body>
