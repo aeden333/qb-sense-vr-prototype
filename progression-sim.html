@@ -48,7 +48,7 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 </div>
 <p id="modeNote" style="font-size:13px;color:#5B6B7C"></p>
 <p><b>Level: <span id="lvlVal">1</span>/10</b><br><input type="range" id="lvl" min="1" max="10" value="1"></p>
-<small>Level 10 = real pass-rush timing. Levels 1-9 add training time. With the pass rush on, you have about 3.15 seconds at Level 10 before the rush gets home. With the pass rush off, the rep ends as a read timeout, not a sack. The Random concept button picks one 4 or 5 receiver concept for the session. Your score is saved to the Results tab. If players have been added to the Players tab, you can pick one to save the session to the Players tab instead.</small>
+<small>Level 10 = real pass-rush timing. Levels 1-9 add training time. With the pass rush on, you have about 2.70 seconds at Level 10 before the rush gets home. Each level below 10 adds 0.15 seconds of training time. With the pass rush off, the rep ends as a read timeout, not a sack. The Random concept button picks one 4 or 5 receiver concept for the session. Your score is saved to the Results tab. If players have been added to the Players tab, you can pick one to save the session to the Players tab instead.</small>
 <p><button class="btn" id="start">Start session</button></p>
 </div>
 <div id="game" class="card hidden">
@@ -205,7 +205,7 @@ while(!open){st.cov=[];for(var j=0;j<n;j++){st.cov.push(Math.random()>=openP(j))
 st.ans=st.cov.indexOf(false);
 st.rushOn=st.rush||st.cvg==='Cover 0';
 st.rx=[200,320,440][Math.floor(Math.random()*3)];
-st.dur=3000;st.press=st.rushOn?Math.max(1500,3150+(10-S.level)*150):5000;
+st.dur=3000;st.press=st.rushOn?Math.max(1500,2700+(10-S.level)*150):5000;
 st.t0=Date.now();st.on=true;st.done=false;
 $('repN').textContent=S.rep;
 $('go').disabled=true;
