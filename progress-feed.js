@@ -1,12 +1,12 @@
 (function(){
-var KEYS=[['qbsense_progression_results','Progression Reads'],['qbsense_blitz_results','Blitz Recognition'],['qbsense_redzone_results','Red-Zone Decisions']];
+var KEYS=[['qbsense_progression_results','Progression Reads'],['qbsense_blitz_results','Blitz Recognition'],['qbsense_redzone_results','Red-Zone Decisions'],['qbsense_twominute_results','Two-Minute Drill']];
 function load(){
   var me=localStorage.getItem('qbsense_user')||'guest',all=[];
   KEYS.forEach(function(k){
     try{
       JSON.parse(localStorage.getItem(k[0])||'[]').forEach(function(r){
         if((r.email||'guest')===me){
-          all.push({drill:k[1],date:r.date,level:r.level||1,acc:Number(r.accuracy)||0,time:r.avgTime!=null?Number(r.avgTime):null,pr:r.pressureResponse!=null?Number(r.pressureResponse):null,concept:r.concept||'',cov:r.coverage||''});
+          all.push({drill:k[1],date:r.date,level:r.level||1,acc:Number(r.accuracy)||0,time:r.avgTime!=null?Number(r.avgTime):null,pr:r.pressureResponse!=null?Number(r.pressureResponse):null,concept:r.concept||'',cov:r.coverage||'',result:r.result||''});
         }
       });
     }catch(e){}
@@ -99,7 +99,7 @@ function render(){
   tbl.appendChild(hr);
   all.slice(-10).reverse().forEach(function(a){
     var tr=mk('tr');
-    var det='Level '+a.level+(a.concept?' | '+a.concept:'')+(a.cov?' | '+a.cov:'');
+    var det='Level '+a.level+(a.concept?' | '+a.concept:'')+(a.cov?' | '+a.cov:'')+(a.result?' | '+a.result:'');
     [new Date(a.date).toLocaleDateString(),a.drill,det,a.acc+'%',a.time!=null?a.time.toFixed(1)+'s':'-'].forEach(function(v){tr.appendChild(mk('td',v,{'style':'padding:6px;border-bottom:1px solid #F1F5F9'}))});
     tbl.appendChild(tr);
   });

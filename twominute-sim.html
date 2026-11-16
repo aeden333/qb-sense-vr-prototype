@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two-Minute Drill | QB Sense VR</title>
+<style>
+:root{--navy:#0A1628;--green:#14532D;--bg:#F6F7F9;--muted:#5B6B7C;--border:#E2E8F0}
+body{margin:0;background:var(--bg);font-family:system-ui,Arial,sans-serif;color:#111827}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;gap:16px;align-items:center}
+header a{color:#9CA3AF;text-decoration:none}
+main{max-width:760px;margin:0 auto;padding:18px 14px 48px}
+.card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px}
+h2{text-transform:uppercase;margin:0 0 8px}
+.btn{background:var(--green);color:#fff;border:0;border-radius:6px;padding:12px 18px;font-weight:800;cursor:pointer;text-transform:uppercase;text-decoration:none;display:inline-block}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--border)}
+.stats{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:10px}
+.stats b{color:var(--navy);font-size:18px}
+.coach{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:12px;font-size:13px;font-weight:700}
+.coach select{padding:8px;border:1px solid var(--border);border-radius:6px;font-size:14px}
+canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e;touch-action:manipulation}
+.clock{height:8px;background:#E5E7EB;border-radius:4px;overflow:hidden;margin:10px 0}
+.clock span{display:block;height:100%;width:0;background:var(--green)}
+#clkS{font-weight:800;margin-bottom:6px}
+#msg{font-weight:800;min-height:24px;margin:8px 0}
+#covNote{font-size:13px;color:#5B6B7C;min-height:18px;margin-bottom:8px}
+.acts{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<header><a href="index.html#drills">&larr; Drills</a><b>QB Sense VR</b></header>
+<main>
+<div class="card"><h2>Two-Minute Drill</h2><p>You have 2:00, 3 timeouts and the ball at your own 25. Drive the field and score. Every snap has a random play call, a random coverage, a full four-man pass rush and a random blitz of 0 to 3 extra rushers. Throw to the first open receiver, or throw it away if nobody is open. After a catch the receiver runs until a defender touches him, and then he is down. Running out of bounds or an incomplete pass stops the clock. A catch in bounds does not, so use a timeout or spike to save time.</p></div>
+<div id="setup" class="card">
+<h2>Session setup</h2>
+<div class="coach">
+<label>Score <select id="def"><option value="2">Down 2 (field goal wins)</option><option value="3">Down 3 (field goal ties)</option><option value="6">Down 6 (need a touchdown)</option></select></label>
+<label id="playerWrap" class="hidden">Player <select id="player"><option value="">Results tab (just me)</option></select></label>
+</div>
+<p><b>Level: <span id="lvlVal">1</span>/10</b><br><input type="range" id="lvl" min="1" max="10" value="1"></p>
+<small>Play calls and coverages are random every snap. The pass rush is always full and blitzes are random. Level 1 = longest read clock. Level 10 = shortest. Each extra blitzer shortens your clock and opens up the coverage a little. A snap with the clock running costs 10 seconds. A timeout stops that clock for free. A spike costs 2 seconds and a down. The drive ends on a touchdown, a made or missed field goal, an interception, a turnover on downs or when time runs out. Your score is saved to the Progress tab. If players have been added to the Players tab, you can pick one to save to that player instead.</small>
+<p><button class="btn" id="start">Start drive</button></p>
+</div>
+<div id="game" class="card hidden">
+<div class="stats"><span>Game clock <b id="clkT">2:00</b></span><span>Down <b id="dn">1st &amp; 10</b></span><span>Ball on <b id="bs">own 25</b></span><span>Timeouts <b id="toN">3</b></span><span>Plays <b id="pl">0</b></span><span>Correct <b id="okN">0</b></span><span>Last read <b id="rt">-</b></span></div>
+<div id="clkS"></div>
+<canvas id="c" width="640" height="440"></canvas>
+<div class="clock"><span id="clk"></span></div>
+<div class="acts"><button class="btn" id="go">Snap</button><button class="btn ghost" id="to" disabled>Timeout (M)</button><button class="btn ghost" id="sp" disabled>Spike (P)</button><button class="btn ghost" id="fg" disabled>Kick field goal (K)</button><button class="btn ghost" id="ta" disabled>Throw away (T)</button></div>
+<div id="msg">Get ready.</div>
+<div id="covNote"></div>
+</div>
+<div id="done" class="card hidden">
+<h2>Drive complete</h2>
+<p id="dRes" style="font-weight:800;font-size:18px"></p>
+<div class="stats"><span>Accuracy <b id="dAcc">0%</b></span><span>Correct <b id="dOk">0/0</b></span><span>Avg decision time <b id="dTime">0s</b></span><span>Pressure response <b id="dPr">0%</b></span><span>Timeouts left <b id="dTo">0</b></span><span>Clock left <b id="dClk">0:00</b></span></div>
+<p id="dTip"></p>
+<p id="dSave" style="font-weight:800"></p>
+<button class="btn" id="again">Run another drive</button> <a class="btn ghost" id="dLink" href="index.html#progress">Open Progress tab</a> <a class="btn ghost" href="index.html#drills">Back to drills</a>
+</div>
+<div class="card"><b>Coaching cues</b><ul><li>Sidelines and incompletions stop the clock. Middle-of-the-field catches do not.</li><li>With the clock running and under about 30 seconds, call a timeout or spike before you snap.</li><li>Throwing it away is a good play. It stops the clock and keeps the drive alive.</li><li>Extra blitzers shorten your clock but open a receiver. Read quickly and hit the hot route.</li><li>Do not force it. An interception ends the drive.</li><li>Kick the field goal when it wins or ties. Do not take a sack in range.</li></ul></div>
+</main>
+<script>
+var cv=document.getElementById('c'),g=cv.getContext('2d');
+var W=640,H=440,LOSY=250,PX=5,QBX=320,QBY=312,SL=6,SR=634;
+var PLAYS=[
+{name:'Out / Dig / Checkdown',r:[{n:'Out',x:90,y:0,p:[[0,-40],[-70,-40]],c:'Q',oob:true},{n:'Dig',x:450,y:0,p:[[0,-60],[-130,-60]],c:'M'},{n:'Checkdown',x:320,y:30,p:[[60,-10]],c:'Q'}]},
+{name:'Curl / Post / Flat',r:[{n:'Curl',x:540,y:0,p:[[0,-60],[10,-45]],c:'M'},{n:'Post',x:200,y:0,p:[[0,-75],[110,-130]],c:'D'},{n:'Flat',x:400,y:30,p:[[80,-10]],c:'Q'}]},
+{name:'Hitch / Corner / Slant',r:[{n:'Hitch',x:560,y:0,p:[[0,-30],[0,-22]],c:'Q'},{n:'Corner',x:130,y:0,p:[[0,-70],[-70,-120]],c:'D',oob:true},{n:'Slant',x:410,y:0,p:[[0,-20],[60,-50]],c:'Q'}]},
+{name:'Seam / Sideline Out / Drag',r:[{n:'Seam',x:330,y:0,p:[[0,-150]],c:'D'},{n:'Out',x:545,y:0,p:[[0,-50],[60,-50]],c:'Q',oob:true},{n:'Drag',x:170,y:0,p:[[0,-25],[230,-30]],c:'Q'}]},
+{name:'Dagger / Go / Flat',r:[{n:'Dig',x:430,y:0,p:[[0,-80],[-120,-80]],c:'M'},{n:'Go',x:560,y:0,p:[[0,-160]],c:'D'},{n:'Flat',x:250,y:30,p:[[-70,-10]],c:'Q'}]}
+];
+var PROB={'Man':{Q:0.3,M:0.3,D:0.25},'Cover 0':{Q:0.45,M:0.4,D:0.45},'Cover 1':{Q:0.3,M:0.3,D:0.2},'Cover 2':{Q:0.55,M:0.35,D:0.35},'Cover 3':{Q:0.55,M:0.4,D:0.2},'Cover 4':{Q:0.5,M:0.35,D:0.15}};
+var ALLCOV=['Man','Cover 0','Cover 1','Cover 2','Cover 3','Cover 4'];
+var COVNOTE={'Man':'Man: crossing routes and quick throws beat it.','Cover 0':'Cover 0: no deep help. Get rid of it fast or hit the deep shot.','Cover 1':'Cover 1: man with a deep safety. Work the quick routes.','Cover 2':'Cover 2: the flats and sideline holes are soft.','Cover 3':'Cover 3: the short and medium routes are soft.','Cover 4':'Cover 4: quarters. Take what is underneath.'};
+var G={ball:75,down:1,toGo:10,clock:120,timeouts:3,running:false,plays:0,correct:0,times:[],sacks:0,ints:0,result:'',level:1,deficit:2,used:0};
+var st={play:PLAYS[0],cvg:'Man',extra:0,cov:[],ans:0,dur:3000,t0:0,dec:0,y:null,bx:[]};
+var phase='setup',players=[],player=null;
+function $(i){return document.getElementById(i)}
+function cl(p){return p<0?0:p>1?1:p}
+function fmt(s){s=Math.max(0,Math.ceil(s));var m=Math.floor(s/60),x=s%60;return m+':'+(x<10?'0':'')+x}
+function spot(d){return d>50?'own '+(100-d):d>0?'opp '+d:'goal'}
+function ordn(n){return ['','1st','2nd','3rd','4th'][n]||'4th'}
+function nameOf(c){return c<3?'#'+(c+1)+' ('+st.play.r[c].n+')':'throw it away'}
+function openP(i){var p=PROB[st.cvg][st.play.r[i].c]+0.04*st.extra;return Math.max(0.05,Math.min(0.85,p))}
+function pts(i){var R=st.play.r[i],a=[[R.x,LOSY+R.y]];for(var k=0;k<R.p.length;k++){a.push([R.x+R.p[k][0],Math.max(10,LOSY+R.y+R.p[k][1])])}return a}
+function rpos(i,p){
+var a=pts(i),L=0,s=[];
+for(var k=1;k<a.length;k++){var d=Math.hypot(a[k][0]-a[k-1][0],a[k][1]-a[k-1][1]);s.push(d);L+=d}
+if(L===0)return{x:a[0][0],y:a[0][1]};
+var t=cl(p)*L;
+for(var j=0;j<s.length;j++){
+if(t<=s[j]||j===s.length-1){var q=s[j]?Math.min(1,t/s[j]):1;return{x:a[j][0]+(a[j+1][0]-a[j][0])*q,y:a[j][1]+(a[j+1][1]-a[j][1])*q}}
+t-=s[j]}
+}
+function dpos(i,p){
+var r=rpos(i,p),b=cl((p-0.35)/0.3),sg=st.play.r[i].x<320?-1:1;
+var ox=st.cov[i]?10:sg*52,oy=st.cov[i]?14:34;
+return{x:r.x+ox*b,y:r.y+12+(oy-12)*b}
+}
+function setPhase(p){
+phase=p;
+$('go').disabled=!(p==='pre'||p==='end');
+$('go').textContent=p==='end'?'See results':'Snap';
+$('to').disabled=!(p==='pre'&&G.running&&G.timeouts>0);
+$('sp').disabled=!(p==='pre'&&G.running);
+$('fg').disabled=!(p==='pre'&&G.deficit<=3&&G.ball<=43);
+$('ta').disabled=p!=='read';
+upd()
+}
+function upd(){
+$('clkT').textContent=fmt(G.clock);
+$('dn').textContent=ordn(G.down)+' & '+((G.ball<=10&&G.toGo>=G.ball)?'Goal':G.toGo);
+$('bs').textContent=spot(G.ball);
+$('toN').textContent=G.timeouts;
+$('pl').textContent=G.plays;
+$('okN').textContent=G.correct;
+$('clkS').textContent=phase==='end'?'Drive over':G.running?'Clock RUNNING. A snap now costs 10 seconds.':'Clock stopped.';
+$('clkS').style.color=G.running?'#B91C1C':'#14532D'
+}
+function draw(){
+var GLy=LOSY-G.ball*PX;
+g.clearRect(0,0,W,H);
+g.fillStyle='#1a5c2e';g.fillRect(0,0,W,H);
+if(GLy>0){g.fillStyle='#14432a';g.fillRect(0,Math.max(0,GLy-60),W,Math.min(60,GLy))}
+for(var n=0;n<=100;n+=5){
+var y=GLy+n*PX;if(y<0||y>H)continue;
+g.strokeStyle=n===0?'#fff':'rgba(255,255,255,.22)';g.lineWidth=n===0?4:1;
+g.beginPath();g.moveTo(0,y);g.lineTo(W,y);g.stroke();
+if(n%10===0&&n>0&&n<100){g.fillStyle='rgba(255,255,255,.4)';g.font='bold 13px sans-serif';g.textAlign='left';g.fillText(String(n>50?100-n:n),14,y-3)}
+}
+g.strokeStyle='#fff';g.lineWidth=2;g.beginPath();g.moveTo(SL,0);g.lineTo(SL,H);g.moveTo(SR,0);g.lineTo(SR,H);g.stroke();
+if(G.toGo<G.ball){var fy=LOSY-G.toGo*PX;g.strokeStyle='#FACC15';g.lineWidth=3;g.beginPath();g.moveTo(0,fy);g.lineTo(W,fy);g.stroke()}
+g.strokeStyle='#60A5FA';g.lineWidth=3;g.beginPath();g.moveTo(0,LOSY);g.lineTo(W,LOSY);g.stroke();
+var el=0,p=0,i,j;
+if(phase==='read'){
+el=Date.now()-st.t0;p=cl(el/(st.dur*0.55));
+g.strokeStyle='rgba(255,255,255,.18)';g.setLineDash([6,6]);g.lineWidth=2;
+for(i=0;i<3;i++){var a=pts(i);g.beginPath();g.moveTo(a[0][0],a[0][1]);for(var k=1;k<a.length;k++)g.lineTo(a[k][0],a[k][1]);g.stroke()}
+g.setLineDash([]);
+g.fillStyle='#fff';g.font='bold 13px sans-serif';g.textAlign='left';
+g.fillText(st.play.name+' | '+st.cvg+(st.extra?' | BLITZ +'+st.extra:' | no blitz'),10,H-12);
+var scan=Math.min(2,Math.floor((el/(st.dur*0.5))*3));
+for(j=0;j<3;j++){
+var r=rpos(j,p),d=dpos(j,p);
+g.fillStyle='#DC2626';g.beginPath();g.arc(d.x,d.y,11,0,7);g.fill();g.fillStyle='#fff';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText('D',d.x,d.y+4);
+g.fillStyle=scan===j?'#F59E0B':'#fff';g.beginPath();g.arc(r.x,r.y,15,0,7);g.fill();
+g.fillStyle='#0A1628';g.font='bold 14px sans-serif';g.textAlign='center';g.fillText(''+(j+1),r.x,r.y+5);
+g.fillStyle='#fff';g.font='11px sans-serif';g.fillText(st.play.r[j].n,r.x,r.y+30)}
+var q=cl(el/st.dur),xs=[170,270,370,470];
+for(j=0;j<4;j++){var rx=xs[j]+(QBX-xs[j])*q,ry=LOSY-8+(QBY-(LOSY-8))*q;g.fillStyle='#7F1D1D';g.beginPath();g.arc(rx,ry,12,0,7);g.fill();g.fillStyle='#fff';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText('R',rx,ry+4)}
+var q2=cl(el/(st.dur*0.85));
+for(j=0;j<st.extra;j++){var bx=st.bx[j],bx2=bx+(QBX-bx)*q2,by2=LOSY+22+(QBY-(LOSY+22))*q2;g.fillStyle='#EA580C';g.beginPath();g.arc(bx2,by2,12,0,7);g.fill();g.fillStyle='#fff';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText('B',bx2,by2+4)}
+}
+if(phase==='yac'&&st.y){
+var Y=st.y;
+Y.defs.forEach(function(d){g.fillStyle=d.l==='S'?'#991B1B':'#DC2626';g.beginPath();g.arc(d.x,d.y,11,0,7);g.fill();g.fillStyle='#fff';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText(d.l,d.x,d.y+4)});
+g.fillStyle='#fff';g.beginPath();g.arc(Y.x,Y.y,15,0,7);g.fill();
+g.fillStyle='#0A1628';g.font='bold 12px sans-serif';g.textAlign='center';g.fillText('WR',Y.x,Y.y+4)}
+if(phase!=='yac'){g.fillStyle='#F59E0B';g.beginPath();g.arc(QBX,QBY,15,0,7);g.fill();g.fillStyle='#0A1628';g.font='bold 12px sans-serif';g.textAlign='center';g.fillText('QB',QBX,QBY+4)}
+}
+function tick(){
+if(phase==='read'){var el=Date.now()-st.t0;$('clk').style.width=(Math.max(0,1-el/st.dur)*100)+'%';if(el>=st.dur)sack()}
+else if(phase==='yac')stepYac();
+draw();requestAnimationFrame(tick)
+}
+function snap(){
+if(phase!=='pre')return;
+if(G.running){G.clock-=10;if(G.clock<=0){G.clock=0;upd();endDrive('Time expired before the snap.',false);return}}
+var np;do{np=PLAYS[Math.floor(Math.random()*PLAYS.length)]}while(np===st.play);
+st.play=np;
+st.cvg=ALLCOV[Math.floor(Math.random()*ALLCOV.length)];
+var w=Math.random();st.extra=w<0.35?0:w<0.7?1:w<0.9?2:3;
+var none=Math.random()<0.25,tries=0,has;
+while(true){
+st.cov=[];for(var j=0;j<3;j++){st.cov.push(Math.random()>=openP(j))}
+has=st.cov.indexOf(false)>=0;
+if(has!==none)break;
+if(++tries>200){if(none){st.cov=[true,true,true]}else{st.cov[Math.floor(Math.random()*3)]=false}has=!none;break}
+}
+st.ans=has?st.cov.indexOf(false):3;
+st.dur=Math.max(2000,4200-G.level*210)*(1-0.07*st.extra)*(st.cvg==='Cover 0'?0.9:1);
+st.bx=[230,320,410].sort(function(){return Math.random()-0.5});
+st.t0=Date.now();
+$('msg').style.color='#111827';
+$('msg').textContent=st.play.name+' vs '+st.cvg+(st.extra?', blitz +'+st.extra+' extra rushers':', no extra blitzers')+'. Read 1, 2, 3.';
+$('covNote').textContent=COVNOTE[st.cvg]||'';
+$('clk').style.width='100%';
+setPhase('read')
+}
+function throwTo(i){
+if(phase!=='read')return;
+var el=Date.now()-st.t0,dec=el/1000,ok=(i===st.ans),p=cl(el/(st.dur*0.55)),R=st.play.r[i],m=$('msg');
+G.times.push(dec);G.plays++;if(ok)G.correct++;
+st.dec=dec;$('rt').textContent=dec.toFixed(1)+'s';
+if(!st.cov[i]){
+m.style.color=ok?'#14532D':'#B45309';
+m.textContent=(ok?'Right read. ':'Open, but '+nameOf(st.ans)+' was first. ')+'Caught on the '+R.n+'. He runs until a defender touches him.';
+startYac(i,p)
+}else if(Math.random()<0.35){
+G.ints++;m.style.color='#DC2626';m.textContent='Forced into coverage and intercepted.';
+after({t:'int'})
+}else{
+m.style.color='#DC2626';m.textContent='Covered. Pass broken up. Best play: '+nameOf(st.ans)+'.';
+after({t:'inc',dec:dec})
+}
+}
+function throwAway(){
+if(phase!=='read')return;
+var dec=(Date.now()-st.t0)/1000,ok=(st.ans===3),m=$('msg');
+G.times.push(dec);G.plays++;if(ok)G.correct++;st.dec=dec;$('rt').textContent=dec.toFixed(1)+'s';
+m.style.color=ok?'#14532D':'#B45309';
+m.textContent=ok?'Smart. Nobody was open, so you threw it away. The clock stops.':'You threw it away, but '+nameOf(st.ans)+' was open.';
+after({t:'inc',dec:dec})
+}
+function sack(){
+if(phase!=='read')return;
+G.plays++;G.sacks++;G.times.push(st.dur/1000);st.dec=st.dur/1000;
+$('msg').style.color='#DC2626';$('msg').textContent='Sacked for a 7-yard loss. The rush got home. Best play: '+nameOf(st.ans)+'.';
+after({t:'sack',dec:st.dec})
+}
+function startYac(i,p){
+var rr=rpos(i,p),dd=dpos(i,p),a=Math.random()<0.5?-1:1,b=Math.random()<0.5?-1:1;
+st.y={x:rr.x,y:rr.y,t:0,last:Date.now(),oob:!!st.play.r[i].oob,defs:[{x:dd.x,y:dd.y,l:'D'},{x:rr.x+a*(70+Math.random()*50),y:rr.y-60-Math.random()*40,l:'S'},{x:rr.x+b*(120+Math.random()*60),y:rr.y-40,l:'S'}]};
+setPhase('yac')
+}
+function stepYac(){
+var Y=st.y,now=Date.now(),dt=Math.min(0.05,(now-Y.last)/1000);Y.last=now;Y.t+=dt;
+if(Y.oob){Y.x+=(Y.x<320?-1:1)*100*dt}else{Y.y-=100*dt}
+Y.defs.forEach(function(d){var dx=Y.x-d.x,dy=Y.y-d.y,L=Math.hypot(dx,dy)||1;d.x+=dx/L*108*dt;d.y+=dy/L*108*dt});
+var GLy=LOSY-G.ball*PX;
+var touched=Y.defs.some(function(d){return Math.hypot(Y.x-d.x,Y.y-d.y)<18});
+if(Y.y<=GLy)finishYac('td');
+else if(touched||Y.t>6)finishYac('tackle');
+else if(Y.x<=SL||Y.x>=SR)finishYac('oob')
+}
+function finishYac(kind){
+var Y=st.y,gain=kind==='td'?G.ball:Math.round((LOSY-Y.y)/PX);
+st.y=null;
+after({t:'catch',gain:gain,oob:kind==='oob',dec:st.dec,yt:Y.t,kind:kind})
+}
+function after(o){
+var m=$('msg'),extra='',cost=o.dec||0,stop=false;
+if(o.t==='int'){endDrive('Interception',false);return}
+if(o.t==='sack'){G.ball=Math.min(99,G.ball+7);G.toGo+=7;G.down++;cost+=2}
+else if(o.t==='inc'){G.down++;cost+=2;stop=true}
+else if(o.t==='catch'){
+G.ball-=o.gain;cost+=3+o.yt;
+if(G.ball<=0){G.clock=Math.max(0,G.clock-cost);upd();m.style.color='#14532D';m.textContent='TOUCHDOWN! The receiver reached the end zone.';endDrive('Touchdown',true);return}
+G.toGo-=o.gain;
+if(G.toGo<=0){G.down=1;G.toGo=Math.min(10,G.ball);extra=' First down.'}else{G.down++}
+stop=o.oob;
+m.style.color=m.style.color||'#14532D';
+m.textContent=m.textContent.replace(/ He runs until.*$/,'')+' '+(o.kind==='oob'?'He ran out of bounds':'A defender touched him and he was down')+' after a '+o.gain+'-yard gain.'+extra
+}
+G.clock=Math.max(0,G.clock-cost);
+if(G.down>4){upd();endDrive('Turnover on downs',false);return}
+if(G.clock<=0){upd();endDrive('Time expired',false);return}
+G.running=!stop;
+m.textContent+=' '+(stop?'Clock stopped.':'Clock is running.');
+setPhase('pre')
+}
+function endDrive(res,win){
+G.result=res;G.win=!!win;
+if(res!=='Touchdown'){$('msg').style.color='#DC2626';$('msg').textContent='Drive over: '+res+'.'}
+G.running=false;setPhase('end')
+}
+function useTimeout(){
+if(phase!=='pre'||!G.running||G.timeouts<1)return;
+G.timeouts--;G.used++;G.running=false;$('msg').style.color='#111827';$('msg').textContent='Timeout. The clock is stopped.';setPhase('pre')
+}
+function spike(){
+if(phase!=='pre'||!G.running)return;
+G.clock-=2;G.down++;G.running=false;
+if(G.clock<=0){G.clock=0;upd();endDrive('Time expired',false);return}
+if(G.down>4){upd();endDrive('Turnover on downs after the spike',false);return}
+$('msg').style.color='#111827';$('msg').textContent='Spiked the ball. Clock stopped, down used.';setPhase('pre')
+}
+function kick(){
+if(phase!=='pre'||G.deficit>3||G.ball>43)return;
+var kd=G.ball+17,pr=kd<=30?0.95:kd<=40?0.88:kd<=50?0.75:kd<=57?0.55:0.4;
+if(Math.random()<pr){
+$('msg').style.color='#14532D';
+if(G.deficit===2){$('msg').textContent='The '+kd+'-yard field goal is good. You win.';endDrive('Field goal (win)',true)}
+else{$('msg').textContent='The '+kd+'-yard field goal is good. The game is tied.';endDrive('Field goal (tie)',true)}
+}else{endDrive('Missed field goal',false)}
+}
+cv.addEventListener('click',function(e){
+if(phase!=='read')return;
+var b=cv.getBoundingClientRect(),x=(e.clientX-b.left)*W/b.width,y=(e.clientY-b.top)*H/b.height;
+var p=cl((Date.now()-st.t0)/(st.dur*0.55)),best=-1,bd=60;
+for(var i=0;i<3;i++){var r=rpos(i,p),d=Math.hypot(r.x-x,r.y-y);if(d<bd){bd=d;best=i}}
+if(best>=0)throwTo(best)
+});
+$('go').addEventListener('click',function(){if(phase==='end')showDone();else snap()});
+$('to').addEventListener('click',useTimeout);
+$('sp').addEventListener('click',spike);
+$('fg').addEventListener('click',kick);
+$('ta').addEventListener('click',throwAway);
+document.addEventListener('keydown',function(e){
+var k=e.key;
+if(k>='1'&&k<='3')throwTo(+k-1);
+if(k==='t'||k==='T')throwAway();
+if(k==='m'||k==='M')useTimeout();
+if(k==='p'||k==='P')spike();
+if(k==='k'||k==='K')kick();
+if(k===' '&&!$('go').disabled&&!$('game').classList.contains('hidden')){e.preventDefault();$('go').click()}
+});
+function openDB(){
+return new Promise(function(resolve,reject){
+var rq=indexedDB.open('qbsense_coach_data',1);
+rq.onupgradeneeded=function(){
+var d=rq.result;
+if(!d.objectStoreNames.contains('players')){var p=d.createObjectStore('players',{keyPath:'id'});p.createIndex('coachEmail','coachEmail',{unique:false})}
+if(!d.objectStoreNames.contains('sessions')){var s=d.createObjectStore('sessions',{keyPath:'id'});s.createIndex('coachEmail','coachEmail',{unique:false});s.createIndex('playerId','playerId',{unique:false})}
+};
+rq.onsuccess=function(){resolve(rq.result)};
+rq.onerror=function(){reject(rq.error)};
+});
+}
+function loadPlayers(){
+openDB().then(function(db){
+return new Promise(function(res,rej){
+var r=db.transaction('players','readonly').objectStore('players').getAll();
+r.onsuccess=function(){res(r.result||[])};
+r.onerror=function(){rej(r.error)};
+});
+}).then(function(list){
+players=list.sort(function(a,b){return String(a.name).localeCompare(String(b.name))});
+var sel=$('player');
+players.forEach(function(p){var o=document.createElement('option');o.value=p.id;o.textContent=p.name;sel.appendChild(o)});
+if(players.length)$('playerWrap').classList.remove('hidden');
+}).catch(function(){});
+}
+function saveSession(rec){
+return openDB().then(function(db){
+return new Promise(function(res,rej){
+var t=db.transaction('sessions','readwrite');
+t.objectStore('sessions').put(rec);
+t.oncomplete=res;
+t.onerror=function(){rej(t.error)};
+});
+});
+}
+function showDone(){
+$('game').classList.add('hidden');$('done').classList.remove('hidden');
+var n=G.plays,acc=n?Math.round(G.correct/n*100):0;
+var avg=G.times.length?G.times.reduce(function(a,b){return a+b},0)/G.times.length:0;
+var pr=n?Math.round((n-G.sacks)/n*100):100;
+$('dRes').textContent='Result: '+G.result;
+$('dAcc').textContent=acc+'%';$('dOk').textContent=G.correct+'/'+n;$('dTime').textContent=avg.toFixed(1)+'s';$('dPr').textContent=pr+'%';$('dTo').textContent=G.timeouts;$('dClk').textContent=fmt(G.clock);
+var tip=G.win?'You finished the drive. Next, try a higher level.':G.result==='Interception'?'You forced a throw into coverage. Throw it away and live for the next down.':G.result==='Time expired'?'You ran out of time. Use timeouts, throw it away and get to the sideline.':G.result==='Turnover on downs'?'You ran out of downs. Take the open checkdown to stay on schedule.':'Keep working. Read in order and manage the clock.';
+$('dTip').textContent=tip;
+var date=new Date().toISOString(),at=Number(avg.toFixed(2)),out=$('dSave');
+if(!player){
+out.style.color='#14532D';
+try{
+var b=JSON.parse(localStorage.getItem('qbsense_twominute_results')||'[]');
+b.push({email:localStorage.getItem('qbsense_user')||'guest',date:date,level:G.level,accuracy:acc,correct:G.correct,total:n,avgTime:at,pressureResponse:pr,coverage:'Random',concept:'Random plays',result:G.result,timeoutsLeft:G.timeouts,clockLeft:Math.round(G.clock)});
+localStorage.setItem('qbsense_twominute_results',JSON.stringify(b.slice(-100)));
+out.textContent='Saved to your Progress history.';
+}catch(e){out.textContent='Could not save on this device.';out.style.color='#DC2626'}
+$('dLink').textContent='Open Progress tab';$('dLink').href='index.html#progress';
+return}
+var rec={id:Date.now()+'-'+Math.random().toString(36).slice(2),coachEmail:player.coachEmail,playerId:player.id,date:date,drill:'Two-Minute Drill',score:acc,decisionTime:at,accuracy:acc,pressureResponse:pr,notes:'Two-Minute Drill, level '+G.level+', down '+G.deficit+', result '+G.result+', '+n+' plays, timeouts left '+G.timeouts+', clock left '+fmt(G.clock)};
+$('dLink').textContent='Open Players tab';$('dLink').href='index.html#players';
+out.textContent='Saving...';out.style.color='#5B6B7C';
+saveSession(rec).then(function(){out.textContent='Saved to '+player.name+' on the Players tab.';out.style.color='#14532D'}).catch(function(){out.textContent='Could not save to the Players tab.';out.style.color='#DC2626'});
+}
+$('lvl').addEventListener('input',function(){$('lvlVal').textContent=$('lvl').value});
+$('start').addEventListener('click',function(){
+var pid=$('player').value;
+player=null;
+for(var i=0;i<players.length;i++){if(players[i].id===pid)player=players[i]}
+G={ball:75,down:1,toGo:10,clock:120,timeouts:3,running:false,plays:0,correct:0,times:[],sacks:0,ints:0,result:'',level:Number($('lvl').value),deficit:Number($('def').value),used:0,win:false};
+st.y=null;
+$('setup').classList.add('hidden');$('done').classList.add('hidden');$('game').classList.remove('hidden');
+$('rt').textContent='-';$('covNote').textContent='';$('clk').style.width='0%';
+$('msg').style.color='#111827';$('msg').textContent='Ball at your own 25 with 2:00 left. Snap when ready.';
+setPhase('pre')
+});
+$('again').addEventListener('click',function(){$('done').classList.add('hidden');$('setup').classList.remove('hidden');phase='setup'});
+loadPlayers();
+upd();
+tick();
+</script>
+</body>
+</html>
