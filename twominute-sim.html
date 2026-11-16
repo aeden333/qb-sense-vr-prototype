@@ -40,7 +40,7 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <label id="playerWrap" class="hidden">Player <select id="player"><option value="">Results tab (just me)</option></select></label>
 </div>
 <p><b>Level: <span id="lvlVal">1</span>/10</b><br><input type="range" id="lvl" min="1" max="10" value="1"></p>
-<small>The starting clock (0:10 to 2:00) and the number of timeouts (1 to 3) are picked at random for every drive. Play calls and coverages are random every snap. The pass rush is always full and blitzes are random. Level 10 = real pass-rush timing. Levels 1-9 add training time. More blitzers shorten the pressure window. A snap with the clock running costs 10 seconds. A timeout stops that clock for free. A spike costs 2 seconds and a down. The drive ends on a touchdown, a made or missed field goal, an interception, a turnover on downs or when time runs out. Your score is saved to the Progress tab. If players have been added to the Players tab, you can pick one to save to that player instead.</small>
+<small>The starting clock (0:10 to 2:00) and the number of timeouts (1 to 3) are picked at random for every drive. Play calls and coverages are random every snap. The pass rush is always full and blitzes are random. Level 10 = real pass-rush timing. Levels 1-9 add training time. More blitzers shorten the pressure window. The clock keeps running in real time during each play. An incomplete pass or a receiver going out of bounds stops it. A timeout stops the clock. A spike stops the clock and uses a down. The drive ends on a touchdown, a made or missed field goal, an interception, a turnover on downs or when time runs out. Your score is saved to the Progress tab. If players have been added to the Players tab, you can pick one to save to that player instead.</small>
 <p><button class="btn" id="start">Start drive</button></p>
 </div>
 <div id="game" class="card hidden">
@@ -77,7 +77,7 @@ var PROB={'Man':{Q:0.3,M:0.3,D:0.25},'Cover 0':{Q:0.45,M:0.4,D:0.45},'Cover 1':{
 var ALLCOV=['Man','Cover 0','Cover 1','Cover 2','Cover 3','Cover 4'];
 var COVNOTE={'Man':'Man: crossing routes and quick throws beat it.','Cover 0':'Cover 0: no deep help. Get rid of it fast or hit the deep shot.','Cover 1':'Cover 1: man with a deep safety. Work the quick routes.','Cover 2':'Cover 2: the flats and sideline holes are soft.','Cover 3':'Cover 3: the short and medium routes are soft.','Cover 4':'Cover 4: quarters. Take what is underneath.'};
 var G={ball:75,down:1,toGo:10,clock:120,timeouts:3,running:false,plays:0,correct:0,times:[],sacks:0,ints:0,result:'',level:1,deficit:2,used:0,startClock:120,startTimeouts:3,att:0,comp:0,yds:0,td:0};
-var st={play:PLAYS[0],cvg:'Man',extra:0,cov:[],ans:0,dur:3000,t0:0,dec:0,y:null,bx:[230,320,410],pv:false};
+var st={play:PLAYS[0],cvg:'Man',extra:0,cov:[],ans:0,dur:3000,t0:0,dec:0,y:null,bx:[230,320,410],pv:false,playStart:0};
 var phase='setup',players=[],player=null;
 function $(i){return document.getElementById(i)}
 function cl(p){return p<0?0:p>1?1:p}
@@ -148,7 +148,7 @@ $('bs').textContent=spot(G.ball);
 $('toN').textContent=G.timeouts;
 $('pl').textContent=G.plays;
 $('okN').textContent=G.correct;
-$('clkS').textContent=phase==='end'?'Drive over':G.running?'Clock RUNNING. A snap now costs 10 seconds.':'Clock stopped.';
+$('clkS').textContent=phase==='end'?'Drive over':G.running?'Clock RUNNING. The clock is ticking during the play.':'Clock stopped.';
 $('clkS').style.color=G.running?'#B91C1C':'#14532D'
 }
 function draw(){
@@ -207,12 +207,13 @@ if(phase!=='yac'){g.fillStyle='#F59E0B';g.beginPath();g.arc(QBX,QBY,15,0,7);g.fi
 function tick(){
 if(phase==='read'){var el=Date.now()-st.t0;$('clk').style.width=(Math.max(0,1-el/st.dur)*100)+'%';if(el>=st.press)sack()}
 else if(phase==='yac')stepYac();
+if(G.running&&(phase==='read'||phase==='yac')){$('clkT').textContent=fmt(Math.max(0,G.clock-(Date.now()-st.playStart)/1000))}
 draw();requestAnimationFrame(tick)
 }
 function snap(){
 if(phase!=='pre')return;
-if(G.running){G.clock-=10;if(G.clock<=0){G.clock=0;upd();endDrive('Time expired before the snap.',false);return}}
 st.pv=false;
+st.playStart=Date.now();
 st.t0=Date.now();
 $('msg').style.color='#111827';
 $('msg').textContent=st.play.name+'. Read 1, 2, 3 before the rush gets home.';
@@ -272,13 +273,13 @@ st.y=null;
 after({t:'catch',gain:gain,oob:kind==='oob',dec:st.dec,yt:Y.t,kind:kind})
 }
 function after(o){
-var m=$('msg'),extra='',cost=o.dec||0,stop=false;
+var m=$('msg'),extra='',cost=Math.max(0,(Date.now()-st.playStart)/1000),stop=false;
 $('covNote').textContent='The defense was in '+st.cvg+(st.extra?' with '+st.extra+' extra rusher'+(st.extra>1?'s':''):' with no extra rushers')+'. '+(COVNOTE[st.cvg]||'');
 if(o.t==='int'){endDrive('Interception',false);return}
-if(o.t==='sack'){G.ball=Math.min(99,G.ball+7);G.toGo+=7;G.down++;cost+=2}
-else if(o.t==='inc'){G.down++;cost+=2;stop=true}
+if(o.t==='sack'){G.ball=Math.min(99,G.ball+7);G.toGo+=7;G.down++}
+else if(o.t==='inc'){G.down++;stop=true}
 else if(o.t==='catch'){
-G.ball-=o.gain;cost+=3+o.yt;G.comp++;G.yds+=o.gain;
+G.ball-=o.gain;G.comp++;G.yds+=o.gain;
 if(G.ball<=0){G.td++;G.clock=Math.max(0,G.clock-cost);upd();m.style.color='#14532D';m.textContent='TOUCHDOWN! The receiver reached the end zone.';endDrive('Touchdown',true);return}
 G.toGo-=o.gain;
 if(G.toGo<=0){G.down=1;G.toGo=Math.min(10,G.ball);extra=' First down.'}else{G.down++}
@@ -413,15 +414,10 @@ var tc=10+5*Math.floor(Math.random()*23),tn=1+Math.floor(Math.random()*3);
 G={ball:75,down:1,toGo:10,clock:tc,timeouts:tn,running:false,plays:0,correct:0,times:[],sacks:0,ints:0,result:'',level:Number($('lvl').value),deficit:Number(dv),used:0,win:false,startClock:tc,startTimeouts:tn,att:0,comp:0,yds:0,td:0};
 st.y=null;
 $('setup').classList.add('hidden');$('done').classList.add('hidden');$('game').classList.remove('hidden');
-$('rt').textContent='-';$('covNote').textContent='';$('clk').style.width='0%';
-$('msg').style.color='#111827';$('msg').textContent='You are down '+G.deficit+(G.deficit===6?' and need a touchdown. ':(G.deficit===2?'. A field goal wins. ':'. A field goal ties. '))+'Ball at your own 25 with '+fmt(tc)+' left and '+tn+' timeout'+(tn>1?'s':'')+'. Study the play and the defense, then snap when ready.';
-nextPlay();setPhase('pre')
+setPhase('pre');
+nextPlay();
 });
-$('again').addEventListener('click',function(){$('done').classList.add('hidden');$('setup').classList.remove('hidden');phase='setup'});
 loadPlayers();
-upd();
-tick();
 </script>
-<script src="back-button.js"></script>
 </body>
 </html>
