@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Red-Zone Decisions | QB Sense VR</title>
+<style>
+:root{--navy:#0A1628;--green:#14532D;--bg:#F6F7F9;--muted:#5B6B7C;--border:#E2E8F0}
+body{margin:0;background:var(--bg);font-family:system-ui,Arial,sans-serif;color:#111827}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;gap:16px;align-items:center}
+header a{color:#9CA3AF;text-decoration:none}
+main{max-width:760px;margin:0 auto;padding:18px 14px 48px}
+.card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px}
+h2{text-transform:uppercase;margin:0 0 8px}
+.btn{background:var(--green);color:#fff;border:0;border-radius:6px;padding:12px 18px;font-weight:800;cursor:pointer;text-transform:uppercase;text-decoration:none;display:inline-block}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--border)}
+.stats{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:10px}
+.stats b{color:var(--navy);font-size:18px}
+.coach{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:12px;font-size:13px;font-weight:700}
+.coach select{padding:8px;border:1px solid var(--border);border-radius:6px;font-size:14px}
+canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e;touch-action:manipulation}
+.clock{height:8px;background:#E5E7EB;border-radius:4px;overflow:hidden;margin:10px 0}
+.clock span{display:block;height:100%;width:100%;background:var(--green)}
+#sit{font-weight:800;color:var(--navy);margin-bottom:8px}
+#msg{font-weight:800;min-height:24px;margin:8px 0}
+#covNote{font-size:13px;color:#5B6B7C;min-height:18px;margin-bottom:8px}
+.acts{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<header><a href="index.html#drills">&larr; Drills</a><b>QB Sense VR</b></header>
+<main>
+<div class="card"><h2>Red-Zone Decisions</h2><p>The field is short, the windows are tight and one bad throw costs points. Read the receivers in order and throw to the first open one. If nobody is open, scramble only when the lane is clear (a green arrow shows it). If a defender is spying the lane, throw the ball away. Never force it into coverage. A session is 10 reps.</p></div>
+<div id="setup" class="card">
+<h2>Session setup</h2>
+<div class="coach">
+<label>Concept <select id="mode"><option value="sff">Slant / Fade / Flat</option><option value="mesh">Mesh + Corner</option><option value="smash">Smash</option><option value="stick">Stick + Fade</option><option value="rand">Random concept each rep</option></select></label>
+<label id="playerWrap" class="hidden">Player <select id="player"><option value="">Results tab (just me)</option></select></label>
+<label>Coverage <select id="cov"><option>Random</option><option>Man</option><option>Cover 0</option><option>Cover 1</option><option>Cover 2</option><option>Cover 3</option><option>Cover 4</option></select></label>
+<label><input type="checkbox" id="rush" checked> Pass rush</label>
+</div>
+<p id="modeNote" style="font-size:13px;color:#5B6B7C"></p>
+<p><b>Level: <span id="lvlVal">1</span>/10</b><br><input type="range" id="lvl" min="1" max="10" value="1"></p>
+<small>Level 1 = longest clock. Level 10 = shortest clock. Each rep starts at a random spot inside the 20 with a random down. About one rep in three has nobody open, so you must decide between a scramble and a throwaway. Your score is saved to the Results and Progress tabs. If players have been added to the Players tab, you can pick one to save the session to that player instead.</small>
+<p><button class="btn" id="start">Start session</button></p>
+</div>
+<div id="game" class="card hidden">
+<div class="stats"><span>Rep <b id="repN">0</b>/10</span><span>Correct <b id="okN">0</b></span><span>Level <b id="lvN">1</b></span><span>Last read <b id="rt">-</b></span></div>
+<div id="sit"></div>
+<canvas id="c" width="640" height="440"></canvas>
+<div class="clock"><span id="clk"></span></div>
+<div class="acts"><button class="btn ghost" id="ta" disabled>Throw away (T)</button><button class="btn ghost" id="sc" disabled>Scramble (S)</button></div>
+<div id="msg">Get ready.</div>
+<div id="covNote"></div>
+<button class="btn" id="go" disabled>Next rep</button>
+</div>
+<div id="done" class="card hidden">
+<h2>Session complete</h2>
+<div class="stats"><span>Accuracy <b id="dAcc">0%</b></span><span>Correct <b id="dOk">0/10</b></span><span>Avg decision time <b id="dTime">0s</b></span><span>Pressure response <b id="dPr">0%</b></span><span>Forced throws <b id="dInt">0</b></span></div>
+<p id="dTip"></p>
+<p id="dSave" style="font-weight:800"></p>
+<button class="btn" id="again">Train again</button> <a class="btn ghost" id="dLink" href="index.html#results">Open Results tab</a> <a class="btn ghost" href="index.html#drills">Back to drills</a>
+</div>
+<div class="card"><b>Coaching cues</b><ul><li>Before the snap, find the best matchup, find the extra defender and know your second answer.</li><li>Throw the first open receiver. Do not wait for a better one.</li><li>A throwaway is a good play. An interception in the red zone steals points.</li><li>Scramble only when the lane is open. A spy takes the lane away.</li><li>Fades and corners lose space near the goal line. Quick routes like slants, sticks and flats gain value.</li><li>Man coverage and Cover 0: crossing routes (mesh) get free from traffic. Cover 3 and Cover 4: take the underneath routes.</li></ul></div>
+</main>
+<script>
+var cv=document.getElementById('c'),g=cv.getContext('2d');
+var W=640,H=440,GL=60,PX=10,QBOFF=75;
+var CON={
+sff:{name:'Slant / Fade / Flat',sx:[130,560,400],sy:[0,0,40],lab:['Slant','Fade','Flat'],routes:[[[0,-20],[60,-45]],[[10,-90]],[[70,-5]]],note:'Read the slant (#1), then the fade (#2), then the flat (#3).'},
+mesh:{name:'Mesh + Corner',sx:[200,440,560],sy:[0,0,0],lab:['Drag','Drag','Corner'],routes:[[[0,-30],[200,-35]],[[0,-35],[-200,-35]],[[0,-60],[40,-100]]],note:'Two drags cross in the middle, then the corner. Read the drags first.'},
+smash:{name:'Smash',sx:[540,440,320],sy:[0,0,40],lab:['Corner','Hitch','Checkdown'],routes:[[[0,-60],[40,-100]],[[0,-45],[0,-35]],[[60,-15]]],note:'Read the corner (#1), the hitch under it (#2), then the checkdown (#3).'},
+stick:{name:'Stick + Fade',sx:[400,80,270],sy:[0,0,40],lab:['Stick','Fade','Flat'],routes:[[[0,-45],[-6,-40]],[[-5,-90]],[[-80,-5]]],note:'Read the stick (#1), the fade (#2), then the flat (#3).'}
+};
+var IDS=['sff','mesh','smash','stick'];
+var CLS={Slant:'Q',Flat:'Q',Hitch:'Q',Stick:'Q',Checkdown:'Q',Drag:'X',Fade:'V',Corner:'V'};
+var PROB={'Man':{Q:0.3,X:0.5,V:0.3},'Cover 0':{Q:0.45,X:0.55,V:0.4},'Cover 1':{Q:0.3,X:0.45,V:0.25},'Cover 2':{Q:0.5,X:0.3,V:0.4},'Cover 3':{Q:0.55,X:0.4,V:0.25},'Cover 4':{Q:0.5,X:0.35,V:0.2}};
+var ALLCOV=['Man','Cover 0','Cover 1','Cover 2','Cover 3','Cover 4'];
+var COVNOTE={
+'Man':'Man: crossing routes can rub defenders off. Win quickly.',
+'Cover 0':'Cover 0: all-out man with no safety. Get the ball out fast.',
+'Cover 1':'Cover 1: man with a deep safety. The safety is little help near the goal line, so work the quick routes.',
+'Cover 2':'Cover 2: two safeties. The flats and the corner windows are the soft spots.',
+'Cover 3':'Cover 3: three deep, so the short routes are soft. Do not force the fade.',
+'Cover 4':'Cover 4: quarters. Verticals are hard to complete. Take what is underneath.'
+};
+var cfg=CON.sff;
+var st={on:false,done:false,t0:0,fz:0,dur:4000,cov:[],ans:0,cvg:'',rush:true,rushOn:true,rx:320,lane:true,side:1,los:200,d:10};
+var S={mode:'sff',rand:false,level:1,rep:0,total:10,correct:0,times:[],sacks:0,ints:0,player:null,cvSel:'Random'};
+var players=[];
+function $(i){return document.getElementById(i)}
+function cl(p){return p<0?0:p>1?1:p}
+function ord(n){return n===1?'1st':n===2?'2nd':'3rd'}
+function openP(i){
+var c=CLS[cfg.lab[i]],p=PROB[st.cvg][c];
+if(c==='V'&&st.d<=6)p-=0.1;
+if(c==='Q'&&st.d<=6)p+=0.05;
+return Math.max(0.05,Math.min(0.85,p))
+}
+function QY(){return st.los+QBOFF}
+function pts(i){
+var x=cfg.sx[i],y=st.los+cfg.sy[i],a=[[x,y]],r=cfg.routes[i];
+for(var k=0;k<r.length;k++){a.push([x+r[k][0],Math.max(12,y+r[k][1])])}
+return a
+}
+function rpos(i,p){
+var a=pts(i),L=0,s=[];
+for(var k=1;k<a.length;k++){var d=Math.hypot(a[k][0]-a[k-1][0],a[k][1]-a[k-1][1]);s.push(d);L+=d}
+if(L===0)return{x:a[0][0],y:a[0][1]};
+var t=cl(p)*L;
+for(var j=0;j<s.length;j++){
+if(t<=s[j]||j===s.length-1){var q=s[j]?Math.min(1,t/s[j]):1;return{x:a[j][0]+(a[j+1][0]-a[j][0])*q,y:a[j][1]+(a[j+1][1]-a[j][1])*q}}
+t-=s[j]}
+}
+function dpos(i,p){
+var r=rpos(i,p),b=cl((p-0.35)/0.3);
+var sg=cfg.sx[i]<320?-1:1;
+var ox=st.cov[i]?10:sg*52,oy=st.cov[i]?14:34;
+return{x:r.x+ox*b,y:r.y+12+(oy-12)*b}
+}
+function elapsed(){return st.on?Date.now()-st.t0:st.fz}
+function draw(){
+var n=3;
+g.clearRect(0,0,W,H);
+g.fillStyle='#1a5c2e';g.fillRect(0,0,W,H);
+g.fillStyle='#14432a';g.fillRect(0,0,W,GL);
+g.fillStyle='rgba(255,255,255,.35)';g.font='bold 14px sans-serif';g.textAlign='center';g.fillText('END ZONE',W/2,GL/2+5);
+g.strokeStyle='rgba(255,255,255,.2)';g.lineWidth=1;
+for(var y=GL+PX;y<H;y+=PX){g.beginPath();g.moveTo(0,y);g.lineTo(W,y);g.stroke()}
+g.strokeStyle='#fff';g.lineWidth=4;g.beginPath();g.moveTo(0,GL);g.lineTo(W,GL);g.stroke();
+g.strokeStyle='#FACC15';g.lineWidth=3;g.beginPath();g.moveTo(0,st.los);g.lineTo(W,st.los);g.stroke();
+var live=st.on||st.done,el=live?elapsed():0,p=live?cl(el/(st.dur*0.55)):0;
+if(live){
+g.strokeStyle='rgba(255,255,255,.18)';g.setLineDash([6,6]);g.lineWidth=2;
+for(var i=0;i<n;i++){var a=pts(i);g.beginPath();g.moveTo(a[0][0],a[0][1]);for(var k=1;k<a.length;k++)g.lineTo(a[k][0],a[k][1]);g.stroke()}
+g.setLineDash([]);
+g.fillStyle='#fff';g.font='bold 13px sans-serif';g.textAlign='left';g.fillText(cfg.name+' | '+st.cvg,10,H-12);
+var qx=QB.x,qy=QY(),sx=qx+st.side*95,sy=st.los-5;
+if(st.lane){g.strokeStyle='#4ADE80';g.lineWidth=4;g.setLineDash([8,6]);g.beginPath();g.moveTo(qx,qy);g.lineTo(sx,sy);g.stroke();g.setLineDash([]);g.fillStyle='#4ADE80';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText('LANE',sx,sy-8)}
+else{g.fillStyle='#B91C1C';g.beginPath();g.arc(qx+st.side*45,qy-50,12,0,7);g.fill();g.fillStyle='#fff';g.font='bold 10px sans-serif';g.textAlign='center';g.fillText('SPY',qx+st.side*45,qy-46)}
+}
+var scan=Math.min(n-1,Math.floor((el/(st.dur*0.5))*n));
+for(var j=0;j<n;j++){
+var r=rpos(j,p);
+if(live){var d=dpos(j,p);g.fillStyle='#DC2626';g.beginPath();g.arc(d.x,d.y,11,0,7);g.fill();g.fillStyle='#fff';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText('D',d.x,d.y+4)}
+g.fillStyle=(st.on&&scan===j)?'#F59E0B':'#fff';
+g.beginPath();g.arc(r.x,r.y,15,0,7);g.fill();
+g.fillStyle='#0A1628';g.font='bold 14px sans-serif';g.textAlign='center';g.fillText(''+(j+1),r.x,r.y+5);
+g.fillStyle='#fff';g.font='11px sans-serif';g.fillText(cfg.lab[j],r.x,r.y+30);
+if(st.done&&!st.cov[j]){g.strokeStyle='#4ADE80';g.lineWidth=3;g.beginPath();g.arc(r.x,r.y,22,0,7);g.stroke()}
+}
+if(live&&st.rushOn){
+var q=cl(el/st.dur),rx=st.rx+(QB.x-st.rx)*q,ry=st.los-10+(QY()-(st.los-10))*q;
+g.fillStyle='#7F1D1D';g.beginPath();g.arc(rx,ry,13,0,7);g.fill();
+g.fillStyle='#fff';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText('R',rx,ry+4)}
+var bx=QB.x,by=QY();
+g.fillStyle='#F59E0B';g.beginPath();g.arc(bx,by,15,0,7);g.fill();
+g.fillStyle='#0A1628';g.font='bold 12px sans-serif';g.textAlign='center';g.fillText('QB',bx,by+4);
+}
+var QB={x:320};
+function tick(){
+if(st.on){
+var el=Date.now()-st.t0;
+$('clk').style.width=(Math.max(0,1-el/st.dur)*100)+'%';
+if(el>=st.dur)finish(-1)
+}
+draw();requestAnimationFrame(tick)
+}
+function applyCfg(m){S.mode=m;cfg=CON[m]}
+function startRep(){
+S.rep++;
+if(S.rand){var cur=S.mode,nx=cur;while(nx===cur){nx=IDS[Math.floor(Math.random()*IDS.length)]}applyCfg(nx)}
+st.cvg=S.cvSel==='Random'?ALLCOV[Math.floor(Math.random()*ALLCOV.length)]:S.cvSel;
+st.d=3+Math.floor(Math.random()*18);
+st.los=GL+st.d*PX;
+var down=1+Math.floor(Math.random()*3);
+var dist=st.d<=10?'Goal':String(5+Math.floor(Math.random()*6));
+var none=Math.random()<0.3,tries=0,hasOpen;
+while(true){
+st.cov=[];for(var j=0;j<3;j++){st.cov.push(Math.random()>=openP(j))}
+hasOpen=st.cov.indexOf(false)>=0;
+if(hasOpen!==none)break;
+if(++tries>200){if(none){st.cov=[true,true,true]}else{st.cov[Math.floor(Math.random()*3)]=false}hasOpen=!none;break}
+}
+st.lane=Math.random()<0.5;
+st.side=Math.random()<0.5?-1:1;
+st.ans=hasOpen?st.cov.indexOf(false):(st.lane?4:3);
+st.rushOn=st.rush||st.cvg==='Cover 0';
+st.rx=[200,320,440][Math.floor(Math.random()*3)];
+st.dur=Math.max(2000,4400-S.level*230)*(st.rushOn?0.85:1)*(st.cvg==='Cover 0'?0.85:1);
+st.t0=Date.now();st.on=true;st.done=false;
+$('repN').textContent=S.rep;
+$('sit').textContent=ord(down)+' & '+dist+' at the '+st.d+'-yard line | '+st.cvg;
+$('go').disabled=true;$('ta').disabled=false;$('sc').disabled=false;
+$('clk').style.width='100%';
+$('msg').style.color='#111827';
+$('covNote').textContent='';
+$('msg').textContent=cfg.name+'. Read 1 \u2192 2 \u2192 3. First open receiver, or scramble or throw away if nobody is open.';
+}
+function nameOf(c){return c<3?'#'+(c+1)+' ('+cfg.lab[c]+')':c===3?'throw it away':'scramble'}
+function finish(p){
+if(!st.on)return;
+var el=Date.now()-st.t0,rt=(el/1000).toFixed(1);
+st.fz=Math.min(el,st.dur);st.on=false;st.done=true;
+var m=$('msg');
+if(p===-1){S.sacks++}else{S.times.push(el/1000)}
+if(p===st.ans){
+S.correct++;m.style.color='#14532D';
+m.textContent=st.ans<3?'Correct! #'+(st.ans+1)+' ('+cfg.lab[st.ans]+') was the first open receiver ('+rt+'s).':st.ans===4?'Correct! Nobody was open and the lane was clear, so you scramble ('+rt+'s).':'Correct! Nobody was open and a spy took the lane, so you throw it away ('+rt+'s).'
+}else{
+m.style.color='#DC2626';
+if(p===-1)m.textContent='Sacked! The rush got home. Best play: '+nameOf(st.ans)+'.';
+else if(p<3&&st.cov[p]){S.ints++;m.textContent='Forced into coverage. Interception risk. Best play: '+nameOf(st.ans)+'.'}
+else if(p<3)m.textContent='#'+(p+1)+' was open but not first in the progression. Best play: '+nameOf(st.ans)+'.';
+else if(p===3&&st.ans===4)m.textContent='The lane was clear. Scramble. A throwaway wastes the down.';
+else if(p===4&&st.ans===3)m.textContent='A spy had the lane. You get stopped short. Best play: throw it away.';
+else m.textContent='A receiver was open. Keep your eyes downfield. Best play: '+nameOf(st.ans)+'.'
+}
+$('covNote').textContent=COVNOTE[st.cvg]||'';
+$('okN').textContent=S.correct;$('rt').textContent=p===-1?'-':rt+'s';
+$('ta').disabled=true;$('sc').disabled=true;
+$('go').disabled=false;
+$('go').textContent=S.rep>=S.total?'See results':'Next rep';
+}
+cv.addEventListener('click',function(e){
+if(!st.on)return;
+var b=cv.getBoundingClientRect(),x=(e.clientX-b.left)*W/b.width,y=(e.clientY-b.top)*H/b.height;
+var p=cl((Date.now()-st.t0)/(st.dur*0.55)),best=-1,bd=60;
+for(var i=0;i<3;i++){var r=rpos(i,p),d=Math.hypot(r.x-x,r.y-y);if(d<bd){bd=d;best=i}}
+if(best>=0)finish(best)
+});
+$('ta').addEventListener('click',function(){finish(3)});
+$('sc').addEventListener('click',function(){finish(4)});
+document.addEventListener('keydown',function(e){
+if(e.key>='1'&&e.key<='3')finish(+e.key-1);
+if(e.key==='t'||e.key==='T')finish(3);
+if(e.key==='s'||e.key==='S')finish(4);
+if(e.key===' '&&!$('go').disabled&&!$('game').classList.contains('hidden')){e.preventDefault();$('go').click()}
+});
+function openDB(){
+return new Promise(function(resolve,reject){
+var rq=indexedDB.open('qbsense_coach_data',1);
+rq.onupgradeneeded=function(){
+var d=rq.result;
+if(!d.objectStoreNames.contains('players')){var p=d.createObjectStore('players',{keyPath:'id'});p.createIndex('coachEmail','coachEmail',{unique:false})}
+if(!d.objectStoreNames.contains('sessions')){var s=d.createObjectStore('sessions',{keyPath:'id'});s.createIndex('coachEmail','coachEmail',{unique:false});s.createIndex('playerId','playerId',{unique:false})}
+};
+rq.onsuccess=function(){resolve(rq.result)};
+rq.onerror=function(){reject(rq.error)};
+});
+}
+function loadPlayers(){
+openDB().then(function(db){
+return new Promise(function(res,rej){
+var r=db.transaction('players','readonly').objectStore('players').getAll();
+r.onsuccess=function(){res(r.result||[])};
+r.onerror=function(){rej(r.error)};
+});
+}).then(function(list){
+players=list.sort(function(a,b){return String(a.name).localeCompare(String(b.name))});
+var sel=$('player');
+players.forEach(function(p){var o=document.createElement('option');o.value=p.id;o.textContent=p.name;sel.appendChild(o)});
+if(players.length)$('playerWrap').classList.remove('hidden');
+}).catch(function(){});
+}
+function saveSession(rec){
+return openDB().then(function(db){
+return new Promise(function(res,rej){
+var t=db.transaction('sessions','readwrite');
+t.objectStore('sessions').put(rec);
+t.oncomplete=res;
+t.onerror=function(){rej(t.error)};
+});
+});
+}
+function showDone(){
+$('game').classList.add('hidden');$('done').classList.remove('hidden');
+var acc=Math.round(S.correct/S.total*100);
+var avg=S.times.length?S.times.reduce(function(a,b){return a+b},0)/S.times.length:0;
+var pr=Math.round((S.total-S.sacks)/S.total*100);
+var cname=S.rand?'Random concepts':cfg.name;
+$('dAcc').textContent=acc+'%';$('dOk').textContent=S.correct+'/'+S.total;$('dTime').textContent=avg.toFixed(1)+'s';$('dPr').textContent=pr+'%';$('dInt').textContent=S.ints;
+$('dTip').textContent=S.ints>=2?'You forced '+S.ints+' throws into coverage. In the red zone, a throwaway or a scramble beats an interception.':acc>=80&&S.level<10?'Strong session. Try level '+(S.level+1)+' next.':acc>=80?'Elite red-zone decisions at the top level.':'Keep working this level. Read in order, throw to the first open receiver, and know when to throw it away.';
+var date=new Date().toISOString(),at=Number(avg.toFixed(2));
+var out=$('dSave');
+if(!S.player){
+out.style.color='#14532D';
+try{
+var b=JSON.parse(localStorage.getItem('qbsense_redzone_results')||'[]');
+b.push({email:localStorage.getItem('qbsense_user')||'guest',date:date,level:S.level,accuracy:acc,correct:S.correct,total:S.total,avgTime:at,pressureResponse:pr,coverage:S.cvSel,concept:cname,turnovers:S.ints});
+localStorage.setItem('qbsense_redzone_results',JSON.stringify(b.slice(-100)));
+out.textContent='Saved to your Progress history.';
+}catch(e){out.textContent='Could not save on this device.';out.style.color='#DC2626'}
+$('dLink').textContent='Open Progress tab';$('dLink').href='index.html#progress';
+return}
+var rec={id:Date.now()+'-'+Math.random().toString(36).slice(2),coachEmail:S.player.coachEmail,playerId:S.player.id,date:date,drill:'Red-Zone Decisions',score:acc,decisionTime:at,accuracy:acc,pressureResponse:pr,notes:'Red-Zone Decisions ('+cname+'), level '+S.level+', coverage '+S.cvSel+', pass rush '+(st.rush?'on':'off')+', forced throws '+S.ints+', '+S.total+' reps'};
+$('dLink').textContent='Open Players tab';$('dLink').href='index.html#players';
+out.textContent='Saving...';out.style.color='#5B6B7C';
+saveSession(rec).then(function(){out.textContent='Saved to '+S.player.name+' on the Players tab.';out.style.color='#14532D'}).catch(function(){out.textContent='Could not save to the Players tab.';out.style.color='#DC2626'});
+}
+function setMode(m){
+if(m==='rand'){S.rand=true;applyCfg('sff');$('modeNote').textContent='A new concept is picked at random on every rep.';return}
+S.rand=false;applyCfg(m);$('modeNote').textContent=cfg.note
+}
+$('mode').addEventListener('change',function(){setMode($('mode').value)});
+$('lvl').addEventListener('input',function(){$('lvlVal').textContent=$('lvl').value});
+$('start').addEventListener('click',function(){
+setMode($('mode').value);
+S.level=Number($('lvl').value);S.rep=0;S.correct=0;S.times=[];S.sacks=0;S.ints=0;
+S.cvSel=$('cov').value;st.rush=$('rush').checked;
+var pid=$('player').value;
+S.player=null;
+for(var i=0;i<players.length;i++){if(players[i].id===pid)S.player=players[i]}
+st.cov=[];st.on=false;st.done=false;st.los=GL+10*PX;
+$('lvN').textContent=S.level;$('okN').textContent=0;
+$('setup').classList.add('hidden');$('done').classList.add('hidden');$('game').classList.remove('hidden');
+startRep();
+});
+$('go').addEventListener('click',function(){if(S.rep>=S.total)showDone();else startRep()});
+$('again').addEventListener('click',function(){$('done').classList.add('hidden');$('setup').classList.remove('hidden');st.on=false;st.done=false;if(S.rand)applyCfg('sff')});
+setMode('sff');
+loadPlayers();
+tick();
+</script>
+</body>
+</html>
