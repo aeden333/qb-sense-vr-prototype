@@ -217,7 +217,7 @@ for(j=0;j<st.play.r.length;j++){var s0=pts(j)[0];g.fillStyle='#fff';g.beginPath(
 g.fillStyle='#fff';g.font='bold 13px sans-serif';g.textAlign='left';g.fillText('Play call: '+st.play.name+'  |  Read the defense. The coverage is not labeled.',10,H-12)
 }
 if(phase==='read'){
-el=Date.now()-st.t0;p=cl(el/(st.dur*1.0));
+el=Date.now()-st.t0;p=cl(el/(st.dur*0.75));
 g.strokeStyle='rgba(255,255,255,.18)';g.setLineDash([6,6]);g.lineWidth=2;
 for(i=0;i<st.play.r.length;i++){var a=pts(i);g.beginPath();g.moveTo(a[0][0],a[0][1]);for(var k=1;k<a.length;k++)g.lineTo(a[k][0],a[k][1]);g.stroke()}
 g.setLineDash([]);
