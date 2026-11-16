@@ -265,9 +265,9 @@ m.style.color='#DC2626';m.textContent='Covered. Pass broken up. Best play: '+nam
 after({t:'inc',dec:dec})
 }
 }
-function throwAway(){var ok=(st.ans===st.play.r.length)
+function throwAway(){
 if(phase!=='read')return;
-var dec=(Date.now()-st.t0)/1000,ok=(st.ans===3),m=$('msg');
+var dec=(Date.now()-st.t0)/1000,ok=(st.ans===st.play.r.length),m=$('msg');
 G.times.push(dec);G.plays++;G.att++;if(ok)G.correct++;st.dec=dec;$('rt').textContent=dec.toFixed(1)+'s';
 m.style.color=ok?'#14532D':'#B45309';
 m.textContent=ok?'Smart. Nobody was open, so you threw it away. The clock stops.':'You threw it away, but '+nameOf(st.ans)+' was open.';
