@@ -263,7 +263,7 @@ setPhase('read')
 }
 function throwTo(i){
 if(phase!=='read')return;
-var el=Date.now()-st.t0,dec=el/1000,ok=(i===st.ans),p=cl(el/(st.dur*0.55)),R=st.play.r[i],m=$('msg');
+var el=Date.now()-st.t0,dec=el/1000,ok=(i===st.ans),p=cl(el/(st.dur*0.75)),R=st.play.r[i],m=$('msg');
 G.times.push(dec);G.plays++;G.att++;if(ok)G.correct++;
 st.dec=dec;$('rt').textContent=dec.toFixed(1)+'s';
 if(!st.cov[i]){
@@ -362,7 +362,7 @@ else{$('msg').textContent='The '+kd+'-yard field goal is good. The game is tied.
 cv.addEventListener('click',function(e){
 if(phase!=='read')return;
 var b=cv.getBoundingClientRect(),x=(e.clientX-b.left)*W/b.width,y=(e.clientY-b.top)*H/b.height;
-var p=cl((Date.now()-st.t0)/(st.dur*1.5)),best=-1,bd=60;
+var p=cl((Date.now()-st.t0)/(st.dur*0.75)),best=-1,bd=60;
 for(var i=0;i<st.play.r.length;i++){var r=rpos(i,p),d=Math.hypot(r.x-x,r.y-y);if(d<bd){bd=d;best=i}}
 if(best>=0)throwTo(best)
 });
