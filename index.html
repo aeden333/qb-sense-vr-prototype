@@ -142,7 +142,7 @@ input,select,textarea{width:100%;max-width:520px;padding:11px;border:1px solid v
 <section id="drills" class="page">
 <div class="card"><h2>Drill Library</h2><p>Choose a training focus. Each drill can be adjusted for youth, high-school, college, or pro level.</p></div>
 <div class="card">
-<div class="drill"><span class="drill-num">01</span><div style="flex:1"><b>Blitz Recognition</b><br><small>Identify the extra rusher before the snap</small></div><span class="tag">Decision-making</span></div>
+<div class="drill"><span class="drill-num">01</span><div style="flex:1"><b>Blitz Recognition</b><br><small>Identify the extra rusher before the snap</small></div><a class="btn primary" href="blitz-sim.html" style="padding:10px 14px;text-decoration:none">Start drill</a><span class="tag">Decision-making</span></div>
 <div class="drill"><span class="drill-num">02</span><div style="flex:1"><b>Pocket Pressure</b><br><small>Feel pressure and move in the pocket</small></div><span class="tag">Haptics</span></div>
 <div class="drill"><span class="drill-num">03</span><div style="flex:1"><b>Progression Reads</b><br><small>Scan receivers in the correct order</small></div><span class="tag">Eye tracking</span></div>
 <div class="drill"><span class="drill-num">04</span><div style="flex:1"><b>Red-Zone Decisions</b><br><small>Make fast reads in tight spaces</small></div><span class="tag">Game IQ</span></div>
@@ -993,6 +993,7 @@ async function deletePlayer(playerId){
 updateScenario();
 renderPlaybooks();
 renderPlayers();
+if(location.hash==='#drills'){go('drills');}
 </script>
 <script>
 (function(){
