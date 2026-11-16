@@ -141,7 +141,9 @@ var d={'Man':18,'Cover 0':10,'Cover 1':10,'Cover 2':22,'Cover 3':32,'Cover 4':34
 for(var j=0;j<st.play.r.length;j++){var R=st.play.r[j];cd.push({x:R.x,y:L-(R.y>0?22:d)})}
 var s=c==='Cover 0'?[]:c==='Cover 1'?[[320,L-120]]:(c==='Cover 2'||c==='Man')?[[170,L-115],[470,L-115]]:c==='Cover 3'?[[320,L-115]]:[[120,L-100],[230,L-115],[410,L-115],[520,L-100]];
 s.forEach(function(q){sf.push({x:q[0],y:q[1]})});
-[230,320,410].forEach(function(x){if(inclBlitz||st.bx.slice(0,st.extra).indexOf(x)<0)lb.push({x:x,y:L-26})});
+var total=inclBlitz?11:(11-st.extra);
+var lbCount=Math.max(0,total-cd.length-sf.length);
+for(var k=0;k<lbCount;k++){lb.push({x:100+k*80,y:L-26})}
 return{cd:cd,sf:sf,lb:lb}
 }
 function dot(x,y,l){
