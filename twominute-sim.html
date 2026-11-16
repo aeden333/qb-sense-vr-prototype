@@ -32,7 +32,7 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <body>
 <header><a href="index.html#drills">&larr; Drills</a><b>QB Sense VR</b></header>
 <main>
-<div class="card"><h2>Two-Minute Drill</h2><p>You have 2:00, 3 timeouts and the ball at your own 25. Drive the field and score. Every snap has a random play call, a random coverage, a full four-man pass rush and a random blitz of 0 to 3 extra rushers. Before each snap you can see the play call and its routes. The coverage and blitz are revealed at the snap. Throw to the first open receiver, or throw it away if nobody is open. After a catch the receiver runs until a defender touches him, and then he is down. Running out of bounds or an incomplete pass stops the clock. A catch in bounds does not, so use a timeout or spike to save time.</p></div>
+<div class="card"><h2>Two-Minute Drill</h2><p>You have 2:00, 3 timeouts and the ball at your own 25. Drive the field and score. Every snap has a random play call, a random coverage, a full four-man pass rush and a random blitz of 0 to 3 extra rushers. Before each snap you can see the play call, its routes and the defense lined up. The coverage is never labeled. Read the alignment yourself and find out what it was after the play. Throw to the first open receiver, or throw it away if nobody is open. After a catch the receiver runs until a defender touches him, and then he is down. Running out of bounds or an incomplete pass stops the clock. A catch in bounds does not, so use a timeout or spike to save time.</p></div>
 <div id="setup" class="card">
 <h2>Session setup</h2>
 <div class="coach">
@@ -60,7 +60,7 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <p id="dSave" style="font-weight:800"></p>
 <button class="btn" id="again">Run another drive</button> <a class="btn ghost" id="dLink" href="index.html#progress">Open Progress tab</a> <a class="btn ghost" href="index.html#drills">Back to drills</a>
 </div>
-<div class="card"><b>Coaching cues</b><ul><li>Sidelines and incompletions stop the clock. Middle-of-the-field catches do not.</li><li>With the clock running and under about 30 seconds, call a timeout or spike before you snap.</li><li>Throwing it away is a good play. It stops the clock and keeps the drive alive.</li><li>Extra blitzers shorten your clock but open a receiver. Read quickly and hit the hot route.</li><li>Do not force it. An interception ends the drive.</li><li>Kick the field goal when it wins or ties. Do not take a sack in range.</li></ul></div>
+<div class="card"><b>Coaching cues</b><ul><li>Look at the safeties first. Two deep safeties often mean Cover 2 or man. One deep safety often means Cover 1 or Cover 3. No deep safety means Cover 0 and a blitz.</li><li>Defenders close to the line over your receivers usually mean man coverage.</li><li>Sidelines and incompletions stop the clock. Middle-of-the-field catches do not.</li><li>With the clock running and under about 30 seconds, call a timeout or spike before you snap.</li><li>Throwing it away is a good play. It stops the clock and keeps the drive alive.</li><li>Do not force it. An interception ends the drive.</li></ul></div>
 </main>
 <script>
 var cv=document.getElementById('c'),g=cv.getContext('2d');
@@ -76,7 +76,7 @@ var PROB={'Man':{Q:0.3,M:0.3,D:0.25},'Cover 0':{Q:0.45,M:0.4,D:0.45},'Cover 1':{
 var ALLCOV=['Man','Cover 0','Cover 1','Cover 2','Cover 3','Cover 4'];
 var COVNOTE={'Man':'Man: crossing routes and quick throws beat it.','Cover 0':'Cover 0: no deep help. Get rid of it fast or hit the deep shot.','Cover 1':'Cover 1: man with a deep safety. Work the quick routes.','Cover 2':'Cover 2: the flats and sideline holes are soft.','Cover 3':'Cover 3: the short and medium routes are soft.','Cover 4':'Cover 4: quarters. Take what is underneath.'};
 var G={ball:75,down:1,toGo:10,clock:120,timeouts:3,running:false,plays:0,correct:0,times:[],sacks:0,ints:0,result:'',level:1,deficit:2,used:0};
-var st={play:PLAYS[0],cvg:'Man',extra:0,cov:[],ans:0,dur:3000,t0:0,dec:0,y:null,bx:[],pv:false};
+var st={play:PLAYS[0],cvg:'Man',extra:0,cov:[],ans:0,dur:3000,t0:0,dec:0,y:null,bx:[230,320,410],pv:false};
 var phase='setup',players=[],player=null;
 function $(i){return document.getElementById(i)}
 function cl(p){return p<0?0:p>1?1:p}
@@ -84,8 +84,36 @@ function fmt(s){s=Math.max(0,Math.ceil(s));var m=Math.floor(s/60),x=s%60;return 
 function spot(d){return d>50?'own '+(100-d):d>0?'opp '+d:'goal'}
 function ordn(n){return ['','1st','2nd','3rd','4th'][n]||'4th'}
 function nameOf(c){return c<3?'#'+(c+1)+' ('+st.play.r[c].n+')':'throw it away'}
-function nextPlay(){var np;do{np=PLAYS[Math.floor(Math.random()*PLAYS.length)]}while(np===st.play);st.play=np;st.pv=true}
 function openP(i){var p=PROB[st.cvg][st.play.r[i].c]+0.04*st.extra;return Math.max(0.05,Math.min(0.85,p))}
+function nextPlay(){
+var np;do{np=PLAYS[Math.floor(Math.random()*PLAYS.length)]}while(np===st.play);
+st.play=np;st.pv=true;
+st.cvg=ALLCOV[Math.floor(Math.random()*ALLCOV.length)];
+var w=Math.random();st.extra=w<0.35?0:w<0.7?1:w<0.9?2:3;
+var none=Math.random()<0.25,tries=0,has;
+while(true){
+st.cov=[];for(var j=0;j<3;j++){st.cov.push(Math.random()>=openP(j))}
+has=st.cov.indexOf(false)>=0;
+if(has!==none)break;
+if(++tries>200){if(none){st.cov=[true,true,true]}else{st.cov[Math.floor(Math.random()*3)]=false}has=!none;break}
+}
+st.ans=has?st.cov.indexOf(false):3;
+st.dur=Math.max(2000,4200-G.level*210)*(1-0.07*st.extra)*(st.cvg==='Cover 0'?0.9:1);
+st.bx=[230,320,410].sort(function(){return Math.random()-0.5})
+}
+function align(inclBlitz){
+var L=LOSY,c=st.cvg,cd=[],sf=[],lb=[];
+var d={'Man':18,'Cover 0':10,'Cover 1':10,'Cover 2':22,'Cover 3':32,'Cover 4':34}[c];
+for(var j=0;j<3;j++){var R=st.play.r[j];cd.push({x:R.x,y:L-(R.y>0?22:d)})}
+var s=c==='Cover 0'?[]:c==='Cover 1'?[[320,L-120]]:(c==='Cover 2'||c==='Man')?[[170,L-115],[470,L-115]]:c==='Cover 3'?[[320,L-115]]:[[120,L-100],[230,L-115],[410,L-115],[520,L-100]];
+s.forEach(function(q){sf.push({x:q[0],y:q[1]})});
+[230,320,410].forEach(function(x){if(inclBlitz||st.bx.slice(0,st.extra).indexOf(x)<0)lb.push({x:x,y:L-26})});
+return{cd:cd,sf:sf,lb:lb}
+}
+function dot(x,y,l){
+g.fillStyle='#DC2626';g.beginPath();g.arc(x,y,11,0,7);g.fill();
+if(l){g.fillStyle='#fff';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText(l,x,y+4)}
+}
 function pts(i){var R=st.play.r[i],a=[[R.x,LOSY+R.y]];for(var k=0;k<R.p.length;k++){a.push([R.x+R.p[k][0],Math.max(10,LOSY+R.y+R.p[k][1])])}return a}
 function rpos(i,p){
 var a=pts(i),L=0,s=[];
@@ -137,11 +165,14 @@ if(G.toGo<G.ball){var fy=LOSY-G.toGo*PX;g.strokeStyle='#FACC15';g.lineWidth=3;g.
 g.strokeStyle='#60A5FA';g.lineWidth=3;g.beginPath();g.moveTo(0,LOSY);g.lineTo(W,LOSY);g.stroke();
 var el=0,p=0,i,j;
 if(phase==='pre'&&st.pv){
+var al=align(true);
+[170,270,370,470].forEach(function(x){dot(x,LOSY-8)});
+al.cd.concat(al.sf,al.lb).forEach(function(o){dot(o.x,o.y)});
 g.strokeStyle='rgba(255,255,255,.5)';g.setLineDash([6,6]);g.lineWidth=2;
 for(i=0;i<3;i++){var a2=pts(i);g.beginPath();g.moveTo(a2[0][0],a2[0][1]);for(var k2=1;k2<a2.length;k2++)g.lineTo(a2[k2][0],a2[k2][1]);g.stroke()}
 g.setLineDash([]);
 for(j=0;j<3;j++){var s0=pts(j)[0];g.fillStyle='#fff';g.beginPath();g.arc(s0[0],s0[1],15,0,7);g.fill();g.fillStyle='#0A1628';g.font='bold 14px sans-serif';g.textAlign='center';g.fillText(''+(j+1),s0[0],s0[1]+5);g.fillStyle='#fff';g.font='11px sans-serif';g.fillText(st.play.r[j].n,s0[0],s0[1]+30)}
-g.fillStyle='#fff';g.font='bold 13px sans-serif';g.textAlign='left';g.fillText('Play call: '+st.play.name+'  |  coverage and blitz show at the snap',10,H-12)
+g.fillStyle='#fff';g.font='bold 13px sans-serif';g.textAlign='left';g.fillText('Play call: '+st.play.name+'  |  Read the defense. The coverage is not labeled.',10,H-12)
 }
 if(phase==='read'){
 el=Date.now()-st.t0;p=cl(el/(st.dur*0.55));
@@ -149,18 +180,20 @@ g.strokeStyle='rgba(255,255,255,.18)';g.setLineDash([6,6]);g.lineWidth=2;
 for(i=0;i<3;i++){var a=pts(i);g.beginPath();g.moveTo(a[0][0],a[0][1]);for(var k=1;k<a.length;k++)g.lineTo(a[k][0],a[k][1]);g.stroke()}
 g.setLineDash([]);
 g.fillStyle='#fff';g.font='bold 13px sans-serif';g.textAlign='left';
-g.fillText(st.play.name+' | '+st.cvg+(st.extra?' | BLITZ +'+st.extra:' | no blitz'),10,H-12);
+g.fillText(st.play.name,10,H-12);
+var al2=align(false);
+al2.sf.concat(al2.lb).forEach(function(o){dot(o.x,o.y)});
 var scan=Math.min(2,Math.floor((el/(st.dur*0.5))*3));
 for(j=0;j<3;j++){
 var r=rpos(j,p),d=dpos(j,p);
-g.fillStyle='#DC2626';g.beginPath();g.arc(d.x,d.y,11,0,7);g.fill();g.fillStyle='#fff';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText('D',d.x,d.y+4);
+dot(d.x,d.y,'D');
 g.fillStyle=scan===j?'#F59E0B':'#fff';g.beginPath();g.arc(r.x,r.y,15,0,7);g.fill();
 g.fillStyle='#0A1628';g.font='bold 14px sans-serif';g.textAlign='center';g.fillText(''+(j+1),r.x,r.y+5);
 g.fillStyle='#fff';g.font='11px sans-serif';g.fillText(st.play.r[j].n,r.x,r.y+30)}
 var q=cl(el/st.dur),xs=[170,270,370,470];
 for(j=0;j<4;j++){var rx=xs[j]+(QBX-xs[j])*q,ry=LOSY-8+(QBY-(LOSY-8))*q;g.fillStyle='#7F1D1D';g.beginPath();g.arc(rx,ry,12,0,7);g.fill();g.fillStyle='#fff';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText('R',rx,ry+4)}
 var q2=cl(el/(st.dur*0.85));
-for(j=0;j<st.extra;j++){var bx=st.bx[j],bx2=bx+(QBX-bx)*q2,by2=LOSY+22+(QBY-(LOSY+22))*q2;g.fillStyle='#EA580C';g.beginPath();g.arc(bx2,by2,12,0,7);g.fill();g.fillStyle='#fff';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText('B',bx2,by2+4)}
+for(j=0;j<st.extra;j++){var bx=st.bx[j],bx2=bx+(QBX-bx)*q2,by2=LOSY-26+(QBY-(LOSY-26))*q2;g.fillStyle='#EA580C';g.beginPath();g.arc(bx2,by2,12,0,7);g.fill();g.fillStyle='#fff';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText('B',bx2,by2+4)}
 }
 if(phase==='yac'&&st.y){
 var Y=st.y;
@@ -178,22 +211,10 @@ function snap(){
 if(phase!=='pre')return;
 if(G.running){G.clock-=10;if(G.clock<=0){G.clock=0;upd();endDrive('Time expired before the snap.',false);return}}
 st.pv=false;
-st.cvg=ALLCOV[Math.floor(Math.random()*ALLCOV.length)];
-var w=Math.random();st.extra=w<0.35?0:w<0.7?1:w<0.9?2:3;
-var none=Math.random()<0.25,tries=0,has;
-while(true){
-st.cov=[];for(var j=0;j<3;j++){st.cov.push(Math.random()>=openP(j))}
-has=st.cov.indexOf(false)>=0;
-if(has!==none)break;
-if(++tries>200){if(none){st.cov=[true,true,true]}else{st.cov[Math.floor(Math.random()*3)]=false}has=!none;break}
-}
-st.ans=has?st.cov.indexOf(false):3;
-st.dur=Math.max(2000,4200-G.level*210)*(1-0.07*st.extra)*(st.cvg==='Cover 0'?0.9:1);
-st.bx=[230,320,410].sort(function(){return Math.random()-0.5});
 st.t0=Date.now();
 $('msg').style.color='#111827';
-$('msg').textContent=st.play.name+' vs '+st.cvg+(st.extra?', blitz +'+st.extra+' extra rushers':', no extra blitzers')+'. Read 1, 2, 3.';
-$('covNote').textContent=COVNOTE[st.cvg]||'';
+$('msg').textContent=st.play.name+'. Read 1, 2, 3 before the rush gets home.';
+$('covNote').textContent='';
 $('clk').style.width='100%';
 setPhase('read')
 }
@@ -250,6 +271,7 @@ after({t:'catch',gain:gain,oob:kind==='oob',dec:st.dec,yt:Y.t,kind:kind})
 }
 function after(o){
 var m=$('msg'),extra='',cost=o.dec||0,stop=false;
+$('covNote').textContent='The defense was in '+st.cvg+(st.extra?' with '+st.extra+' extra rusher'+(st.extra>1?'s':''):' with no extra rushers')+'. '+(COVNOTE[st.cvg]||'');
 if(o.t==='int'){endDrive('Interception',false);return}
 if(o.t==='sack'){G.ball=Math.min(99,G.ball+7);G.toGo+=7;G.down++;cost+=2}
 else if(o.t==='inc'){G.down++;cost+=2;stop=true}
@@ -387,7 +409,7 @@ G={ball:75,down:1,toGo:10,clock:120,timeouts:3,running:false,plays:0,correct:0,t
 st.y=null;
 $('setup').classList.add('hidden');$('done').classList.add('hidden');$('game').classList.remove('hidden');
 $('rt').textContent='-';$('covNote').textContent='';$('clk').style.width='0%';
-$('msg').style.color='#111827';$('msg').textContent='You are down '+G.deficit+(G.deficit===6?' and need a touchdown. ':(G.deficit===2?'. A field goal wins. ':'. A field goal ties. '))+'Ball at your own 25 with 2:00 left. Study the play call, then snap when ready.';
+$('msg').style.color='#111827';$('msg').textContent='You are down '+G.deficit+(G.deficit===6?' and need a touchdown. ':(G.deficit===2?'. A field goal wins. ':'. A field goal ties. '))+'Ball at your own 25 with 2:00 left. Study the play and the defense, then snap when ready.';
 nextPlay();setPhase('pre')
 });
 $('again').addEventListener('click',function(){$('done').classList.add('hidden');$('setup').classList.remove('hidden');phase='setup'});
