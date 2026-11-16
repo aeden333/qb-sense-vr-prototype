@@ -40,7 +40,7 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <label id="playerWrap" class="hidden">Player <select id="player"><option value="">Results tab (just me)</option></select></label>
 </div>
 <p><b>Level: <span id="lvlVal">1</span>/10</b><br><input type="range" id="lvl" min="1" max="10" value="1"></p>
-<small>The starting clock (0:10 to 2:00) and the number of timeouts (1 to 3) are picked at random for every drive. Play calls and coverages are random every snap. The pass rush is always full and blitzes are random. Level 1 = longest read clock. Level 10 = shortest. Each extra blitzer shortens your clock and opens up the coverage a little. A snap with the clock running costs 10 seconds. A timeout stops that clock for free. A spike costs 2 seconds and a down. The drive ends on a touchdown, a made or missed field goal, an interception, a turnover on downs or when time runs out. Your score is saved to the Progress tab. If players have been added to the Players tab, you can pick one to save to that player instead.</small>
+<small>The starting clock (0:10 to 2:00) and the number of timeouts (1 to 3) are picked at random for every drive. Play calls and coverages are random every snap. The pass rush is always full and blitzes are random. Level 10 = real pass-rush timing. Levels 1-9 add training time. More blitzers shorten the pressure window. A snap with the clock running costs 10 seconds. A timeout stops that clock for free. A spike costs 2 seconds and a down. The drive ends on a touchdown, a made or missed field goal, an interception, a turnover on downs or when time runs out. Your score is saved to the Progress tab. If players have been added to the Players tab, you can pick one to save to that player instead.</small>
 <p><button class="btn" id="start">Start drive</button></p>
 </div>
 <div id="game" class="card hidden">
@@ -100,7 +100,7 @@ if(has!==none)break;
 if(++tries>200){if(none){st.cov=[true,true,true]}else{st.cov[Math.floor(Math.random()*3)]=false}has=!none;break}
 }
 st.ans=has?st.cov.indexOf(false):3;
-st.dur=Math.max(2000,4200-G.level*210)*(1-0.07*st.extra)*(st.cvg==='Cover 0'?0.9:1);
+st.dur=3000;var base=st.extra===0?3150:st.extra===1?2600:st.extra===2?2400:2200;st.press=Math.max(1500,base+(10-G.level)*150);
 st.bx=[230,320,410].sort(function(){return Math.random()-0.5})
 }
 function align(inclBlitz){
@@ -192,9 +192,9 @@ dot(d.x,d.y,'D');
 g.fillStyle=scan===j?'#F59E0B':'#fff';g.beginPath();g.arc(r.x,r.y,15,0,7);g.fill();
 g.fillStyle='#0A1628';g.font='bold 14px sans-serif';g.textAlign='center';g.fillText(''+(j+1),r.x,r.y+5);
 g.fillStyle='#fff';g.font='11px sans-serif';g.fillText(st.play.r[j].n,r.x,r.y+30)}
-var q=cl(el/st.dur),xs=[170,270,370,470];
+var q=cl(el/st.press),xs=[170,270,370,470];
 for(j=0;j<4;j++){var rx=xs[j]+(QBX-xs[j])*q,ry=LOSY-8+(QBY-(LOSY-8))*q;g.fillStyle='#7F1D1D';g.beginPath();g.arc(rx,ry,12,0,7);g.fill();g.fillStyle='#fff';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText('R',rx,ry+4)}
-var q2=cl(el/(st.dur*0.85));
+var q2=cl(el/(st.press*0.85));
 for(j=0;j<st.extra;j++){var bx=st.bx[j],bx2=bx+(QBX-bx)*q2,by2=LOSY-26+(QBY-(LOSY-26))*q2;g.fillStyle='#EA580C';g.beginPath();g.arc(bx2,by2,12,0,7);g.fill();g.fillStyle='#fff';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText('B',bx2,by2+4)}
 }
 if(phase==='yac'&&st.y){
@@ -205,7 +205,7 @@ g.fillStyle='#0A1628';g.font='bold 12px sans-serif';g.textAlign='center';g.fillT
 if(phase!=='yac'){g.fillStyle='#F59E0B';g.beginPath();g.arc(QBX,QBY,15,0,7);g.fill();g.fillStyle='#0A1628';g.font='bold 12px sans-serif';g.textAlign='center';g.fillText('QB',QBX,QBY+4)}
 }
 function tick(){
-if(phase==='read'){var el=Date.now()-st.t0;$('clk').style.width=(Math.max(0,1-el/st.dur)*100)+'%';if(el>=st.dur)sack()}
+if(phase==='read'){var el=Date.now()-st.t0;$('clk').style.width=(Math.max(0,1-el/st.dur)*100)+'%';if(el>=st.press)sack()}
 else if(phase==='yac')stepYac();
 draw();requestAnimationFrame(tick)
 }
@@ -247,7 +247,7 @@ after({t:'inc',dec:dec})
 }
 function sack(){
 if(phase!=='read')return;
-G.plays++;G.sacks++;G.times.push(st.dur/1000);st.dec=st.dur/1000;
+G.plays++;G.sacks++;G.times.push(st.press/1000);st.dec=st.press/1000;
 $('msg').style.color='#DC2626';$('msg').textContent='Sacked for a 7-yard loss. The rush got home. Best play: '+nameOf(st.ans)+'.';
 after({t:'sack',dec:st.dec})
 }
