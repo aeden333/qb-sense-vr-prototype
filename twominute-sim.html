@@ -112,10 +112,10 @@ function fmt(s){s=Math.max(0,Math.ceil(s));var m=Math.floor(s/60),x=s%60;return 
 function spot(d){return d>50?'own '+(100-d):d>0?'opp '+d:'goal'}
 function ordn(n){return ['','1st','2nd','3rd','4th'][n]||'4th'}
 function nameOf(c){
-  if(c<st.play.r.length){
-    return '#'+(c+1)+' ('+st.play.r[c].n+')';
-  }
-  return 'throw it away';
+if(c<st.play.r.length){
+return '#'+(c+1)+' ('+st.play.r[c].n+')';
+}
+return 'throw it away';
 }
 function passerRating(a,c,y,t,i){if(!a)return 0;function k(v){return Math.max(0,Math.min(2.375,v))}return (k((c/a-0.3)*5)+k((y/a-3)*0.25)+k(t/a*20)+k(2.375-i/a*25))/6*100}
 function openP(i){var p=PROB[st.cvg][st.play.r[i].c]+0.04*st.extra;return Math.max(0.05,Math.min(0.85,p))}
