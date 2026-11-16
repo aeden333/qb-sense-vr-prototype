@@ -7,9 +7,9 @@
 <style>
 :root{--navy:#0A1628;--green:#14532D;--bg:#F6F7F9;--muted:#5B6B7C;--border:#E2E8F0}
 body{margin:0;background:var(--bg);font-family:system-ui,Arial,sans-serif;color:#111827}
-header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;gap:16px;align-items:center;position:sticky;top:0;z-index:10}
-header a{color:#9CA3AF;text-decoration:none}.back-btn{background:var(--green);color:#fff;border:0;border-radius:6px;padding:14px 20px;font-weight:800;text-decoration:none;font-size:13px;letter-spacing:.05em;text-transform:uppercase;transition:.15s;cursor:pointer}
-.back-btn:hover{background:#166534}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+header h1{margin:0;font-size:20px;font-weight:900;text-transform:uppercase}
+header a{color:#fff;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;text-decoration:none;border:1px solid rgba(255,255,255,.4);padding:8px 12px;border-radius:6px}
 main{max-width:760px;margin:0 auto;padding:18px 14px 48px}
 .card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px}
 h2{text-transform:uppercase;margin:0 0 8px}
@@ -31,7 +31,7 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 </style>
 </head>
 <body>
-<header><a class="back-btn" href="index.html#drills">&larr; Back to Drills</a><b>QB Sense VR</b></header>
+<header><h1>Two-Minute Drill</h1><a href="index.html#drills">Back to drills</a></header>
 <main>
 <div class="card"><h2>Two-Minute Drill</h2><p>Each drive starts with a random amount of time (anywhere from 0:10 to 2:00) and a random number of timeouts (1 to 3), with the ball at your own 25. Drive the field and score. Every snap has a random play call, a random coverage, a full four-man pass rush and a random blitz of 0 to 3 extra rushers. Before each snap you can see the play call, its routes and the defense lined up. The coverage is never labeled. Read the alignment yourself and find out what it was after the play. Throw to the first open receiver, or throw it away if nobody is open. After a catch the receiver runs until a defender touches him, and then he is down. Running out of bounds or an incomplete pass stops the clock. A catch in bounds does not, so use a timeout or spike to save time. Your passing stats from each drive (completions, attempts, yards, touchdowns and interceptions) give you an NFL passer rating.</p></div>
 <div id="setup" class="card">
