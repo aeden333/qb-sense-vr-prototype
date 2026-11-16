@@ -33,7 +33,11 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <div id="setup" class="card">
 <h2>Session setup</h2>
 <div class="coach">
-<label>Concept <select id="mode"><option value="3">3 receivers: progression</option><option value="4">4 receivers: Four Verticals</option><option value="5">5 receivers: Flood + backside + checkdown</option></select></label>
+<label>Concept <select id="mode">
+<optgroup label="3 receivers"><option value="p3">3-receiver progression</option></optgroup>
+<optgroup label="4 receivers"><option value="fv">Four Verticals</option><option value="yankee">Yankee (post + dig + cross)</option><option value="dagger">Dagger (dig + curl + go)</option><option value="levels">Levels (dig + shallow in)</option><option value="snag">Snag (arrow + snag + corner)</option></optgroup>
+<optgroup label="5 receivers"><option value="flood">Flood + backside + checkdown</option><option value="mesh">Mesh (corner + sit + two drags + back)</option><option value="dagger5">Dagger full (dig + curl + two go + flat)</option></optgroup>
+</select></label>
 <label id="playerWrap" class="hidden">Player <select id="player"><option value="">Results tab (just me)</option></select></label>
 <label>Coverage <select id="cov"><option>Random</option><option>Cover 2</option><option>Cover 3</option><option>Man</option></select></label>
 <label><input type="checkbox" id="rush" checked> Pass rush</label>
@@ -57,7 +61,7 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <p id="dSave" style="font-weight:800"></p>
 <button class="btn" id="again">Train again</button> <a class="btn ghost" id="dLink" href="index.html#results">Open Results tab</a> <a class="btn ghost" href="index.html#drills">Back to drills</a>
 </div>
-<div class="card"><b>Coaching cues</b><ul><li>Read before the drop ends.</li><li>Throw the first open receiver, not the deepest.</li><li>Do not peek at #2 before checking #1.</li><li>Cover 2 leaves the deep middle and the short sidelines soft. Cover 3 leaves the short and medium zones soft.</li><li>Four Verticals: identify the safety shell first. Against two high, look to the seams. Against one high, look outside. Take the checkdown when everything deep is covered.</li><li>Flood: read the flat defender. If he widens with the flat, throw the sail behind him. If he sinks under the sail, throw the flat.</li></ul></div>
+<div class="card"><b>Coaching cues</b><ul><li>Read before the drop ends.</li><li>Throw the first open receiver, not the deepest.</li><li>Do not peek at #2 before checking #1.</li><li>Cover 2 leaves the deep middle and the short sidelines soft. Cover 3 leaves the short and medium zones soft.</li><li>Four Verticals: identify the safety shell first. Against two high, look to the seams. Against one high, look outside.</li><li>Flood: read the flat defender. If he widens with the flat, throw the sail behind him. If he sinks under the sail, throw the flat.</li><li>Yankee: key the middle safety. If he drives on the cross, throw the post. If he runs with the post, throw the cross. If both are capped, check down.</li><li>Dagger: the dig is the primary read. If a hook defender sinks under it, the curl opens. The flat is the outlet.</li><li>Levels: read the hook defender. If he drops under the dig, throw the shallow in. If he sits on the in, throw the dig.</li><li>Snag: scan from the arrow to the snag to the corner, then the backside.</li><li>Mesh: against man, hit the drag coming clean out of traffic. Against zone, work corner, sit, drag, back.</li></ul></div>
 </main>
 <script>
 var cv=document.getElementById('c'),g=cv.getContext('2d');
@@ -68,18 +72,30 @@ var RT3=[
 {Post:[[0,-170],[-110,-250]],Go:[[0,-250]],Corner:[[0,-170],[60,-250]]}
 ];
 var CFG={
-3:{n:3,name:'3-receiver progression',sx:[120,320,520],sy:[0,0,0],lab:['Short','Medium','Deep'],note:'Short, medium and deep receivers run random routes. Read 1, 2, then 3.'},
-4:{n:4,name:'Four Verticals',sx:[200,440,560,320],sy:[0,0,0,45],lab:['Seam','Seam','Go','Checkdown'],fixed:[[[0,-250]],[[0,-250]],[[0,-250]],[[70,-30]]],note:'Two seams and a go up the field, with the running back (#4) as the checkdown. Read the seams and the go first, then check down.'},
-5:{n:5,name:'Flood + backside + checkdown',sx:[540,450,370,120,320],sy:[0,0,0,0,45],lab:['Clear','Sail','Flat','Slant','Checkdown'],fixed:[[[0,-250]],[[0,-120],[50,-140]],[[40,-30],[90,-40]],[[0,-25],[60,-80]],[[-60,-30]]],note:'Flood to the right: clear (#1), sail (#2) and flat (#3), then the backside slant (#4) and the running back checkdown (#5).'}
+p3:{n:3,name:'3-receiver progression',sx:[120,320,520],sy:[0,0,0],lab:['Short','Medium','Deep'],note:'Short, medium and deep receivers run random routes. Read 1, 2, then 3.'},
+fv:{n:4,name:'Four Verticals',sx:[200,440,560,320],sy:[0,0,0,45],lab:['Seam','Seam','Go','Checkdown'],fixed:[[[0,-250]],[[0,-250]],[[0,-250]],[[70,-30]]],note:'Two seams and a go up the field, with the running back (#4) as the checkdown.'},
+yankee:{n:4,name:'Yankee',sx:[480,420,140,320],sy:[0,0,0,45],lab:['Post','Dig','Crosser','Checkdown'],fixed:[[[0,-170],[-130,-250]],[[0,-120],[-110,-120]],[[0,-60],[220,-170]],[[-70,-30]]],note:'Shot play: deep post (#1), dig (#2), deep crosser (#3) and a checkdown (#4).'},
+dagger:{n:4,name:'Dagger',sx:[420,200,560,320],sy:[0,0,0,45],lab:['Dig','Curl','Go','Flat'],fixed:[[[0,-120],[-110,-120]],[[0,-130],[10,-110]],[[0,-250]],[[70,-30]]],note:'The dig (#1) is the primary read, then the curl (#2), the clear-out go (#3) and the flat outlet (#4).'},
+levels:{n:4,name:'Levels',sx:[440,380,560,100],sy:[0,0,0,0],lab:['Dig','Shallow In','Go','Out'],fixed:[[[0,-120],[-110,-120]],[[0,-55],[-100,-55]],[[0,-250]],[[0,-80],[-50,-80]]],note:'Two in-breaking routes at different depths: dig (#1) and shallow in (#2), then the go (#3) and the backside out (#4).'},
+snag:{n:4,name:'Snag',sx:[320,440,540,120],sy:[45,0,0,0],lab:['Arrow','Snag','Corner','Slant'],fixed:[[[150,-20]],[[0,-70],[0,-60]],[[0,-120],[40,-170]],[[0,-25],[60,-80]]],note:'Scan from the arrow (#1) to the snag (#2) to the corner (#3), then the backside slant (#4).'},
+flood:{n:5,name:'Flood + backside + checkdown',sx:[540,450,370,120,320],sy:[0,0,0,0,45],lab:['Clear','Sail','Flat','Slant','Checkdown'],fixed:[[[0,-250]],[[0,-120],[50,-140]],[[40,-30],[90,-40]],[[0,-25],[60,-80]],[[-60,-30]]],note:'Flood to the right: clear (#1), sail (#2) and flat (#3), then the backside slant (#4) and the running back checkdown (#5).'},
+mesh:{n:5,name:'Mesh',sx:[540,330,200,440,320],sy:[0,0,0,0,45],lab:['Corner','Sit','Drag','Drag','Back'],fixed:[[[0,-120],[50,-170]],[[0,-100],[0,-90]],[[0,-55],[220,-55]],[[0,-65],[-220,-65]],[[80,-30]]],note:'Two shallow drags cross in the middle. Read the corner (#1), the sit (#2), the two drags (#3 and #4), then the back (#5).'},
+dagger5:{n:5,name:'Dagger (full)',sx:[380,200,100,560,320],sy:[0,0,0,0,45],lab:['Dig','Curl','Go','Go','Flat'],fixed:[[[0,-120],[-120,-120]],[[0,-130],[10,-110]],[[0,-250]],[[0,-250]],[[70,-30]]],note:'Dig (#1) is the primary read, then the curl (#2), the two clear-out go routes (#3 and #4) and the flat outlet (#5).'}
 };
 var OPEN={
-3:{'Man':[0.25,0.25,0.25],'Cover 2':[0.6,0.4,0.2],'Cover 3':[0.6,0.5,0.2]},
-4:{'Man':[0.25,0.25,0.3,0.45],'Cover 2':[0.4,0.5,0.4,0.6],'Cover 3':[0.5,0.5,0.3,0.65]},
-5:{'Man':[0.2,0.25,0.4,0.3,0.5],'Cover 2':[0.3,0.35,0.5,0.4,0.6],'Cover 3':[0.25,0.5,0.6,0.35,0.6]}
+p3:{'Man':[0.25,0.25,0.25],'Cover 2':[0.6,0.4,0.2],'Cover 3':[0.6,0.5,0.2]},
+fv:{'Man':[0.25,0.25,0.3,0.45],'Cover 2':[0.4,0.5,0.4,0.6],'Cover 3':[0.5,0.5,0.3,0.65]},
+yankee:{'Man':[0.25,0.3,0.4,0.45],'Cover 2':[0.2,0.35,0.5,0.65],'Cover 3':[0.45,0.4,0.35,0.5]},
+dagger:{'Man':[0.25,0.3,0.2,0.45],'Cover 2':[0.35,0.5,0.3,0.6],'Cover 3':[0.4,0.45,0.2,0.55]},
+levels:{'Man':[0.25,0.35,0.2,0.4],'Cover 2':[0.55,0.5,0.2,0.5],'Cover 3':[0.4,0.5,0.2,0.5]},
+snag:{'Man':[0.35,0.3,0.25,0.3],'Cover 2':[0.5,0.5,0.4,0.35],'Cover 3':[0.5,0.45,0.3,0.4]},
+flood:{'Man':[0.2,0.25,0.4,0.3,0.5],'Cover 2':[0.3,0.35,0.5,0.4,0.6],'Cover 3':[0.25,0.5,0.6,0.35,0.6]},
+mesh:{'Man':[0.2,0.25,0.5,0.5,0.4],'Cover 2':[0.35,0.45,0.35,0.35,0.5],'Cover 3':[0.3,0.5,0.4,0.4,0.5]},
+dagger5:{'Man':[0.25,0.3,0.2,0.2,0.45],'Cover 2':[0.35,0.5,0.3,0.3,0.6],'Cover 3':[0.4,0.45,0.2,0.2,0.55]}
 };
-var cfg=CFG[3];
+var cfg=CFG.p3;
 var st={on:false,done:false,t0:0,fz:0,dur:4000,cov:[],ans:0,routes:[],rn:[],cvg:'',rush:true,rx:320};
-var S={mode:3,level:1,rep:0,total:10,correct:0,times:[],sacks:0,player:null,cvSel:'Random'};
+var S={mode:'p3',level:1,rep:0,total:10,correct:0,times:[],sacks:0,player:null,cvSel:'Random'};
 var players=[];
 function $(i){return document.getElementById(i)}
 function cl(p){return p<0?0:p>1?1:p}
@@ -147,7 +163,7 @@ var n=cfg.n;
 st.cvg=S.cvSel==='Random'?pick(OPEN[S.mode]):S.cvSel;
 st.routes=[];st.rn=[];
 for(var i=0;i<n;i++){
-if(S.mode===3){var nm=pick(RT3[i]);st.rn.push(nm);st.routes.push(RT3[i][nm])}
+if(S.mode==='p3'){var nm=pick(RT3[i]);st.rn.push(nm);st.routes.push(RT3[i][nm])}
 else{st.rn.push(cfg.lab[i]);st.routes.push(cfg.fixed[i])}
 }
 var open=false;
@@ -247,10 +263,10 @@ out.textContent='Saving...';out.style.color='#5B6B7C';
 saveSession(rec).then(function(){out.textContent='Saved to '+S.player.name+' on the Players tab.';out.style.color='#14532D'}).catch(function(){out.textContent='Could not save to the Players tab.';out.style.color='#DC2626'});
 }
 function setMode(m){S.mode=m;cfg=CFG[m];$('modeNote').textContent=cfg.note}
-$('mode').addEventListener('change',function(){setMode(Number($('mode').value))});
+$('mode').addEventListener('change',function(){setMode($('mode').value)});
 $('lvl').addEventListener('input',function(){$('lvlVal').textContent=$('lvl').value});
 $('start').addEventListener('click',function(){
-setMode(Number($('mode').value));
+setMode($('mode').value);
 S.level=Number($('lvl').value);S.rep=0;S.correct=0;S.times=[];S.sacks=0;
 S.cvSel=$('cov').value;st.rush=$('rush').checked;
 var pid=$('player').value;
@@ -263,7 +279,7 @@ startRep();
 });
 $('go').addEventListener('click',function(){if(S.rep>=S.total)showDone();else startRep()});
 $('again').addEventListener('click',function(){$('done').classList.add('hidden');$('setup').classList.remove('hidden');st.on=false;st.done=false});
-setMode(3);
+setMode('p3');
 loadPlayers();
 tick();
 </script>
