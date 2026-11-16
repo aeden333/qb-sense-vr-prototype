@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>QB Sense VR - Blitz Recognition</title>
+<style>
+:root{--navy:#0A1628;--green:#14532D;--green-2:#166534;--gold:#F59E0B;--bg:#F6F7F9;--muted:#5B6B7C;--border:#E2E8F0}
+*{box-sizing:border-box;font-family:'Archivo',system-ui,Arial,sans-serif}
+body{margin:0;background:var(--bg);color:#111827}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+header h1{margin:0;font-size:20px;font-weight:900;text-transform:uppercase}
+header a{color:#fff;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;text-decoration:none;border:1px solid rgba(255,255,255,.4);padding:8px 12px;border-radius:6px}
+main{max-width:860px;margin:0 auto;padding:16px 14px 40px}
+.card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px}
+.card h2{margin:0 0 8px;font-size:20px;font-weight:900;text-transform:uppercase}
+.btn{border:0;border-radius:6px;padding:13px 18px;font-weight:800;font-size:13px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;background:var(--green);color:#fff;text-decoration:none;display:inline-block;text-align:center}
+.btn:hover{background:var(--green-2)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--border)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.row .btn{flex:1;min-width:110px}
+canvas{width:100%;height:auto;border-radius:10px;display:block;background:#14532D}
+.stats{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.stats b{color:var(--navy);font-size:16px}
+.bar{height:8px;background:#E5E7EB;border-radius:3px;overflow:hidden;margin:8px 0}
+.bar span{display:block;height:100%;width:100%;background:var(--green)}
+#msg{min-height:44px;font-size:14px;line-height:1.5;margin-top:8px}
+.good{color:var(--green);font-weight:800}
+.bad{color:#DC2626;font-weight:800}
+input[type=range]{width:100%;max-width:360px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<header><h1>Blitz Recognition</h1><a href='index.html#drills'>Back to drills</a></header>
+<main>
+<div id='setup' class='card'>
+<h2>Read the blitz</h2>
+<p>Study the defense before the snap. Blitzers show a gold lean arrow pointing at the QB. Pick where the pressure is coming from, or choose No blitz, before time runs out. You get 10 reps per session.</p>
+<p><b>Level: <span id='lvlVal'>1</span>/10</b><br><input type='range' id='lvl' min='1' max='10' value='1'></p>
+<small>Level 1 = longest timer, blitzers circled, clear arrows. Level 10 = shortest timer, faint arrows, and decoy defenders creeping toward the line.</small>
+<div class='row'><button class='btn' id='startBtn'>Start session</button></div>
+</div>
+<div id='game' class='card hidden'>
+<div class='stats'><div>Rep <b id='repN'>1</b>/10</div><div>Correct <b id='okN'>0</b></div><div>Level <b id='lvN'>1</b></div><div id='frontName'></div></div>
+<div class='bar'><span id='timeBar'></span></div>
+<canvas id='cv' width='700' height='420'></canvas>
+<div id='msg'>Where is the pressure coming from?</div>
+<div class='row' id='answers'>
+<button class='btn' data-a='Left'>Left</button>
+<button class='btn' data-a='Middle'>Middle</button>
+<button class='btn' data-a='Right'>Right</button>
+<button class='btn ghost' data-a='None'>No blitz</button>
+</div>
+<div class='row'><button class='btn' id='nextBtn' disabled>Next rep</button></div>
+</div>
+<div id='done' class='card hidden'>
+<h2>Session complete</h2>
+<div class='stats'><div>Accuracy <b id='dAcc'>0%</b></div><div>Correct <b id='dOk'>0/10</b></div><div>Avg decision time <b id='dTime'>0s</b></div></div>
+<p id='dTip'></p>
+<div class='row'><button class='btn' id='againBtn'>Train again</button><a class='btn ghost' href='index.html#drills'>Back to drills</a></div>
+</div>
+</main>
+<script>
+const W=700,H=420,QB={x:350,y:335};
+const FR=[
+{name:'4-3 Base',dl:4,lb:[290,350,410],db:[['CB',90,170],['CB',610,170],['S',285,120],['S',415,120]]},
+{name:'3-4 Base',dl:3,lb:[270,325,375,430],db:[['CB',90,170],['CB',610,170],['S',285,120],['S',415,120]]},
+{name:'4-2-5 Nickel',dl:4,lb:[320,380],db:[['CB',90,170],['CB',610,170],['NB',215,195],['S',285,120],['S',415,120]]},
+{name:'4-1-6 Dime',dl:4,lb:[350],db:[['CB',90,170],['CB',610,170],['NB',215,195],['NB',485,195],['S',285,120],['S',415,120]]}
+];
+const S={level:1,rep:0,total:10,correct:0,times:[],cur:null,t0:0,open:false,timer:null,limit:10};
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+function zone(x){return x<300?'Left':x>400?'Right':'Middle'}
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function shuffle(a){return a.sort(()=>Math.random()-.5)}
+function buildRep(){
+ const f=pick(FR),defs=[];
+ const dx=f.dl===4?[280,325,375,420]:[300,350,400];
+ dx.forEach(x=>defs.push({role:'DL',x:x,y:238}));
+ f.lb.forEach(x=>defs.push({role:'LB',x:x,y:205}));
+ f.db.forEach(d=>defs.push({role:d[0],x:d[1],y:d[2]}));
+ defs.forEach(d=>{d.x0=d.x;d.y0=d.y});
+ const side=Math.random()<.25?'None':pick(['Left','Middle','Right']);
+ let bl=[];
+ if(side!=='None'){const c=shuffle(defs.filter(d=>d.role!=='DL'&&zone(d.x0)===side));bl=c.slice(0,(S.level>=5&&c.length>1&&Math.random()<.5)?2:1)}
+ const k=S.level<=6?1:.6;
+ const move=d=>{d.y=d.y0+(236-d.y0)*k};
+ bl.forEach(d=>{d.blitz=true;move(d)});
+ if(S.level>=4){shuffle(defs.filter(d=>d.role!=='DL'&&!d.blitz)).slice(0,S.level>=7?2:1).forEach(d=>{d.decoy=true;move(d)})}
+ return {f:f.name,defs:defs,side:side,bl:bl};
+}
+function dot(x,y,r,c,t){ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fillStyle=c;ctx.fill();if(t){ctx.fillStyle='#fff';ctx.font='bold 8px sans-serif';ctx.textAlign='center';ctx.fillText(t,x,y+3)}}
+function draw(pos){
+ ctx.fillStyle='#14532D';ctx.fillRect(0,0,W,H);
+ for(let i=0;i<14;i++){ctx.fillStyle=i%2?'rgba(255,255,255,.03)':'rgba(0,0,0,.05)';ctx.fillRect(0,i*30,W,30)}
+ ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,250);ctx.lineTo(W,250);ctx.stroke();
+ ctx.fillStyle='rgba(255,255,255,.6)';ctx.font='10px sans-serif';ctx.textAlign='left';ctx.fillText('LINE OF SCRIMMAGE',8,246);
+ [290,320,350,380,410].forEach(x=>dot(x,264,9,'#E5E7EB'));
+ dot(60,258,9,'#E5E7EB');dot(640,258,9,'#E5E7EB');dot(520,264,9,'#E5E7EB');dot(350,378,9,'#E5E7EB');
+ dot(QB.x,QB.y,10,'#F59E0B','QB');
+ const c=S.cur;if(!c)return;
+ c.defs.forEach((d,i)=>{
+  const p=pos?pos[i]:{x:d.x,y:d.y};
+  if(!pos&&d.blitz){
+   if(S.level<=2){ctx.strokeStyle='#F59E0B';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,17,0,7);ctx.stroke()}
+   ctx.globalAlpha=Math.max(.08,1.05-S.level*.1);
+   ctx.strokeStyle='#FDE68A';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(p.x,p.y+11);ctx.lineTo(p.x+(QB.x-p.x)*.1,p.y+32);ctx.stroke();
+   dot(p.x+(QB.x-p.x)*.1,p.y+34,3,'#FDE68A');
+   ctx.globalAlpha=1;
+  }
+  dot(p.x,p.y,10,'#DC2626',d.role);
+ });
+}
+function snap(){
+ const c=S.cur,t0=performance.now();
+ function step(now){
+  const t=Math.min(1,(now-t0)/1300);
+  const pos=c.defs.map(d=>{
+   if(d.blitz)return {x:d.x+(QB.x+(d.x-QB.x)*.15-d.x)*t,y:d.y+(QB.y-14-d.y)*t};
+   if(d.role==='DL')return {x:d.x+(QB.x-d.x)*.25*t,y:d.y+22*t};
+   return {x:d.x,y:d.y-12*t};
+  });
+  draw(pos);
+  if(t<1)requestAnimationFrame(step);
+ }
+ requestAnimationFrame(step);
+}
+function startRep(){
+ S.cur=buildRep();S.rep++;
+ $('repN').textContent=S.rep;$('frontName').textContent=S.cur.f;
+ $('msg').innerHTML='Where is the pressure coming from?';
+ $('nextBtn').disabled=true;
+ document.querySelectorAll('#answers .btn').forEach(b=>b.disabled=false);
+ draw(null);
+ S.open=true;S.t0=performance.now();
+ S.limit=11-0.85*S.level;
+ clearInterval(S.timer);
+ S.timer=setInterval(()=>{
+  const e=(performance.now()-S.t0)/1000;
+  $('timeBar').style.width=Math.max(0,100-e/S.limit*100)+'%';
+  if(e>=S.limit)answer(null);
+ },50);
+}
+function answer(choice){
+ if(!S.open)return;
+ S.open=false;clearInterval(S.timer);
+ const secs=(performance.now()-S.t0)/1000;
+ const c=S.cur,ok=choice===c.side;
+ if(choice!==null)S.times.push(secs);
+ if(ok)S.correct++;
+ const why=c.side==='None'?'No one showed a lean toward the QB. The defense played coverage.':'Blitz from the '+c.side+': '+c.bl.map(d=>d.role).join(' + ')+' ('+c.f+').';
+ $('msg').innerHTML=(choice===null?'<span class="bad">Time is up.</span> ':ok?'<span class="good">Correct read in '+secs.toFixed(1)+'s.</span> ':'<span class="bad">Wrong read.</span> ')+why;
+ $('okN').textContent=S.correct;
+ document.querySelectorAll('#answers .btn').forEach(b=>b.disabled=true);
+ $('nextBtn').disabled=false;
+ $('nextBtn').textContent=S.rep>=S.total?'See results':'Next rep';
+ snap();
+}
+function finish(){
+ $('game').classList.add('hidden');$('done').classList.remove('hidden');
+ const acc=Math.round(S.correct/S.total*100);
+ const avg=S.times.length?S.times.reduce((a,b)=>a+b,0)/S.times.length:0;
+ $('dAcc').textContent=acc+'%';$('dOk').textContent=S.correct+'/'+S.total;$('dTime').textContent=avg.toFixed(1)+'s';
+ $('dTip').textContent=acc>=80&&S.level<10?'Strong session. Try level '+(S.level+1)+' next.':acc>=80?'Elite recognition at the top level.':'Keep working this level. Look for the defenders leaning toward the QB and watch who walks up to the line.';
+ try{
+  const r=JSON.parse(localStorage.getItem('qbsense_blitz_results')||'[]');
+  r.push({email:localStorage.getItem('qbsense_user')||'guest',date:new Date().toISOString(),level:S.level,accuracy:acc,avgTime:Number(avg.toFixed(2))});
+  localStorage.setItem('qbsense_blitz_results',JSON.stringify(r.slice(-100)));
+ }catch(e){}
+}
+$('lvl').addEventListener('input',()=>{$('lvlVal').textContent=$('lvl').value});
+$('startBtn').addEventListener('click',begin);
+$('againBtn').addEventListener('click',()=>{$('done').classList.add('hidden');$('setup').classList.remove('hidden')});
+function begin(){
+ S.level=Number($('lvl').value);S.rep=0;S.correct=0;S.times=[];
+ $('lvN').textContent=S.level;$('okN').textContent=0;
+ $('setup').classList.add('hidden');$('game').classList.remove('hidden');
+ startRep();
+}
+document.querySelectorAll('#answers .btn').forEach(b=>b.addEventListener('click',()=>answer(b.dataset.a)));
+$('nextBtn').addEventListener('click',()=>{if(S.rep>=S.total)finish();else startRep()});
+</script>
+</body>
+</html>
