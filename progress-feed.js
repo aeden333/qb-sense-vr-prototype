@@ -1,5 +1,5 @@
 (function(){
-var KEYS=[['qbsense_progression_results','Progression Reads'],['qbsense_blitz_results','Blitz Recognition']];
+var KEYS=[['qbsense_progression_results','Progression Reads'],['qbsense_blitz_results','Blitz Recognition'],['qbsense_redzone_results','Red-Zone Decisions']];
 function load(){
   var me=localStorage.getItem('qbsense_user')||'guest',all=[];
   KEYS.forEach(function(k){
