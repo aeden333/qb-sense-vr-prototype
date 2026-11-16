@@ -45,7 +45,7 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 </div>
 <div id="game" class="card hidden">
 <div class="stats"><span>Game clock <b id="clkT">2:00</b></span><span>Down <b id="dn">1st &amp; 10</b></span><span>Ball on <b id="bs">own 25</b></span><span>Timeouts <b id="toN">3</b></span><span>Plays <b id="pl">0</b></span><span>Correct <b id="okN">0</b></span><span>Last read <b id="rt">-</b></span></div>
-<div id="clkS"></div>
+<div id="clkS"></div><div id="situation" style="font-weight:800;font-size:16px;margin-bottom:8px"></div>
 <canvas id="c" width="640" height="440"></canvas>
 <div class="clock"><span id="clk"></span></div>
 <div class="acts"><button class="btn" id="go">Snap</button><button class="btn ghost" id="to" disabled>Timeout (M)</button><button class="btn ghost" id="sp" disabled>Spike (P)</button><button class="btn ghost" id="fg" disabled>Kick field goal (K)</button><button class="btn ghost" id="ta" disabled>Throw away (T)</button></div>
@@ -181,7 +181,7 @@ $('toN').textContent=G.timeouts;
 $('pl').textContent=G.plays;
 $('okN').textContent=G.correct;
 $('clkS').textContent=phase==='end'?'Drive over':G.running?'Clock RUNNING. A snap now costs 10 seconds.':'Clock stopped.';
-$('clkS').style.color=G.running?'#B91C1C':'#14532D'
+$('clkS').style.color=G.running?'#B91C1C':'#14532D'$('situation').textContent='You are down '+G.deficit+'. '+(G.deficit===2?'A field goal wins.':G.deficit===3?'A field goal ties — a touchdown wins.':'You need a touchdown.');
 }
 function draw(){
 var GLy=LOSY-G.ball*PX;
