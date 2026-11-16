@@ -432,18 +432,26 @@ saveSession(rec).then(function(){out.textContent='Saved to '+player.name+' on th
 }
 $('lvl').addEventListener('input',function(){$('lvlVal').textContent=$('lvl').value});
 $('start').addEventListener('click',function(){
-var pid=$('player').value;
-player=null;
-for(var i=0;i<players.length;i++){if(players[i].id===pid)player=players[i]}
-var dv=$('def').value;
-if(dv==='rand'){dv=[2,3,6][Math.floor(Math.random()*3)]}
-var tc=10+5*Math.floor(Math.random()*23),tn=1+Math.floor(Math.random()*3);
-G={ball:75,down:1,toGo:10,clock:tc,timeouts:tn,running:false,plays:0,correct:0,times:[],sacks:0,ints:0,result:'',level:Number($('lvl').value),deficit:Number(dv),used:0,win:false,startClock:tc,startTimeouts:tn,att:0,comp:0,yds:0,td:0};
-st.y=null;
-$('setup').classList.add('hidden');$('done').classList.add('hidden');$('game').classList.remove('hidden');
-setPhase('pre');
-nextPlay();
+  var pid=$('player').value;
+  player=null;
+  for(var i=0;i<players.length;i++){
+    if(players[i].id===pid)player=players[i];
+  }
+  var dv=$('def').value;
+  if(dv==='rand'){
+    dv=[2,3,6][Math.floor(Math.random()*3)];
+  }
+  var tc=10+5*Math.floor(Math.random()*23);
+  var tn=1+Math.floor(Math.random()*3);
+  G={ball:75,down:1,toGo:10,clock:tc,timeouts:tn,running:false,plays:0,correct:0,times:[],sacks:0,ints:0,result:'',level:Number($('lvl').value),deficit:Number(dv),used:0,win:false,startClock:tc,startTimeouts:tn,att:0,comp:0,yds:0,td:0};
+  st.y=null;
+  $('setup').classList.add('hidden');
+  $('done').classList.add('hidden');
+  $('game').classList.remove('hidden');
+  setPhase('pre');
+  nextPlay();
 });
+
 loadPlayers();
 </script>
 </body>
