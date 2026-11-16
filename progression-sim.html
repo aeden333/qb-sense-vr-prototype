@@ -23,13 +23,14 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 .clock{height:8px;background:#E5E7EB;border-radius:4px;overflow:hidden;margin:10px 0}
 .clock span{display:block;height:100%;width:100%;background:var(--green)}
 #msg{font-weight:800;min-height:24px;margin:8px 0}
+#covNote{font-size:13px;color:#5B6B7C;min-height:18px;margin-bottom:8px}
 .hidden{display:none}
 </style>
 </head>
 <body>
 <header><a href="index.html#drills">&larr; Drills</a><b>QB Sense VR</b></header>
 <main>
-<div class="card"><h2>Progression Reads</h2><p>Read the receivers in order and throw to the first one who is open (defender has separation). Choose a 3, 4 or 5 receiver concept. Tap a receiver or press its number before the clock runs out. A session is 10 reps.</p></div>
+<div class="card"><h2>Progression Reads</h2><p>Read the receivers in order and throw to the first one who is open (defender has separation). Choose a 3, 4 or 5 receiver concept and a defensive coverage. Tap a receiver or press its number before the clock runs out. A session is 10 reps.</p></div>
 <div id="setup" class="card">
 <h2>Session setup</h2>
 <div class="coach">
@@ -39,12 +40,12 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <optgroup label="5 receivers"><option value="flood">Flood + backside + checkdown</option><option value="mesh">Mesh (corner + sit + two drags + back)</option><option value="dagger5">Dagger full (dig + curl + two go + flat)</option></optgroup>
 </select></label>
 <label id="playerWrap" class="hidden">Player <select id="player"><option value="">Results tab (just me)</option></select></label>
-<label>Coverage <select id="cov"><option>Random</option><option>Cover 2</option><option>Cover 3</option><option>Man</option></select></label>
+<label>Coverage <select id="cov"><option>Random</option><optgroup label="Man"><option>Man</option><option>Cover 0</option><option>Cover 1</option></optgroup><optgroup label="Zone"><option>Cover 2</option><option>Tampa 2</option><option>Cover 3</option><option>Cover 4</option><option>Cover 6</option></optgroup></select></label>
 <label><input type="checkbox" id="rush" checked> Pass rush</label>
 </div>
 <p id="modeNote" style="font-size:13px;color:#5B6B7C"></p>
 <p><b>Level: <span id="lvlVal">1</span>/10</b><br><input type="range" id="lvl" min="1" max="10" value="1"></p>
-<small>Level 1 = longest clock. Level 10 = shortest clock. More receivers give you a little extra time. Your score is saved to the Results tab. If players have been added to the Players tab, you can pick one to save the session to the Players tab instead.</small>
+<small>Level 1 = longest clock. Level 10 = shortest clock. More receivers give you a little extra time. Cover 0 always brings the rush and shortens the clock. Your score is saved to the Results tab. If players have been added to the Players tab, you can pick one to save the session to the Players tab instead.</small>
 <p><button class="btn" id="start">Start session</button></p>
 </div>
 <div id="game" class="card hidden">
@@ -52,6 +53,7 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <canvas id="c" width="640" height="440"></canvas>
 <div class="clock"><span id="clk"></span></div>
 <div id="msg">Get ready.</div>
+<div id="covNote"></div>
 <button class="btn" id="go" disabled>Next rep</button>
 </div>
 <div id="done" class="card hidden">
@@ -93,12 +95,38 @@ flood:{'Man':[0.2,0.25,0.4,0.3,0.5],'Cover 2':[0.3,0.35,0.5,0.4,0.6],'Cover 3':[
 mesh:{'Man':[0.2,0.25,0.5,0.5,0.4],'Cover 2':[0.35,0.45,0.35,0.35,0.5],'Cover 3':[0.3,0.5,0.4,0.4,0.5]},
 dagger5:{'Man':[0.25,0.3,0.2,0.2,0.45],'Cover 2':[0.35,0.5,0.3,0.3,0.6],'Cover 3':[0.4,0.45,0.2,0.2,0.55]}
 };
+var ALLCOV=['Man','Cover 0','Cover 1','Cover 2','Tampa 2','Cover 3','Cover 4','Cover 6'];
+var CL={Slant:'S',Out:'S',Hitch:'S',Flat:'S',Arrow:'S',Snag:'S','Shallow In':'S',Drag:'S',Sit:'S',Checkdown:'C',Back:'C',Curl:'M',Dig:'M',In:'M',Crosser:'M',Sail:'M',Seam:'D',Go:'D',Post:'D',Corner:'D',Clear:'D'};
+var CLS={
+'Cover 0':{t:{S:0.3,M:0.3,D:0.3,C:0.3},b:{}},
+'Cover 1':{t:{S:0.3,M:0.25,D:0.2,C:0.4},b:{}},
+'Cover 4':{t:{S:0.5,M:0.35,D:0.12,C:0.65},b:{Drag:0.1,Crosser:0.1,Flat:0.1,Arrow:0.1,'Shallow In':0.1}},
+'Cover 6':{t:{S:0.5,M:0.4,D:0.25,C:0.55},b:{Crosser:0.05,Drag:0.05}},
+'Tampa 2':{t:{S:0.55,M:0.35,D:0.2,C:0.6},b:{Corner:0.25,Sail:0.2,Dig:0.15,In:0.15,Seam:-0.1}}
+};
+var COVNOTE={
+'Man':'Man: there are no zones to find. Win with routes that separate quickly.',
+'Cover 0':'Cover 0: man with no deep safety and extra rushers. Get the ball out quickly.',
+'Cover 1':'Cover 1: man with one deep middle safety. Throw away from the safety and keep it quick.',
+'Cover 2':'Cover 2: two deep safeties. Look underneath and for the sideline holes behind the corners.',
+'Tampa 2':'Tampa 2: the middle linebacker runs the seam. Attack the corner and sail holes and the void he leaves.',
+'Cover 3':'Cover 3: three deep. The short and medium zones are soft.',
+'Cover 4':'Cover 4: four deep defenders. Take the flats, hitches and crossers underneath. Do not force verticals.',
+'Cover 6':'Cover 6: quarters to one side and Cover 2 to the other. Watch crossers moving between the two.'
+};
 var cfg=CFG.p3;
-var st={on:false,done:false,t0:0,fz:0,dur:4000,cov:[],ans:0,routes:[],rn:[],cvg:'',rush:true,rx:320};
+var st={on:false,done:false,t0:0,fz:0,dur:4000,cov:[],ans:0,routes:[],rn:[],cvg:'',rush:true,rushOn:true,rx:320};
 var S={mode:'p3',level:1,rep:0,total:10,correct:0,times:[],sacks:0,player:null,cvSel:'Random'};
 var players=[];
 function $(i){return document.getElementById(i)}
 function cl(p){return p<0?0:p>1?1:p}
+function clsOf(i){return S.mode==='p3'?['S','M','D'][i]:(CL[cfg.lab[i]]||'M')}
+function openP(i){
+var tb=OPEN[S.mode][st.cvg];
+if(tb)return tb[i];
+var c=CLS[st.cvg],p=c.t[clsOf(i)]+(c.b[st.rn[i]]||0);
+return Math.max(0.05,Math.min(0.85,p))
+}
 function pts(i){var a=[[cfg.sx[i],LOS+cfg.sy[i]]],r=st.routes[i]||[];for(var k=0;k<r.length;k++)a.push([cfg.sx[i]+r[k][0],LOS+cfg.sy[i]+r[k][1]]);return a}
 function rpos(i,p){
 var a=pts(i),L=0,s=[];
@@ -140,7 +168,7 @@ g.fillStyle='#0A1628';g.font='bold 14px sans-serif';g.textAlign='center';g.fillT
 g.fillStyle='#fff';g.font='11px sans-serif';g.fillText(live?st.rn[j]:cfg.lab[j],r.x,r.y+30);
 if(st.done&&!st.cov[j]){g.strokeStyle='#4ADE80';g.lineWidth=3;g.beginPath();g.arc(r.x,r.y,22,0,7);g.stroke()}
 }
-if(live&&st.rush){
+if(live&&st.rushOn){
 var q=cl(el/st.dur),rx=st.rx+(QB.x-st.rx)*q,ry=LOS-10+(QB.y-(LOS-10))*q;
 g.fillStyle='#7F1D1D';g.beginPath();g.arc(rx,ry,13,0,7);g.fill();
 g.fillStyle='#fff';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText('R',rx,ry+4)}
@@ -160,22 +188,24 @@ function seq(n){var a=[];for(var i=1;i<=n;i++)a.push(i);return a.join(' \u2192 '
 function startRep(){
 S.rep++;
 var n=cfg.n;
-st.cvg=S.cvSel==='Random'?pick(OPEN[S.mode]):S.cvSel;
+st.cvg=S.cvSel==='Random'?ALLCOV[Math.floor(Math.random()*ALLCOV.length)]:S.cvSel;
 st.routes=[];st.rn=[];
 for(var i=0;i<n;i++){
 if(S.mode==='p3'){var nm=pick(RT3[i]);st.rn.push(nm);st.routes.push(RT3[i][nm])}
 else{st.rn.push(cfg.lab[i]);st.routes.push(cfg.fixed[i])}
 }
 var open=false;
-while(!open){st.cov=[];for(var j=0;j<n;j++){st.cov.push(Math.random()>=OPEN[S.mode][st.cvg][j])}open=st.cov.indexOf(false)>=0}
+while(!open){st.cov=[];for(var j=0;j<n;j++){st.cov.push(Math.random()>=openP(j))}open=st.cov.indexOf(false)>=0}
 st.ans=st.cov.indexOf(false);
+st.rushOn=st.rush||st.cvg==='Cover 0';
 st.rx=[200,320,440][Math.floor(Math.random()*3)];
-st.dur=Math.max(2200,4200-S.level*250)*(1+0.2*(n-3))*(st.rush?0.85:1);
+st.dur=Math.max(2200,4200-S.level*250)*(1+0.2*(n-3))*(st.rushOn?0.85:1)*(st.cvg==='Cover 0'?0.85:1);
 st.t0=Date.now();st.on=true;st.done=false;
 $('repN').textContent=S.rep;
 $('go').disabled=true;
 $('clk').style.width='100%';
 $('msg').style.color='#111827';
+$('covNote').textContent='';
 $('msg').textContent=st.cvg+'. Read '+seq(n)+'. Who is the first open receiver?';
 }
 function finish(p){
@@ -187,6 +217,7 @@ if(p===-1){S.sacks++}else{S.times.push(el/1000)}
 if(p===st.ans){S.correct++;m.textContent='Correct! #'+(st.ans+1)+' ('+st.rn[st.ans]+') was the first open receiver ('+rt+'s).';m.style.color='#14532D'}
 else if(p===-1){m.textContent='Sacked! The rush got home. First open was #'+(st.ans+1)+' ('+st.rn[st.ans]+').';m.style.color='#DC2626'}
 else{m.textContent='Missed. #'+(p+1)+' was '+(st.cov[p]?'covered':'open but not first')+'. First open was #'+(st.ans+1)+' ('+st.rn[st.ans]+').';m.style.color='#DC2626'}
+$('covNote').textContent=COVNOTE[st.cvg]||'';
 $('okN').textContent=S.correct;$('rt').textContent=p===-1?'-':rt+'s';
 $('go').disabled=false;
 $('go').textContent=S.rep>=S.total?'See results':'Next rep';
