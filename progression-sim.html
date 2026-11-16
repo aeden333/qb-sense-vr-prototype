@@ -33,12 +33,12 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <div id="setup" class="card">
 <h2>Session setup</h2>
 <div class="coach">
-<label>Player <select id="player"><option value="">Practice (not saved)</option></select></label>
+<label id="playerWrap" class="hidden">Player <select id="player"><option value="">Results tab (just me)</option></select></label>
 <label>Coverage <select id="cov"><option>Random</option><option>Cover 2</option><option>Cover 3</option><option>Man</option></select></label>
 <label><input type="checkbox" id="rush" checked> Pass rush</label>
 </div>
 <p><b>Level: <span id="lvlVal">1</span>/10</b><br><input type="range" id="lvl" min="1" max="10" value="1"></p>
-<small>Level 1 = longest clock. Level 10 = shortest clock. Choose a player to save the session to the Players tab.</small>
+<small>Level 1 = longest clock. Level 10 = shortest clock. Your score is saved to the Results tab. If players have been added to the Players tab, you can pick one to save the session to the Players tab instead.</small>
 <p><button class="btn" id="start">Start session</button></p>
 </div>
 <div id="game" class="card hidden">
@@ -53,7 +53,7 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <div class="stats"><span>Accuracy <b id="dAcc">0%</b></span><span>Correct <b id="dOk">0/10</b></span><span>Avg decision time <b id="dTime">0s</b></span><span>Pressure response <b id="dPr">0%</b></span></div>
 <p id="dTip"></p>
 <p id="dSave" style="font-weight:800"></p>
-<button class="btn" id="again">Train again</button> <a class="btn ghost" href="index.html#players">Open Players tab</a> <a class="btn ghost" href="index.html#drills">Back to drills</a>
+<button class="btn" id="again">Train again</button> <a class="btn ghost" id="dLink" href="index.html#results">Open Results tab</a> <a class="btn ghost" href="index.html#drills">Back to drills</a>
 </div>
 <div class="card"><b>Coaching cues</b><ul><li>Read before the drop ends.</li><li>Throw the first open receiver, not the deepest.</li><li>Do not peek at #2 before checking #1.</li><li>Cover 2 leaves the deep middle and the short sidelines soft. Cover 3 leaves the short and medium zones soft.</li></ul></div>
 </main>
@@ -193,6 +193,7 @@ r.onerror=function(){rej(r.error)};
 players=list.sort(function(a,b){return String(a.name).localeCompare(String(b.name))});
 var sel=$('player');
 players.forEach(function(p){var o=document.createElement('option');o.value=p.id;o.textContent=p.name;sel.appendChild(o)});
+if(players.length)$('playerWrap').classList.remove('hidden');
 }).catch(function(){});
 }
 function saveSession(rec){
@@ -212,16 +213,22 @@ var avg=S.times.length?S.times.reduce(function(a,b){return a+b},0)/S.times.lengt
 var pr=Math.round((S.total-S.sacks)/S.total*100);
 $('dAcc').textContent=acc+'%';$('dOk').textContent=S.correct+'/'+S.total;$('dTime').textContent=avg.toFixed(1)+'s';$('dPr').textContent=pr+'%';
 $('dTip').textContent=acc>=80&&S.level<10?'Strong session. Try level '+(S.level+1)+' next.':acc>=80?'Elite reads at the top level.':'Keep working this level. Check #1 first, then #2, then #3, and throw to the first open receiver.';
-var rec={id:Date.now()+'-'+Math.random().toString(36).slice(2),coachEmail:S.player?S.player.coachEmail:'',playerId:S.player?S.player.id:'',date:new Date().toISOString(),drill:'Progression Reads',score:acc,decisionTime:Number(avg.toFixed(2)),accuracy:acc,pressureResponse:pr,notes:'Progression Reads, level '+S.level+', coverage '+S.cvSel+', pass rush '+(st.rush?'on':'off')+', '+S.total+' reps'};
+var date=new Date().toISOString(),at=Number(avg.toFixed(2));
+var out=$('dSave');
+if(!S.player){
+out.style.color='#14532D';
 try{
 var b=JSON.parse(localStorage.getItem('qbsense_progression_results')||'[]');
-b.push({email:localStorage.getItem('qbsense_user')||'guest',date:rec.date,level:S.level,accuracy:acc,avgTime:rec.decisionTime,pressureResponse:pr});
+b.push({email:localStorage.getItem('qbsense_user')||'guest',date:date,level:S.level,accuracy:acc,correct:S.correct,total:S.total,avgTime:at,pressureResponse:pr,coverage:S.cvSel});
 localStorage.setItem('qbsense_progression_results',JSON.stringify(b.slice(-100)));
-}catch(e){}
-var out=$('dSave');
-if(!S.player){out.textContent='Practice session. Not sent to the Players tab.';out.style.color='#5B6B7C';return}
+out.textContent='Saved to your Results tab.';
+}catch(e){out.textContent='Could not save on this device.';out.style.color='#DC2626'}
+$('dLink').textContent='Open Results tab';$('dLink').href='index.html#results';
+return}
+var rec={id:Date.now()+'-'+Math.random().toString(36).slice(2),coachEmail:S.player.coachEmail,playerId:S.player.id,date:date,drill:'Progression Reads',score:acc,decisionTime:at,accuracy:acc,pressureResponse:pr,notes:'Progression Reads, level '+S.level+', coverage '+S.cvSel+', pass rush '+(st.rush?'on':'off')+', '+S.total+' reps'};
+$('dLink').textContent='Open Players tab';$('dLink').href='index.html#players';
 out.textContent='Saving...';out.style.color='#5B6B7C';
-saveSession(rec).then(function(){out.textContent='Saved to '+S.player.name+' on the Players tab.';out.style.color='#14532D'}).catch(function(){out.textContent='Could not save to the Players tab. Your score is still saved on this device.';out.style.color='#DC2626'});
+saveSession(rec).then(function(){out.textContent='Saved to '+S.player.name+' on the Players tab.';out.style.color='#14532D'}).catch(function(){out.textContent='Could not save to the Players tab.';out.style.color='#DC2626'});
 }
 $('lvl').addEventListener('input',function(){$('lvlVal').textContent=$('lvl').value});
 $('start').addEventListener('click',function(){
