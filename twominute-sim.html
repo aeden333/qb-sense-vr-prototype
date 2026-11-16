@@ -183,8 +183,8 @@ $('toN').textContent=G.timeouts;
 $('pl').textContent=G.plays;
 $('okN').textContent=G.correct;
 $('clkS').textContent=phase==='end'?'Drive over':G.running?'Clock RUNNING. A snap now costs 10 seconds.':'Clock stopped.';
-$('clkS').style.color=G.running?'#B91C1C':'#14532D'$('situation').textContent='You are down '+G.deficit+'. '+(G.deficit===2?'A field goal wins.':G.deficit===3?'A field goal ties — a touchdown wins.':'You need a touchdown.');
-}
+$('clkS').style.color=G.running?'#B91C1C':'#14532D';
+$('situation').textContent='You are down '+G.deficit+'. '+(G.deficit===2?'A field goal wins.':G.deficit===3?'A field goal ties — a touchdown wins.':'You need a touchdown.');}
 function draw(){
 var GLy=LOSY-G.ball*PX;
 g.clearRect(0,0,W,H);
