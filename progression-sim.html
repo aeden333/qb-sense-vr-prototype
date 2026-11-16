@@ -7,63 +7,112 @@
 <style>
 :root{--navy:#0A1628;--green:#14532D;--bg:#F6F7F9;--muted:#5B6B7C;--border:#E2E8F0}
 body{margin:0;background:var(--bg);font-family:system-ui,Arial,sans-serif;color:#111827}
-header{background:var(--navy);color:#fff;padding:14px 20px}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;gap:16px;align-items:center}
+header a{color:#9CA3AF;text-decoration:none}
 main{max-width:760px;margin:0 auto;padding:18px 14px 48px}
-.card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:14px}
+.card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px}
 h2{text-transform:uppercase;margin:0 0 8px}
 .btn{background:var(--green);color:#fff;border:0;border-radius:6px;padding:12px 18px;font-weight:800;cursor:pointer;text-transform:uppercase}
-.field{display:flex;gap:10px;margin:14px 0}
-.rcv{flex:1;padding:22px 8px;text-align:center;border:2px solid var(--border);border-radius:8px;font-weight:900;cursor:pointer;background:#fff}
-.rcv.open{border-color:var(--green);background:#ECFDF5}
-.rcv.wrong{border-color:#DC2626}
+.stats{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:10px}
+.stats b{color:var(--navy);font-size:18px}
+canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e;touch-action:manipulation}
+.clock{height:8px;background:#E5E7EB;border-radius:4px;overflow:hidden;margin:10px 0}
+.clock span{display:block;height:100%;width:100%;background:var(--green)}
+#msg{font-weight:800;min-height:24px;margin:8px 0}
 </style>
 </head>
 <body>
-<header><a href="index.html" style="color:#9CA3AF">&larr; Drills</a> <b>QB Sense VR</b></header>
+<header><a href="index.html">&larr; Drills</a><b>QB Sense VR</b></header>
 <main>
-<div class="card"><h2>Progression Reads</h2><p>Scan receivers in order: #1 short, #2 medium, #3 deep. Tap the first open receiver before time runs out.</p></div>
+<div class="card"><h2>Progression Reads</h2><p>Read #1, then #2, then #3. Throw to the first receiver who is open (defender has separation). Tap a receiver or press 1, 2 or 3 before the clock runs out.</p></div>
 <div class="card">
-<div class="label">Level: <b id="lvl">1</b> | Correct: <b id="ok">0</b>/<b id="tot">0</b> | Last read: <b id="rt">-</b></div>
-<div class="field" id="field">
-<div class="rcv" data-i="0">#1 Short</div>
-<div class="rcv" data-i="1">#2 Medium</div>
-<div class="rcv" data-i="2">#3 Deep</div>
-</div>
-<p id="msg" style="color:var(--muted)">Press Start rep, then tap the first open receiver in order.</p>
-<button class="btn" onclick="startRep()">Start rep</button>
+<div class="stats"><span>Level <b id="lvl">1</b></span><span>Correct <b id="ok">0</b>/<b id="tot">0</b></span><span>Streak <b id="str">0</b></span><span>Last read <b id="rt">-</b></span></div>
+<canvas id="c" width="640" height="440"></canvas>
+<div class="clock"><span id="clk"></span></div>
+<div id="msg">Press Start rep.</div>
+<button class="btn" id="go">Start rep</button>
 </div>
 <div class="card"><b>Coaching cues</b><ul><li>Read before the drop ends.</li><li>Throw the first open receiver, not the deepest.</li><li>Do not peek at #2 before checking #1.</li></ul></div>
 </main>
 <script>
-var open=-1,t0=0,ok=0,tot=0,lvl=1,timer=null;
-var R=document.querySelectorAll('.rcv');
+var cv=document.getElementById('c'),g=cv.getContext('2d');
+var W=640,H=440,LOS=310;
+var starts=[{x:120,y:LOS},{x:320,y:LOS},{x:520,y:LOS}];
+var ends=[{x:70,y:250},{x:320,y:170},{x:540,y:70}];
+var names=['Short','Medium','Deep'];
+var st={on:false,t0:0,dur:4000,cov:[true,true,true],ans:0,done:false,result:null};
+var lvl=1,ok=0,tot=0,str=0;
+function $(i){return document.getElementById(i)}
+function ease(p){return p<0?0:p>1?1:p}
+function rpos(i,p){var s=starts[i],e=ends[i],q=ease(p);return{x:s.x+(e.x-s.x)*q*q*(3-2*q),y:s.y+(e.y-s.y)*q}}
+function dpos(i,p){
+var r=rpos(i,p),b=ease((p-0.35)/0.3);
+var off=st.cov[i]?{x:10,y:14}:{x:(i===1?-1:(i===0?1:-1))*52,y:34};
+return{x:r.x+off.x*b+(1-b)*0,y:r.y+(10+off.y*b)*(b>0?1:0)+(b>0?0:12)}
+}
+function draw(){
+g.clearRect(0,0,W,H);
+g.fillStyle='#1a5c2e';g.fillRect(0,0,W,H);
+g.strokeStyle='rgba(255,255,255,.25)';g.lineWidth=2;
+for(var y=LOS-60;y>0;y-=60){g.beginPath();g.moveTo(0,y);g.lineTo(W,y);g.stroke()}
+g.strokeStyle='#fff';g.lineWidth=3;g.beginPath();g.moveTo(0,LOS);g.lineTo(W,LOS);g.stroke();
+var p=st.on||st.done?Math.min(1,(Date.now()-st.t0)/ (st.dur*0.55)):0;
+if(!st.on&&!st.done)p=0;
+g.strokeStyle='rgba(255,255,255,.18)';g.setLineDash([6,6]);
+for(var i=0;i<3;i++){g.beginPath();g.moveTo(starts[i].x,starts[i].y);g.lineTo(ends[i].x,ends[i].y);g.stroke()}
+g.setLineDash([]);
+var scan=Math.min(2,Math.floor(((Date.now()-st.t0)/ (st.dur*0.5))*3));
+for(var j=0;j<3;j++){
+var r=rpos(j,p),d=dpos(j,p);
+if(st.on||st.done){g.fillStyle='#DC2626';g.beginPath();g.arc(d.x,d.y,11,0,7);g.fill();g.fillStyle='#fff';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText('D',d.x,d.y+4)}
+g.fillStyle=(st.on&&scan===j&&!st.done)?'#F59E0B':'#fff';
+g.beginPath();g.arc(r.x,r.y,15,0,7);g.fill();
+g.fillStyle='#0A1628';g.font='bold 14px sans-serif';g.textAlign='center';g.fillText(''+(j+1),r.x,r.y+5);
+g.fillStyle='#fff';g.font='11px sans-serif';g.fillText(names[j],r.x,r.y+30);
+if(st.done&&!st.cov[j]){g.strokeStyle='#4ADE80';g.lineWidth=3;g.beginPath();g.arc(r.x,r.y,22,0,7);g.stroke()}
+}
+g.fillStyle='#F59E0B';g.beginPath();g.arc(320,395,15,0,7);g.fill();
+g.fillStyle='#0A1628';g.font='bold 12px sans-serif';g.textAlign='center';g.fillText('QB',320,399);
+}
+function tick(){
+if(st.on){
+var el=Date.now()-st.t0,left=Math.max(0,1-el/st.dur);
+$('clk').style.width=(left*100)+'%';
+if(el>=st.dur){finish(-1)}
+}
+draw();requestAnimationFrame(tick)
+}
 function startRep(){
-R.forEach(function(r){r.className='rcv'});
-var n=1+Math.floor(Math.random()*3);
-open=Math.floor(Math.random()*3);
-var steps=0;
-clearTimeout(timer);
-msg('Scanning... 1 \u2192 2 \u2192 3');
-function scan(){
-R.forEach(function(r){r.className='rcv'});
-if(steps<3){R[steps].classList.add('open');steps++;timer=setTimeout(scan,Math.max(400,1200-lvl*80))}
-else{R.forEach(function(r){r.className='rcv'});R[open].classList.add('open');t0=Date.now();msg('Which receiver is open?')}
+var open=false;
+while(!open){st.cov=[Math.random()<0.55,Math.random()<0.55,Math.random()<0.55];open=!st.cov[0]||!st.cov[1]||!st.cov[2]}
+st.ans=st.cov.indexOf(false);
+st.dur=Math.max(2200,4200-lvl*250);
+st.t0=Date.now();st.on=true;st.done=false;
+$('clk').style.width='100%';
+$('msg').textContent='Read 1 \u2192 2 \u2192 3. Who is the first open receiver?';
 }
-scan();
+function finish(pick){
+if(!st.on)return;
+var rt=((Date.now()-st.t0)/1000).toFixed(1);
+st.on=false;st.done=true;tot++;
+if(pick===st.ans){ok++;str++;if(str%3===0&&lvl<10)lvl++;$('msg').textContent='Correct! #'+(st.ans+1)+' was the first open receiver ('+rt+'s).';$('msg').style.color='#14532D'}
+else if(pick===-1){str=0;$('msg').textContent='Sack! Clock ran out. Open receiver was #'+(st.ans+1)+'.';$('msg').style.color='#DC2626'}
+else{str=0;$('msg').textContent='Missed. #'+(pick+1)+' was '+(st.cov[pick]?'covered':'open but not first')+'. First open was #'+(st.ans+1)+'.';$('msg').style.color='#DC2626'}
+$('ok').textContent=ok;$('tot').textContent=tot;$('str').textContent=str;$('lvl').textContent=lvl;$('rt').textContent=pick===-1?'-':rt+'s';
 }
-function msg(t){document.getElementById('msg').textContent=t}
-R.forEach(function(r){r.addEventListener('click',function(){
-if(t0===0)return;
-var i=+r.dataset.i,rt=((Date.now()-t0)/1000).toFixed(1);
-tot++;
-if(i===open){ok++;msg('Correct read in '+rt+'s');if(ok%3===0&&lvl<10)lvl++}
-else{r.classList.add('wrong');msg('Missed. The open receiver was #'+(open+1))}
-document.getElementById('ok').textContent=ok;
-document.getElementById('tot').textContent=tot;
-document.getElementById('lvl').textContent=lvl;
-document.getElementById('rt').textContent=rt+'s';
-t0=0;
-})});
+cv.addEventListener('click',function(e){
+if(!st.on)return;
+var b=cv.getBoundingClientRect(),x=(e.clientX-b.left)*W/b.width,y=(e.clientY-b.top)*H/b.height;
+var p=Math.min(1,(Date.now()-st.t0)/(st.dur*0.55)),best=-1,bd=60;
+for(var i=0;i<3;i++){var r=rpos(i,p),d=Math.hypot(r.x-x,r.y-y);if(d<bd){bd=d;best=i}}
+if(best>=0)finish(best)
+});
+document.addEventListener('keydown',function(e){
+if(e.key==='1'||e.key==='2'||e.key==='3')finish(+e.key-1);
+if(e.key===' '&&!st.on){e.preventDefault();startRep()}
+});
+$('go').addEventListener('click',startRep);
+tick();
 </script>
 </body>
 </html>
