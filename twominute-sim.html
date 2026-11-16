@@ -32,7 +32,7 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <body>
 <header><a href="index.html#drills">&larr; Drills</a><b>QB Sense VR</b></header>
 <main>
-<div class="card"><h2>Two-Minute Drill</h2><p>You have 2:00, 3 timeouts and the ball at your own 25. Drive the field and score. Every snap has a random play call, a random coverage, a full four-man pass rush and a random blitz of 0 to 3 extra rushers. Before each snap you can see the play call, its routes and the defense lined up. The coverage is never labeled. Read the alignment yourself and find out what it was after the play. Throw to the first open receiver, or throw it away if nobody is open. After a catch the receiver runs until a defender touches him, and then he is down. Running out of bounds or an incomplete pass stops the clock. A catch in bounds does not, so use a timeout or spike to save time.</p></div>
+<div class="card"><h2>Two-Minute Drill</h2><p>Each drive starts with a random amount of time (anywhere from 0:10 to 2:00) and a random number of timeouts (1 to 3), with the ball at your own 25. Drive the field and score. Every snap has a random play call, a random coverage, a full four-man pass rush and a random blitz of 0 to 3 extra rushers. Before each snap you can see the play call, its routes and the defense lined up. The coverage is never labeled. Read the alignment yourself and find out what it was after the play. Throw to the first open receiver, or throw it away if nobody is open. After a catch the receiver runs until a defender touches him, and then he is down. Running out of bounds or an incomplete pass stops the clock. A catch in bounds does not, so use a timeout or spike to save time.</p></div>
 <div id="setup" class="card">
 <h2>Session setup</h2>
 <div class="coach">
@@ -40,7 +40,7 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <label id="playerWrap" class="hidden">Player <select id="player"><option value="">Results tab (just me)</option></select></label>
 </div>
 <p><b>Level: <span id="lvlVal">1</span>/10</b><br><input type="range" id="lvl" min="1" max="10" value="1"></p>
-<small>Play calls and coverages are random every snap. The pass rush is always full and blitzes are random. Level 1 = longest read clock. Level 10 = shortest. Each extra blitzer shortens your clock and opens up the coverage a little. A snap with the clock running costs 10 seconds. A timeout stops that clock for free. A spike costs 2 seconds and a down. The drive ends on a touchdown, a made or missed field goal, an interception, a turnover on downs or when time runs out. Your score is saved to the Progress tab. If players have been added to the Players tab, you can pick one to save to that player instead.</small>
+<small>The starting clock (0:10 to 2:00) and the number of timeouts (1 to 3) are picked at random for every drive. Play calls and coverages are random every snap. The pass rush is always full and blitzes are random. Level 1 = longest read clock. Level 10 = shortest. Each extra blitzer shortens your clock and opens up the coverage a little. A snap with the clock running costs 10 seconds. A timeout stops that clock for free. A spike costs 2 seconds and a down. The drive ends on a touchdown, a made or missed field goal, an interception, a turnover on downs or when time runs out. Your score is saved to the Progress tab. If players have been added to the Players tab, you can pick one to save to that player instead.</small>
 <p><button class="btn" id="start">Start drive</button></p>
 </div>
 <div id="game" class="card hidden">
@@ -75,7 +75,7 @@ var PLAYS=[
 var PROB={'Man':{Q:0.3,M:0.3,D:0.25},'Cover 0':{Q:0.45,M:0.4,D:0.45},'Cover 1':{Q:0.3,M:0.3,D:0.2},'Cover 2':{Q:0.55,M:0.35,D:0.35},'Cover 3':{Q:0.55,M:0.4,D:0.2},'Cover 4':{Q:0.5,M:0.35,D:0.15}};
 var ALLCOV=['Man','Cover 0','Cover 1','Cover 2','Cover 3','Cover 4'];
 var COVNOTE={'Man':'Man: crossing routes and quick throws beat it.','Cover 0':'Cover 0: no deep help. Get rid of it fast or hit the deep shot.','Cover 1':'Cover 1: man with a deep safety. Work the quick routes.','Cover 2':'Cover 2: the flats and sideline holes are soft.','Cover 3':'Cover 3: the short and medium routes are soft.','Cover 4':'Cover 4: quarters. Take what is underneath.'};
-var G={ball:75,down:1,toGo:10,clock:120,timeouts:3,running:false,plays:0,correct:0,times:[],sacks:0,ints:0,result:'',level:1,deficit:2,used:0};
+var G={ball:75,down:1,toGo:10,clock:120,timeouts:3,running:false,plays:0,correct:0,times:[],sacks:0,ints:0,result:'',level:1,deficit:2,used:0,startClock:120,startTimeouts:3};
 var st={play:PLAYS[0],cvg:'Man',extra:0,cov:[],ans:0,dur:3000,t0:0,dec:0,y:null,bx:[230,320,410],pv:false};
 var phase='setup',players=[],player=null;
 function $(i){return document.getElementById(i)}
@@ -379,7 +379,7 @@ var n=G.plays,acc=n?Math.round(G.correct/n*100):0;
 var avg=G.times.length?G.times.reduce(function(a,b){return a+b},0)/G.times.length:0;
 var pr=n?Math.round((n-G.sacks)/n*100):100;
 $('dRes').textContent='Result: '+G.result;
-$('dAcc').textContent=acc+'%';$('dOk').textContent=G.correct+'/'+n;$('dTime').textContent=avg.toFixed(1)+'s';$('dPr').textContent=pr+'%';$('dTo').textContent=G.timeouts;$('dClk').textContent=fmt(G.clock);
+$('dAcc').textContent=acc+'%';$('dOk').textContent=G.correct+'/'+n;$('dTime').textContent=avg.toFixed(1)+'s';$('dPr').textContent=pr+'%';$('dTo').textContent=G.timeouts+' of '+G.startTimeouts;$('dClk').textContent=fmt(G.clock)+' of '+fmt(G.startClock);
 var tip=G.win?'You finished the drive. Next, try a higher level.':G.result==='Interception'?'You forced a throw into coverage. Throw it away and live for the next down.':G.result==='Time expired'?'You ran out of time. Use timeouts, throw it away and get to the sideline.':G.result==='Turnover on downs'?'You ran out of downs. Take the open checkdown to stay on schedule.':'Keep working. Read in order and manage the clock.';
 $('dTip').textContent=tip;
 var date=new Date().toISOString(),at=Number(avg.toFixed(2)),out=$('dSave');
@@ -387,13 +387,13 @@ if(!player){
 out.style.color='#14532D';
 try{
 var b=JSON.parse(localStorage.getItem('qbsense_twominute_results')||'[]');
-b.push({email:localStorage.getItem('qbsense_user')||'guest',date:date,level:G.level,accuracy:acc,correct:G.correct,total:n,avgTime:at,pressureResponse:pr,coverage:'Random',concept:'Random plays',result:G.result,timeoutsLeft:G.timeouts,clockLeft:Math.round(G.clock)});
+b.push({email:localStorage.getItem('qbsense_user')||'guest',date:date,level:G.level,accuracy:acc,correct:G.correct,total:n,avgTime:at,pressureResponse:pr,coverage:'Random',concept:'Random plays',result:G.result,timeoutsLeft:G.timeouts,clockLeft:Math.round(G.clock),startClock:G.startClock,startTimeouts:G.startTimeouts});
 localStorage.setItem('qbsense_twominute_results',JSON.stringify(b.slice(-100)));
 out.textContent='Saved to your Progress history.';
 }catch(e){out.textContent='Could not save on this device.';out.style.color='#DC2626'}
 $('dLink').textContent='Open Progress tab';$('dLink').href='index.html#progress';
 return}
-var rec={id:Date.now()+'-'+Math.random().toString(36).slice(2),coachEmail:player.coachEmail,playerId:player.id,date:date,drill:'Two-Minute Drill',score:acc,decisionTime:at,accuracy:acc,pressureResponse:pr,notes:'Two-Minute Drill, level '+G.level+', down '+G.deficit+', result '+G.result+', '+n+' plays, timeouts left '+G.timeouts+', clock left '+fmt(G.clock)};
+var rec={id:Date.now()+'-'+Math.random().toString(36).slice(2),coachEmail:player.coachEmail,playerId:player.id,date:date,drill:'Two-Minute Drill',score:acc,decisionTime:at,accuracy:acc,pressureResponse:pr,notes:'Two-Minute Drill, level '+G.level+', down '+G.deficit+', started with '+fmt(G.startClock)+' and '+G.startTimeouts+' timeouts, result '+G.result+', '+n+' plays, timeouts left '+G.timeouts+', clock left '+fmt(G.clock)};
 $('dLink').textContent='Open Players tab';$('dLink').href='index.html#players';
 out.textContent='Saving...';out.style.color='#5B6B7C';
 saveSession(rec).then(function(){out.textContent='Saved to '+player.name+' on the Players tab.';out.style.color='#14532D'}).catch(function(){out.textContent='Could not save to the Players tab.';out.style.color='#DC2626'});
@@ -405,11 +405,12 @@ player=null;
 for(var i=0;i<players.length;i++){if(players[i].id===pid)player=players[i]}
 var dv=$('def').value;
 if(dv==='rand'){dv=[2,3,6][Math.floor(Math.random()*3)]}
-G={ball:75,down:1,toGo:10,clock:120,timeouts:3,running:false,plays:0,correct:0,times:[],sacks:0,ints:0,result:'',level:Number($('lvl').value),deficit:Number(dv),used:0,win:false};
+var tc=10+5*Math.floor(Math.random()*23),tn=1+Math.floor(Math.random()*3);
+G={ball:75,down:1,toGo:10,clock:tc,timeouts:tn,running:false,plays:0,correct:0,times:[],sacks:0,ints:0,result:'',level:Number($('lvl').value),deficit:Number(dv),used:0,win:false,startClock:tc,startTimeouts:tn};
 st.y=null;
 $('setup').classList.add('hidden');$('done').classList.add('hidden');$('game').classList.remove('hidden');
 $('rt').textContent='-';$('covNote').textContent='';$('clk').style.width='0%';
-$('msg').style.color='#111827';$('msg').textContent='You are down '+G.deficit+(G.deficit===6?' and need a touchdown. ':(G.deficit===2?'. A field goal wins. ':'. A field goal ties. '))+'Ball at your own 25 with 2:00 left. Study the play and the defense, then snap when ready.';
+$('msg').style.color='#111827';$('msg').textContent='You are down '+G.deficit+(G.deficit===6?' and need a touchdown. ':(G.deficit===2?'. A field goal wins. ':'. A field goal ties. '))+'Ball at your own 25 with '+fmt(tc)+' left and '+tn+' timeout'+(tn>1?'s':'')+'. Study the play and the defense, then snap when ready.';
 nextPlay();setPhase('pre')
 });
 $('again').addEventListener('click',function(){$('done').classList.add('hidden');$('setup').classList.remove('hidden');phase='setup'});
