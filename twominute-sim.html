@@ -349,7 +349,7 @@ cv.addEventListener('click',function(e){
 if(phase!=='read')return;
 var b=cv.getBoundingClientRect(),x=(e.clientX-b.left)*W/b.width,y=(e.clientY-b.top)*H/b.height;
 var p=cl((Date.now()-st.t0)/(st.dur*0.55)),best=-1,bd=60;
-for(var i=0;i<3;i++){var r=rpos(i,p),d=Math.hypot(r.x-x,r.y-y);if(d<bd){bd=d;best=i}}
+for(var i=0;i<st.play.r.length;i++){var r=rpos(i,p),d=Math.hypot(r.x-x,r.y-y);if(d<bd){bd=d;best=i}}
 if(best>=0)throwTo(best)
 });
 $('go').addEventListener('click',function(){if(phase==='end')showDone();else snap()});
@@ -359,7 +359,7 @@ $('fg').addEventListener('click',kick);
 $('ta').addEventListener('click',throwAway);
 document.addEventListener('keydown',function(e){
 var k=e.key;
-if(k>='1'&&k<='3')throwTo(+k-1);
+if(k>='1'&&k<='5'&&+k-1<st.play.r.length)throwTo(+k-1);
 if(k==='t'||k==='T')throwAway();
 if(k==='m'||k==='M')useTimeout();
 if(k==='p'||k==='P')spike();
