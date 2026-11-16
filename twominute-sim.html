@@ -276,7 +276,12 @@ requestAnimationFrame(tick);
 }
 function snap(){
 if(phase!=='pre')return;
-if(G.running){G.clock-=10;if(G.clock<=0){G.clock=0;upd();endDrive('Time expired before the snap.',false);return}}
+if(G.clock<=0){
+G.clock=0;
+endDrive('Time expired before the snap.',false);
+return;
+}
+lastClockTick=performance.now();
 st.pv=false;
 st.t0=Date.now();
 $('msg').style.color='#111827';
@@ -345,14 +350,13 @@ if(o.t==='sack'){G.ball=Math.min(99,G.ball+7);G.toGo+=7;G.down++;cost+=2}
 else if(o.t==='inc'){G.down++;cost+=2;stop=true}
 else if(o.t==='catch'){
 G.ball-=o.gain;cost+=3+o.yt;G.comp++;G.yds+=o.gain;
-if(G.ball<=0){G.td++;G.clock=Math.max(0,G.clock-cost);upd();m.style.color='#14532D';m.textContent='TOUCHDOWN! The receiver reached the end zone.';endDrive('Touchdown',true);return}
+if(G.ball<=0){G.td++;upd();m.style.color='#14532D';m.textContent='TOUCHDOWN! The receiver reached the end zone.';endDrive('Touchdown',true);return}
 G.toGo-=o.gain;
 if(G.toGo<=0){G.down=1;G.toGo=Math.min(10,G.ball);extra=' First down.'}else{G.down++}
 stop=o.oob;
 m.style.color=m.style.color||'#14532D';
 m.textContent=m.textContent.replace(/ He runs until.*$/,'')+' '+(o.kind==='oob'?'He ran out of bounds':'A defender touched him and he was down')+' after a '+o.gain+'-yard gain.'+extra
 }
-G.clock=Math.max(0,G.clock-cost);
 if(G.down>4){upd();endDrive('Turnover on downs',false);return}
 if(G.clock<=0){upd();endDrive('Time expired',false);return}
 G.running=!stop;
