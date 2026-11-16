@@ -48,7 +48,7 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 </div>
 <p id="modeNote" style="font-size:13px;color:#5B6B7C"></p>
 <p><b>Level: <span id="lvlVal">1</span>/10</b><br><input type="range" id="lvl" min="1" max="10" value="1"></p>
-<small>Level 1 = longest clock. Level 10 = shortest clock. More receivers give you a little extra time. Cover 0 always brings the rush and shortens the clock. The Random concept button picks one 4 or 5 receiver concept for the session. Your score is saved to the Results tab. If players have been added to the Players tab, you can pick one to save the session to the Players tab instead.</small>
+<small>Level 10 = real pass-rush timing. Levels 1-9 add training time. With the pass rush on, you have about 3.15 seconds at Level 10 before the rush gets home. With the pass rush off, the rep ends as a read timeout, not a sack. The Random concept button picks one 4 or 5 receiver concept for the session. Your score is saved to the Results tab. If players have been added to the Players tab, you can pick one to save the session to the Players tab instead.</small>
 <p><button class="btn" id="start">Start session</button></p>
 </div>
 <div id="game" class="card hidden">
@@ -119,7 +119,7 @@ var COVNOTE={
 'Cover 6':'Cover 6: quarters to one side and Cover 2 to the other. Watch crossers moving between the two.'
 };
 var cfg=CFG.p3;
-var st={on:false,done:false,t0:0,fz:0,dur:4000,cov:[],ans:0,routes:[],rn:[],cvg:'',rush:true,rushOn:true,rx:320};
+var st={on:false,done:false,t0:0,fz:0,dur:3000,press:4000,cov:[],ans:0,routes:[],rn:[],cvg:'',rush:true,rushOn:true,rx:320};
 var S={mode:'p3',rand:false,level:1,rep:0,total:10,correct:0,times:[],sacks:0,player:null,cvSel:'Random'};
 var players=[];
 function $(i){return document.getElementById(i)}
@@ -173,7 +173,7 @@ g.fillStyle='#fff';g.font='11px sans-serif';g.fillText(live?st.rn[j]:cfg.lab[j],
 if(st.done&&!st.cov[j]){g.strokeStyle='#4ADE80';g.lineWidth=3;g.beginPath();g.arc(r.x,r.y,22,0,7);g.stroke()}
 }
 if(live&&st.rushOn){
-var q=cl(el/st.dur),rx=st.rx+(QB.x-st.rx)*q,ry=LOS-10+(QB.y-(LOS-10))*q;
+var q=cl(el/st.press),rx=st.rx+(QB.x-st.rx)*q,ry=LOS-10+(QB.y-(LOS-10))*q;
 g.fillStyle='#7F1D1D';g.beginPath();g.arc(rx,ry,13,0,7);g.fill();
 g.fillStyle='#fff';g.font='bold 11px sans-serif';g.textAlign='center';g.fillText('R',rx,ry+4)}
 g.fillStyle='#F59E0B';g.beginPath();g.arc(QB.x,QB.y,15,0,7);g.fill();
@@ -182,8 +182,8 @@ g.fillStyle='#0A1628';g.font='bold 12px sans-serif';g.textAlign='center';g.fillT
 function tick(){
 if(st.on){
 var el=Date.now()-st.t0;
-$('clk').style.width=(Math.max(0,1-el/st.dur)*100)+'%';
-if(el>=st.dur)finish(-1)
+$('clk').style.width=(Math.max(0,1-el/st.press)*100)+'%';
+if(el>=st.press)finish(st.rushOn?-1:-2)
 }
 draw();requestAnimationFrame(tick)
 }
@@ -205,7 +205,7 @@ while(!open){st.cov=[];for(var j=0;j<n;j++){st.cov.push(Math.random()>=openP(j))
 st.ans=st.cov.indexOf(false);
 st.rushOn=st.rush||st.cvg==='Cover 0';
 st.rx=[200,320,440][Math.floor(Math.random()*3)];
-st.dur=Math.max(2200,4200-S.level*250)*(1+0.2*(n-3))*(st.rushOn?0.85:1)*(st.cvg==='Cover 0'?0.85:1);
+st.dur=3000;st.press=st.rushOn?Math.max(1500,3150+(10-S.level)*150):5000;
 st.t0=Date.now();st.on=true;st.done=false;
 $('repN').textContent=S.rep;
 $('go').disabled=true;
@@ -217,11 +217,12 @@ $('msg').textContent=cfg.name+' vs '+st.cvg+'. Read '+seq(n)+'. Who is the first
 function finish(p){
 if(!st.on)return;
 var el=Date.now()-st.t0,rt=(el/1000).toFixed(1);
-st.fz=Math.min(el,st.dur);st.on=false;st.done=true;
+st.fz=Math.min(el,st.press);st.on=false;st.done=true;
 var m=$('msg');
 if(p===-1){S.sacks++}else{S.times.push(el/1000)}
 if(p===st.ans){S.correct++;m.textContent='Correct! #'+(st.ans+1)+' ('+st.rn[st.ans]+') was the first open receiver ('+rt+'s).';m.style.color='#14532D'}
 else if(p===-1){m.textContent='Sacked! The rush got home. First open was #'+(st.ans+1)+' ('+st.rn[st.ans]+').';m.style.color='#DC2626'}
+else if(p===-2){m.textContent='Read timeout. No rush, but you ran out of time. First open was #'+(st.ans+1)+' ('+st.rn[st.ans]+').';m.style.color='#B45309'}
 else{m.textContent='Missed. #'+(p+1)+' was '+(st.cov[p]?'covered':'open but not first')+'. First open was #'+(st.ans+1)+' ('+st.rn[st.ans]+').';m.style.color='#DC2626'}
 $('covNote').textContent=COVNOTE[st.cvg]||'';
 $('okN').textContent=S.correct;$('rt').textContent=p===-1?'-':rt+'s';
