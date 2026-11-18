@@ -114,7 +114,7 @@ const dt=Math.min(.05,clock.getDelta());elapsed+=dt;
 let dx=0,dz=0;
 if(keys['w']||keys['arrowup'])dz-=1;if(keys['s']||keys['arrowdown'])dz+=1;if(keys['a']||keys['arrowleft'])dx-=1;if(keys['d']||keys['arrowright'])dx+=1;
 const speed=6*dt;qb.position.x=Math.max(-4.8,Math.min(4.8,qb.position.x+dx*speed));qb.position.z=Math.max(-7.5,Math.min(LINE_OF_SCRIMMAGE,qb.position.z+dz*speed));
-const speed=6*dt;qb.position.x=Math.max(-4.8,Math.min(4.8,qb.position.x+dx*speed));qb.position.z=Math.max(-12,Math.min(LINE_OF_SCRIMMAGE,qb.position.z+dz*speed));
+const speed=6*dt;qb.position.x=Math.max(-4.8,Math.min(4.8,qb.position.x+dx*speed));qb.position.z=Math.min(2,Math.max(LINE_OF_SCRIMMAGE,qb.position.z+dz*speed));
 pocketCollapse=Math.min(1,pocketCollapse+dt*.22);pocket.scale.z=1-pocketCollapse*.35;
 defenders.forEach((d,i)=>{const isRusher=rushers.includes(i);const targetX=qb.position.x+(isRusher?(i%2?1.15:-1.15):0);const targetZ=qb.position.z+(isRusher?0:-.45);const dir=new THREE.Vector3(targetX-d.position.x,0,targetZ-d.position.z);const dist=dir.length();if(dist>.01){dir.normalize();const rushSpeed=isRusher?3.2+level*.14:1.05;d.position.addScaledVector(dir,rushSpeed*dt);d.rotation.y=Math.atan2(dir.x,dir.z);}});
 pressure=Math.min(100,pressure+dt*(3.5+level*1.8));
