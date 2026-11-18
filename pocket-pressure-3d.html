@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D Pocket Pressure | QB Sense VR</title>
+<style>
+:root{--navy:#0A1628;--green:#14532D;--green-2:#166534;--bg:#F6F7F9;--muted:#5B6B7C;--border:#E2E8F0}
+*{box-sizing:border-box;font-family:system-ui,Arial,sans-serif}
+body{margin:0;background:var(--bg);color:#111827}
+main{max-width:900px;margin:0 auto;padding:18px 14px 48px}
+.card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px}
+h2{text-transform:uppercase;margin:0 0 8px}
+.btn{background:var(--green);color:#fff;border:0;border-radius:6px;padding:12px 18px;font-weight:800;cursor:pointer;text-transform:uppercase;text-decoration:none;display:inline-block}
+.btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--border)}
+.hidden{display:none}
+#scene{width:100%;height:60vh;border-radius:8px;display:block;background:#0b3d20;touch-action:none}
+#hud{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0}
+#hud b{font-size:18px}
+#msg{font-weight:800;min-height:24px;margin:8px 0}
+.keys{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.key{background:#fff;border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-weight:800}
+</style>
+</head>
+<body>
+<main>
+<div class="card">
+<h2>3D Pocket Pressure</h2>
+<p>Use <b>W/A/S/D</b> or the <b>arrow keys</b> to move in the pocket. Avoid the red defenders and stay inside the pocket for as long as possible. This version focuses only on pocket movement and pressure avoidance.</p>
+<div>
+<label>Difficulty</label><br>
+<input type="range" id="level" min="1" max="10" value="3">
+<b>Level: <span id="levelVal">3</span>/10</b>
+</div>
+<button class="btn" id="start">Start rep</button>
+<button class="btn ghost hidden" id="again">Run another rep</button>
+</div>
+<div class="card hidden" id="game">
+<div id="hud"><span>Time <b id="time">0.0s</b></span><span>Pressure <b id="pressure">0%</b></span><span>Best <b id="best">0.0s</b></span></div>
+<canvas id="scene"></canvas>
+<div id="msg">Get ready. Move with W/A/S/D or arrow keys.</div>
+<div class="keys"><span class="key">W / ↑ Step up</span><span class="key">S / ↓ Drop</span><span class="key">A / ← Slide left</span><span class="key">D / → Slide right</span></div>
+</div>
+<div class="card hidden" id="done">
+<h2>Rep complete</h2>
+<p id="result"></p>
+<p id="tip"></p>
+<button class="btn" id="again2">Run another rep</button>
+<a class="btn ghost" href="index.html#drills">Back to drills</a>
+</div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const canvas=document.getElementById('scene');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setSize(canvas.clientWidth,canvas.clientHeight,false);
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x0b3d20);
+const camera=new THREE.PerspectiveCamera(70,canvas.clientWidth/canvas.clientHeight,.1,100);
+const field=new THREE.Mesh(new THREE.PlaneGeometry(30,60),new THREE.MeshStandardMaterial({color:0x1a5c2e}));
+field.rotation.x=-Math.PI/2;scene.add(field);
+scene.add(new THREE.AmbientLight(0xffffff,.8));
+const light=new THREE.DirectionalLight(0xffffff,.8);light.position.set(5,10,5);scene.add(light);
+const qb=new THREE.Mesh(new THREE.SphereGeometry(.55,20,20),new THREE.MeshStandardMaterial({color:0xf59e0b}));
+qb.position.set(0,0.55,0);scene.add(qb);
+const defenders=[];
+for(let i=0;i<4;i++){const d=new THREE.Mesh(new THREE.CapsuleGeometry(.4,1,4,8),new THREE.MeshStandardMaterial({color:0xdc2626}));d.position.set((i-1.5)*2.5,0.9,-4);scene.add(d);defenders.push(d);}
+const pocket=new THREE.Mesh(new THREE.BoxGeometry(10,.1,14),new THREE.MeshBasicMaterial({color:0x60a5fa,transparent:true,opacity:.15}));
+pocket.position.set(0,.05,-4);scene.add(pocket);
+let playing=false,elapsed=0,pressure=0,level=3,best=Number(localStorage.getItem('qbsense_pocket_best')||0);
+const keys={};
+document.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(['arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();});
+document.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
+function reset(){qb.position.set(0,.55,0);defenders.forEach((d,i)=>d.position.set((i-1.5)*2.5,.9,-4));pressure=0;elapsed=0;}
+function start(){level=Number(document.getElementById('level').value);reset();playing=true;document.getElementById('game').classList.remove('hidden');document.getElementById('done').classList.add('hidden');document.getElementById('start').classList.add('hidden');document.getElementById('again').classList.add('hidden');document.getElementById('msg').textContent='Avoid the red defenders. Stay in the pocket.';}
+function end(){playing=false;const survived=elapsed;const isBest=survived>best;if(isBest){best=survived;localStorage.setItem('qbsense_pocket_best',best.toFixed(1));}
+document.getElementById('game').classList.add('hidden');document.getElementById('done').classList.remove('hidden');document.getElementById('start').classList.remove('hidden');document.getElementById('again').classList.remove('hidden');
+document.getElementById('result').textContent='You survived '+survived.toFixed(1)+' seconds at Level '+level+'.'+(isBest?' New personal best!':'');
+document.getElementById('tip').textContent=pressure>=100?'You got caught by pressure. Step up or slide away earlier next time.':'Good pocket movement. Keep your eyes downfield and continue to reset your feet.';}
+document.getElementById('level').addEventListener('input',e=>document.getElementById('levelVal').textContent=e.target.value);
+document.getElementById('start').addEventListener('click',start);
+document.getElementById('again').addEventListener('click',start);
+document.getElementById('again2').addEventListener('click',start);
+function animate(){requestAnimationFrame(animate);if(!playing){renderer.render(scene,camera);return;}
+const dt=Math.min(.05,clock.getDelta());elapsed+=dt;
+let dx=0,dz=0;
+if(keys['w']||keys['arrowup'])dz-=1;if(keys['s']||keys['arrowdown'])dz+=1;if(keys['a']||keys['arrowleft'])dx-=1;if(keys['d']||keys['arrowright'])dx+=1;
+const speed=6*dt;qb.position.x=Math.max(-4.5,Math.min(4.5,qb.position.x+dx*speed));qb.position.z=Math.max(-8,Math.min(2,qb.position.z+dz*speed));
+const chase=1+level*.08;defenders.forEach(d=>{const dir=new THREE.Vector3(qb.position.x-d.position.x,0,qb.position.z-d.position.z);const dist=dir.length();if(dist>0.01){dir.normalize();d.position.addScaledVector(dir,3.2*chase*dt);}});
+pressure=Math.min(100,pressure+dt*(8+level*2));
+const caught=defenders.some(d=>d.position.distanceTo(qb.position)<1.1);
+if(caught||pressure>=100){end();}
+document.getElementById('time').textContent=elapsed.toFixed(1)+'s';document.getElementById('pressure').textContent=Math.round(pressure)+'%';document.getElementById('best').textContent=best.toFixed(1)+'s';
+camera.position.set(qb.position.x,2.4,qb.position.z+4.5);camera.lookAt(qb.position.x,1,qb.position.z-4);renderer.render(scene,camera);}
+const clock=new THREE.Clock();animate();
+</script>
+<script src="back-button.js"></script>
+</body>
+</html>
