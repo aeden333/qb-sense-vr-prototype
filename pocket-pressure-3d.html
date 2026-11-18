@@ -78,7 +78,10 @@ document.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(['arro
 document.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
 function reset(){qb.position.set(0,.55,0);defenders.forEach((d,i)=>d.position.set((i-1.5)*2.5,.9,-4));pressure=0;elapsed=0;}
 function beginRep(){playing=true;document.getElementById('msg').textContent='Avoid the red defenders. Stay in the pocket.';}
-function start(){level=Number(document.getElementById('level').value);reset();playing=false;document.getElementById('game').classList.remove('hidden');document.getElementById('done').classList.add('hidden');document.getElementById('start').classList.add('hidden');document.getElementById('again').classList.add('hidden');
+function start(){level=Number(document.getElementById('level').value);reset();playing=false;document.getElementById('game').classList.remove('hidden');
+renderer.setSize(canvas.clientWidth,canvas.clientHeight,false);
+camera.aspect=canvas.clientWidth/canvas.clientHeight;
+camera.updateProjectionMatrix();document.getElementById('done').classList.add('hidden');document.getElementById('start').classList.add('hidden');document.getElementById('again').classList.add('hidden');
 const countdown=document.getElementById('countdown');const number=document.getElementById('countdownNumber');let remaining=3;number.textContent=remaining;countdown.style.display='grid';
 const timer=setInterval(()=>{remaining--;if(remaining>0){number.textContent=remaining;}else{clearInterval(timer);countdown.style.display='none';beginRep();}},1000);}
 function end(){playing=false;const survived=elapsed;const isBest=survived>best;if(isBest){best=survived;localStorage.setItem('qbsense_pocket_best',best.toFixed(1));}
