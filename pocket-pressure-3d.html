@@ -28,7 +28,7 @@ h2{text-transform:uppercase;margin:0 0 8px}
 <main>
 <div class="card">
 <h2>3D Pocket Pressure</h2>
-<p>Use <b>W/A/S/D</b> or the <b>arrow keys</b> to move in the pocket. Your offensive line blocks most defenders, but pressure can break through. Step up, slide, or escape the pocket before a defender reaches you. You cannot cross the line of scrimmage.</p>
+<p>Use <b>W/A/S/D</b> or the <b>arrow keys</b> to move in the pocket. Your offensive line blocks most defenders, but pressure can break through. Step up, slide, or drop back behind the line of scrimmage before a defender reaches you. You cannot cross the line of scrimmage.</p>
 <div>
 <label>Difficulty</label><br>
 <input type="range" id="level" min="1" max="10" value="3">
@@ -44,7 +44,7 @@ h2{text-transform:uppercase;margin:0 0 8px}
 <div id="countdown"><span id="countdownNumber">3</span><small>Get ready</small></div>
 </div>
 <div id="msg">Get ready. Move with W/A/S/D or arrow keys.</div>
-<div class="keys"><span class="key">W / ↑ Step up</span><span class="key">S / ↓ Drop</span><span class="key">A / ← Slide left</span><span class="key">D / → Slide right</span></div>
+<div class="keys"><span class="key">W / ↑ Step up</span><span class="key">S / ↓ Drop back</span><span class="key">A / ← Slide left</span><span class="key">D / → Slide right</span></div>
 </div>
 <div class="card hidden" id="done">
 <h2>Rep complete</h2>
@@ -92,7 +92,7 @@ document.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(['arro
 document.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
 function reset(){qb.position.set(0,0,0);offensiveLine.forEach((o,i)=>o.position.set((i-2)*1.95,0,-1.6));defenders.forEach((d,i)=>d.position.set((i-1.5)*2.6,0,-5));pressure=0;elapsed=0;pocketCollapse=0;
 const breakCount=level>=8?2:level>=5?1:0;const indexes=[0,1,2,3].sort(()=>Math.random()-.5).slice(0,breakCount);rushers=indexes;}
-function beginRep(){playing=true;document.getElementById('msg').textContent=rushers.length?'Pressure is breaking through. Step up or slide away. Do not cross the line of scrimmage.':'Offensive line is holding. Stay ready. Do not cross the line of scrimmage.';}
+function beginRep(){playing=true;document.getElementById('msg').textContent=rushers.length?'Pressure is breaking through. Step up, slide, or drop back. Do not cross the line of scrimmage.':'Offensive line is holding. Stay ready. Do not cross the line of scrimmage.';}
 function start(){level=Number(document.getElementById('level').value);reset();playing=false;document.getElementById('game').classList.remove('hidden');
 renderer.setSize(canvas.clientWidth,canvas.clientHeight,false);camera.aspect=canvas.clientWidth/canvas.clientHeight;camera.updateProjectionMatrix();document.getElementById('done').classList.add('hidden');document.getElementById('start').classList.add('hidden');document.getElementById('again').classList.add('hidden');
 const countdown=document.getElementById('countdown');const number=document.getElementById('countdownNumber');let remaining=3;number.textContent=remaining;countdown.style.display='grid';
@@ -100,7 +100,7 @@ const timer=setInterval(()=>{remaining--;if(remaining>0){number.textContent=rema
 function end(){playing=false;const survived=elapsed;const isBest=survived>best;if(isBest){best=survived;localStorage.setItem('qbsense_pocket_best',best.toFixed(1));}
 document.getElementById('game').classList.add('hidden');document.getElementById('done').classList.remove('hidden');document.getElementById('start').classList.remove('hidden');document.getElementById('again').classList.remove('hidden');
 document.getElementById('result').textContent='You survived '+survived.toFixed(1)+' seconds at Level '+level+'.'+(isBest?' New personal best!':'');
-document.getElementById('tip').textContent=rushers.length?'A defender beat the protection. Step into the opening or slide away from pressure without crossing the line of scrimmage.':'Good pocket presence. Keep your eyes downfield and reset your feet.';}
+document.getElementById('tip').textContent=rushers.length?'A defender beat the protection. Step into the opening, slide away, or drop back without crossing the line of scrimmage.':'Good pocket presence. Keep your eyes downfield and reset your feet.';}
 document.getElementById('level').addEventListener('input',e=>document.getElementById('levelVal').textContent=e.target.value);
 document.getElementById('start').addEventListener('click',start);
 document.getElementById('again').addEventListener('click',start);
@@ -109,7 +109,7 @@ function animate(){requestAnimationFrame(animate);if(!playing){renderer.render(s
 const dt=Math.min(.05,clock.getDelta());elapsed+=dt;
 let dx=0,dz=0;
 if(keys['w']||keys['arrowup'])dz-=1;if(keys['s']||keys['arrowdown'])dz+=1;if(keys['a']||keys['arrowleft'])dx-=1;if(keys['d']||keys['arrowright'])dx+=1;
-const speed=6*dt;qb.position.x=Math.max(-4.8,Math.min(4.8,qb.position.x+dx*speed));qb.position.z=Math.max(-7.5,Math.min(LINE_OF_SCRIMMAGE,qb.position.z+dz*speed));
+const speed=6*dt;qb.position.x=Math.max(-4.8,Math.min(4.8,qb.position.x+dx*speed));qb.position.z=Math.max(-12,Math.min(LINE_OF_SCRIMMAGE,qb.position.z+dz*speed));
 pocketCollapse=Math.min(1,pocketCollapse+dt*.22);pocket.scale.z=1-pocketCollapse*.35;
 defenders.forEach((d,i)=>{const isRusher=rushers.includes(i);const targetX=qb.position.x+(isRusher?(i%2?1.15:-1.15):0);const targetZ=qb.position.z+(isRusher?0:-.45);const dir=new THREE.Vector3(targetX-d.position.x,0,targetZ-d.position.z);const dist=dir.length();if(dist>.01){dir.normalize();const rushSpeed=isRusher?3.2+level*.14:1.05;d.position.addScaledVector(dir,rushSpeed*dt);d.rotation.y=Math.atan2(dir.x,dir.z);}});
 pressure=Math.min(100,pressure+dt*(3.5+level*1.8));
