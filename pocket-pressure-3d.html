@@ -104,7 +104,6 @@ function end(){playing=false;const survived=elapsed;const isBest=survived>best;i
 document.getElementById('game').classList.add('hidden');document.getElementById('done').classList.remove('hidden');document.getElementById('start').classList.remove('hidden');document.getElementById('again').classList.remove('hidden');
 document.getElementById('result').textContent='You survived '+survived.toFixed(1)+' seconds at Level '+level+'.'+(isBest?' New personal best!':'');
 document.getElementById('tip').textContent=rushers.length?'A defender beat the protection. Step into the opening or slide away from pressure without crossing the line of scrimmage.':'Good pocket presence. Keep your eyes downfield and reset your feet.';}
-document.getElementById('tip').textContent=rushers.length?'A defender beat the protection. Step into the opening, slide away, or drop back without crossing the line of scrimmage.':'Good pocket presence. Keep your eyes downfield and reset your feet.';}
 document.getElementById('level').addEventListener('input',e=>document.getElementById('levelVal').textContent=e.target.value);
 document.getElementById('start').addEventListener('click',start);
 document.getElementById('again').addEventListener('click',start);
