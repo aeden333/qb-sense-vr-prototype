@@ -28,7 +28,7 @@ h2{text-transform:uppercase;margin:0 0 8px}
 <main>
 <div class="card">
 <h2>3D Pocket Pressure</h2>
-<p>Use <b>W/A/S/D</b> or the <b>arrow keys</b> to move in the pocket. Avoid the red defenders and stay inside the pocket for as long as possible. This version focuses only on pocket movement and pressure avoidance.</p>
+<p>Use <b>W/A/S/D</b> or the <b>arrow keys</b> to move in the pocket. Your offensive line blocks most defenders, but pressure can break through. Step up, slide, or escape the pocket before a defender reaches you.</p>
 <div>
 <label>Difficulty</label><br>
 <input type="range" id="level" min="1" max="10" value="3">
@@ -61,33 +61,38 @@ const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
 renderer.setSize(canvas.clientWidth,canvas.clientHeight,false);
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x0b3d20);
-const camera=new THREE.PerspectiveCamera(70,canvas.clientWidth/canvas.clientHeight,.1,100);
-const field=new THREE.Mesh(new THREE.PlaneGeometry(30,60),new THREE.MeshStandardMaterial({color:0x1a5c2e}));
+scene.fog=new THREE.Fog(0x0b3d20,18,55);
+const camera=new THREE.PerspectiveCamera(65,canvas.clientWidth/canvas.clientHeight,.1,100);
+const field=new THREE.Mesh(new THREE.PlaneGeometry(40,80),new THREE.MeshStandardMaterial({color:0x1a5c2e}));
 field.rotation.x=-Math.PI/2;scene.add(field);
-scene.add(new THREE.AmbientLight(0xffffff,.8));
-const light=new THREE.DirectionalLight(0xffffff,.8);light.position.set(5,10,5);scene.add(light);
-const qb=new THREE.Mesh(new THREE.SphereGeometry(.55,20,20),new THREE.MeshStandardMaterial({color:0xf59e0b}));
-qb.position.set(0,0.55,0);scene.add(qb);
+for(let i=-8;i<=8;i++){const line=new THREE.Mesh(new THREE.PlaneGeometry(.18,80),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.16}));line.rotation.x=-Math.PI/2;line.position.set(i*2.5,.01,0);scene.add(line);}
+const midfield=new THREE.Mesh(new THREE.PlaneGeometry(40,.18),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.35}));midfield.rotation.x=-Math.PI/2;midfield.position.set(0,.02,0);scene.add(midfield);
+scene.add(new THREE.AmbientLight(0xffffff,.75));
+const light=new THREE.DirectionalLight(0xffffff,.9);light.position.set(8,14,8);scene.add(light);
+function makePlayer(color,x,z,scale){const group=new THREE.Group();const body=new THREE.Mesh(new THREE.CylinderGeometry(.34*scale,.42*scale,1.15*scale,14),new THREE.MeshStandardMaterial({color}));body.position.y=.72*scale;group.add(body);const head=new THREE.Mesh(new THREE.SphereGeometry(.23*scale,16,16),new THREE.MeshStandardMaterial({color:0xf3d6b3}));head.position.y=1.48*scale;group.add(head);const helmet=new THREE.Mesh(new THREE.SphereGeometry(.25*scale,16,16),new THREE.MeshStandardMaterial({color:0x111827}));helmet.position.y=1.55*scale;group.add(helmet);group.position.set(x,0,z);scene.add(group);return group;}
+const qb=makePlayer(0xf59e0b,0,0,1);
+const offensiveLine=[];
+for(let i=0;i<5;i++){const linemen=makePlayer(0x2563eb,(i-2)*1.9,-1.5,1.08);offensiveLine.push(linemen);}
 const defenders=[];
-for(let i=0;i<4;i++){const d=new THREE.Mesh(new THREE.CylinderGeometry(.4,.4,1.4,12),new THREE.MeshStandardMaterial({color:0xdc2626}));d.position.set((i-1.5)*2.5,0.9,-4);scene.add(d);defenders.push(d);}
-const pocket=new THREE.Mesh(new THREE.BoxGeometry(10,.1,14),new THREE.MeshBasicMaterial({color:0x60a5fa,transparent:true,opacity:.15}));
-pocket.position.set(0,.05,-4);scene.add(pocket);
+for(let i=0;i<4;i++){const defender=makePlayer(0xdc2626,(i-1.5)*2.5,-4.5,1);defenders.push(defender);}
+const pocket=new THREE.Mesh(new THREE.BoxGeometry(10,.06,12),new THREE.MeshBasicMaterial({color:0x60a5fa,transparent:true,opacity:.13}));
+pocket.position.set(0,.04,-3);scene.add(pocket);
 let playing=false,elapsed=0,pressure=0,level=3,best=Number(localStorage.getItem('qbsense_pocket_best')||0);
+let rushers=[];
 const keys={};
 document.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(['arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();});
 document.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
-function reset(){qb.position.set(0,.55,0);defenders.forEach((d,i)=>d.position.set((i-1.5)*2.5,.9,-4));pressure=0;elapsed=0;}
-function beginRep(){playing=true;document.getElementById('msg').textContent='Avoid the red defenders. Stay in the pocket.';}
+function reset(){qb.position.set(0,0,0);offensiveLine.forEach((o,i)=>o.position.set((i-2)*1.9,0,-1.5));defenders.forEach((d,i)=>d.position.set((i-1.5)*2.5,0,-4.5));pressure=0;elapsed=0;
+const breakCount=level>=8?2:level>=5?1:0;const indexes=[0,1,2,3].sort(()=>Math.random()-.5).slice(0,breakCount);rushers=indexes;}
+function beginRep(){playing=true;document.getElementById('msg').textContent=rushers.length?'Pressure is breaking through. Step up or slide away.':'Offensive line is holding. Stay ready.';}
 function start(){level=Number(document.getElementById('level').value);reset();playing=false;document.getElementById('game').classList.remove('hidden');
-renderer.setSize(canvas.clientWidth,canvas.clientHeight,false);
-camera.aspect=canvas.clientWidth/canvas.clientHeight;
-camera.updateProjectionMatrix();document.getElementById('done').classList.add('hidden');document.getElementById('start').classList.add('hidden');document.getElementById('again').classList.add('hidden');
+renderer.setSize(canvas.clientWidth,canvas.clientHeight,false);camera.aspect=canvas.clientWidth/canvas.clientHeight;camera.updateProjectionMatrix();document.getElementById('done').classList.add('hidden');document.getElementById('start').classList.add('hidden');document.getElementById('again').classList.add('hidden');
 const countdown=document.getElementById('countdown');const number=document.getElementById('countdownNumber');let remaining=3;number.textContent=remaining;countdown.style.display='grid';
 const timer=setInterval(()=>{remaining--;if(remaining>0){number.textContent=remaining;}else{clearInterval(timer);countdown.style.display='none';beginRep();}},1000);}
 function end(){playing=false;const survived=elapsed;const isBest=survived>best;if(isBest){best=survived;localStorage.setItem('qbsense_pocket_best',best.toFixed(1));}
 document.getElementById('game').classList.add('hidden');document.getElementById('done').classList.remove('hidden');document.getElementById('start').classList.remove('hidden');document.getElementById('again').classList.remove('hidden');
 document.getElementById('result').textContent='You survived '+survived.toFixed(1)+' seconds at Level '+level+'.'+(isBest?' New personal best!':'');
-document.getElementById('tip').textContent=pressure>=100?'You got caught by pressure. Step up or slide away earlier next time.':'Good pocket movement. Keep your eyes downfield and continue to reset your feet.';}
+document.getElementById('tip').textContent=rushers.length?'A defender beat the protection. Step into the opening or slide away from pressure.':'Good pocket presence. Keep your eyes downfield and reset your feet.';}
 document.getElementById('level').addEventListener('input',e=>document.getElementById('levelVal').textContent=e.target.value);
 document.getElementById('start').addEventListener('click',start);
 document.getElementById('again').addEventListener('click',start);
@@ -96,13 +101,13 @@ function animate(){requestAnimationFrame(animate);if(!playing){renderer.render(s
 const dt=Math.min(.05,clock.getDelta());elapsed+=dt;
 let dx=0,dz=0;
 if(keys['w']||keys['arrowup'])dz-=1;if(keys['s']||keys['arrowdown'])dz+=1;if(keys['a']||keys['arrowleft'])dx-=1;if(keys['d']||keys['arrowright'])dx+=1;
-const speed=6*dt;qb.position.x=Math.max(-4.5,Math.min(4.5,qb.position.x+dx*speed));qb.position.z=Math.max(-8,Math.min(2,qb.position.z+dz*speed));
-const chase=1+level*.08;defenders.forEach(d=>{const dir=new THREE.Vector3(qb.position.x-d.position.x,0,qb.position.z-d.position.z);const dist=dir.length();if(dist>0.01){dir.normalize();d.position.addScaledVector(dir,3.2*chase*dt);}});
-pressure=Math.min(100,pressure+dt*(8+level*2));
-const caught=defenders.some(d=>d.position.distanceTo(qb.position)<1.1);
+const speed=6*dt;qb.position.x=Math.max(-4.5,Math.min(4.5,qb.position.x+dx*speed));qb.position.z=Math.max(-7,Math.min(2,qb.position.z+dz*speed));
+defenders.forEach((d,i)=>{const isRusher=rushers.includes(i);const targetX=qb.position.x+(isRusher?(i%2?1.1:-1.1):0);const targetZ=qb.position.z+(isRusher?0:-.4);const dir=new THREE.Vector3(targetX-d.position.x,0,targetZ-d.position.z);const dist=dir.length();if(dist>.01){dir.normalize();const rushSpeed=isRusher?3.4+level*.13:1.2;d.position.addScaledVector(dir,rushSpeed*dt);}});
+pressure=Math.min(100,pressure+dt*(4+level*1.7));
+const caught=defenders.some(d=>d.position.distanceTo(qb.position)<1.05);
 if(caught||pressure>=100){end();}
 document.getElementById('time').textContent=elapsed.toFixed(1)+'s';document.getElementById('pressure').textContent=Math.round(pressure)+'%';document.getElementById('best').textContent=best.toFixed(1)+'s';
-camera.position.set(qb.position.x,2.4,qb.position.z+4.5);camera.lookAt(qb.position.x,1,qb.position.z-4);renderer.render(scene,camera);}
+camera.position.set(qb.position.x,3.1,qb.position.z+5.2);camera.lookAt(qb.position.x,1.1,qb.position.z-5);renderer.render(scene,camera);}
 const clock=new THREE.Clock();animate();
 </script>
 <script src="back-button.js"></script>
