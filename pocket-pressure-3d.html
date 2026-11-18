@@ -20,6 +20,8 @@ h2{text-transform:uppercase;margin:0 0 8px}
 #msg{font-weight:800;min-height:24px;margin:8px 0}
 .keys{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .key{background:#fff;border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-weight:800}
+#countdown{position:absolute;inset:0;display:grid;place-items:center;background:rgba(10,22,40,.82);color:#fff;font-size:72px;font-weight:900;z-index:5}
+#countdown small{display:block;font-size:16px;letter-spacing:.08em;text-transform:uppercase;color:#cbd5e1;margin-top:10px}
 </style>
 </head>
 <body>
@@ -37,7 +39,10 @@ h2{text-transform:uppercase;margin:0 0 8px}
 </div>
 <div class="card hidden" id="game">
 <div id="hud"><span>Time <b id="time">0.0s</b></span><span>Pressure <b id="pressure">0%</b></span><span>Best <b id="best">0.0s</b></span></div>
+<div style="position:relative">
 <canvas id="scene"></canvas>
+<div id="countdown"><span id="countdownNumber">3</span><small>Get ready</small></div>
+</div>
 <div id="msg">Get ready. Move with W/A/S/D or arrow keys.</div>
 <div class="keys"><span class="key">W / ↑ Step up</span><span class="key">S / ↓ Drop</span><span class="key">A / ← Slide left</span><span class="key">D / → Slide right</span></div>
 </div>
@@ -72,7 +77,10 @@ const keys={};
 document.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(['arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();});
 document.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
 function reset(){qb.position.set(0,.55,0);defenders.forEach((d,i)=>d.position.set((i-1.5)*2.5,.9,-4));pressure=0;elapsed=0;}
-function start(){level=Number(document.getElementById('level').value);reset();playing=true;document.getElementById('game').classList.remove('hidden');document.getElementById('done').classList.add('hidden');document.getElementById('start').classList.add('hidden');document.getElementById('again').classList.add('hidden');document.getElementById('msg').textContent='Avoid the red defenders. Stay in the pocket.';}
+function beginRep(){playing=true;document.getElementById('msg').textContent='Avoid the red defenders. Stay in the pocket.';}
+function start(){level=Number(document.getElementById('level').value);reset();playing=false;document.getElementById('game').classList.remove('hidden');document.getElementById('done').classList.add('hidden');document.getElementById('start').classList.add('hidden');document.getElementById('again').classList.add('hidden');
+const countdown=document.getElementById('countdown');const number=document.getElementById('countdownNumber');let remaining=3;number.textContent=remaining;countdown.style.display='grid';
+const timer=setInterval(()=>{remaining--;if(remaining>0){number.textContent=remaining;}else{clearInterval(timer);countdown.style.display='none';beginRep();}},1000);}
 function end(){playing=false;const survived=elapsed;const isBest=survived>best;if(isBest){best=survived;localStorage.setItem('qbsense_pocket_best',best.toFixed(1));}
 document.getElementById('game').classList.add('hidden');document.getElementById('done').classList.remove('hidden');document.getElementById('start').classList.remove('hidden');document.getElementById('again').classList.remove('hidden');
 document.getElementById('result').textContent='You survived '+survived.toFixed(1)+' seconds at Level '+level+'.'+(isBest?' New personal best!':'');
