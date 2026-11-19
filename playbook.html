@@ -218,8 +218,13 @@ $('aiConvert').addEventListener('click',async function(){
    headers:{'Content-Type':'application/json'},
    body:JSON.stringify({imageData:imageData,mimeType:'image/jpeg'})
   });
-  var result=await response.json();
-  if(!response.ok){setConvert(result.error||'AI conversion failed.',false);return}
+  var responseText=await response.text();
+  var result;
+  try{result=JSON.parse(responseText)}catch(parseError){
+   setConvert('AI endpoint returned an invalid response ('+response.status+'). '+(responseText||'No details provided.').slice(0,180),false);
+   return;
+  }
+  if(!response.ok){setConvert(result.error||('AI conversion failed with status '+response.status+'.'),false);return}
   var play=result.play;
   $('playName').value=play.name||'';
   $('playConcept').value=play.concept||'';
@@ -233,7 +238,8 @@ $('aiConvert').addEventListener('click',async function(){
   }
   setConvert('AI conversion complete. Review the play, then save it.',true);
  }catch(error){
-  setConvert('Could not convert this page. Check that the PDF is saved and try again.',false);
+  var details=(error&&error.message)?error.message:String(error);
+  setConvert('Could not convert this page: '+details,false);
  }
 });
 buildRows();
