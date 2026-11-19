@@ -44,6 +44,14 @@ function render(){
 document.addEventListener('click',function(e){
   if(e.target.closest&&e.target.closest('[data-page="results"]'))setTimeout(render,0);
 });
+document.addEventListener('click',function(e){
+  var button=e.target.closest&&e.target.closest('#mainNav button[data-page="playbook"]');
+  if(button){
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    window.location.href='playbook.html';
+  }
+},true);
 window.addEventListener('storage',render);
 render();
 })();
