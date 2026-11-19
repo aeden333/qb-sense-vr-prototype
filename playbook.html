@@ -15,62 +15,84 @@ main{max-width:760px;margin:0 auto;padding:18px 14px 48px}
 h2{text-transform:uppercase;margin:0 0 8px}
 .btn{background:var(--green);color:#fff;border:0;border-radius:6px;padding:12px 18px;font-weight:800;cursor:pointer;text-transform:uppercase;text-decoration:none;display:inline-block}
 .btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--border)}
-textarea{width:100%;min-height:260px;padding:12px;border:1px solid var(--border);border-radius:8px;font-family:monospace;font-size:13px}
 #status{font-weight:800;min-height:22px;margin:10px 0}
 .hidden{display:none}
+.pdf-frame{width:100%;height:70vh;border:1px solid var(--border);border-radius:8px;background:#fff}
+.item{display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;background:#fff;flex-wrap:wrap}
 </style>
 </head>
 <body>
 <header><h1>Team Playbook</h1><a href="index.html#drills">Back to drills</a></header>
 <main>
 <div class="card">
-<h2>Upload playbook</h2>
-<p>Paste your team playbook as JSON. Each play needs a <b>name</b>, <b>concept</b>, and a <b>routes</b> array using the same route format as the drills.</p>
-<textarea id="pbText" placeholder="Paste playbook JSON here"></textarea>
+<h2>Upload team playbook</h2>
+<p>Choose your team’s PDF playbook. You can save it here and open it anytime.</p>
+<input type="file" id="pdfFile" accept="application/pdf,.pdf">
 <div id="status"></div>
-<button class="btn" id="save">Save playbook</button>
-<button class="btn ghost" id="activate">Activate team playbook</button>
+<button class="btn" id="save">Save PDF playbook</button>
+<button class="btn ghost" id="activate">Use this playbook</button>
 <button class="btn ghost" id="deactivate">Use default plays</button>
-<button class="btn ghost" id="clear">Clear saved playbook</button>
+<button class="btn ghost" id="clear">Remove saved PDF</button>
 </div>
 <div class="card">
-<h2>Current status</h2>
-<p><b>Playbook:</b> <span id="pbStatus">Default plays</span></p>
-<p><b>Saved plays:</b> <span id="pbCount">0</span></p>
+<h2>Saved playbook</h2>
+<p><b>Status:</b> <span id="pbStatus">Default plays</span></p>
+<p><b>File:</b> <span id="pbName">None</span></p>
+<button class="btn ghost hidden" id="view">Open PDF</button>
+</div>
+<div class="card hidden" id="viewerCard">
+<h2 id="viewerTitle">Playbook</h2>
+<iframe id="viewer" class="pdf-frame" title="Team playbook PDF"></iframe>
+<button class="btn ghost" id="closeViewer">Close PDF</button>
+</div>
+<div class="card">
+<h2>Important</h2>
+<p>Your PDF playbook is saved for reference in this browser. The Two-Minute Drill still uses its built-in plays until PDF plays are converted into selectable routes.</p>
 </div>
 </main>
-<script src="playbook.js"></script>
 <script>
 function $(i){return document.getElementById(i)}
+var savedPdf=null,objectUrl=null;
 function setStatus(msg,good){var s=$('status');s.textContent=msg;s.style.color=good?'#14532D':'#DC2626'}
-function validPlay(p){
-if(!p||typeof p!=='object')return false;
-if(!p.name||!p.concept)return false;
-if(!Array.isArray(p.r)||!p.r.length)return false;
-return p.r.every(function(r){return r&&typeof r.n==='string'&&typeof r.x==='number'&&typeof r.y==='number'&&Array.isArray(r.p)&&r.p.length&&typeof r.c==='string'});
-}
-function updStatus(){
-var team=getTeamPlaybook();
-var active=team&&isTeamPlaybookActive();
-$('pbStatus').textContent=active?'Team playbook active':'Default plays';
-$('pbCount').textContent=team?team.plays.length:0;
+function update(){
+ var active=localStorage.getItem('qbsense_pdf_playbook_active')==='true';
+ $('pbStatus').textContent=active&&savedPdf?'This PDF playbook is active':'Default plays';
+ $('pbName').textContent=savedPdf?savedPdf.name:'None';
+ $('view').classList.toggle('hidden',!savedPdf);
 }
 $('save').addEventListener('click',function(){
-try{
-var data=JSON.parse($('pbText').value);
-if(!data||!Array.isArray(data.plays)||!data.plays.length){setStatus('Playbook must include a plays array.',false);return}
-var bad=data.plays.findIndex(function(p){return !validPlay(p)});
-if(bad>=0){setStatus('Play '+(bad+1)+' is missing a valid name, concept, or routes.',false);return}
-saveTeamPlaybook(data);setStatus('Saved '+data.plays.length+' plays.',true);updStatus();
-}catch(e){setStatus('Could not read the JSON. Check the format.',false)}
+ var file=$('pdfFile').files[0];
+ if(!file){setStatus('Choose a PDF first.',false);return}
+ if(file.type!=='application/pdf'&&!file.name.toLowerCase().endsWith('.pdf')){setStatus('Please choose a PDF file.',false);return}
+ savedPdf=file;
+ if(objectUrl)URL.revokeObjectURL(objectUrl);
+ objectUrl=URL.createObjectURL(file);
+ setStatus('PDF playbook saved: '+file.name,true);update();
 });
 $('activate').addEventListener('click',function(){
-if(!getTeamPlaybook()){setStatus('Save a playbook first.',false);return}
-setTeamPlaybookActive(true);setStatus('Team playbook activated.',true);updStatus();
+ if(!savedPdf){setStatus('Save a PDF first.',false);return}
+ localStorage.setItem('qbsense_pdf_playbook_active','true');
+ setStatus('This PDF playbook is now active for reference.',true);update();
 });
-$('deactivate').addEventListener('click',function(){setTeamPlaybookActive(false);setStatus('Using default plays.',true);updStatus()});
-$('clear').addEventListener('click',function(){clearTeamPlaybook();setTeamPlaybookActive(false);$('pbText').value='';setStatus('Saved playbook cleared.',true);updStatus()});
-updStatus();
+$('deactivate').addEventListener('click',function(){
+ localStorage.setItem('qbsense_pdf_playbook_active','false');
+ setStatus('Using default plays.',true);update();
+});
+$('clear').addEventListener('click',function(){
+ savedPdf=null;
+ if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null}
+ localStorage.setItem('qbsense_pdf_playbook_active','false');
+ $('pdfFile').value='';$('viewerCard').classList.add('hidden');
+ setStatus('Saved PDF removed.',true);update();
+});
+$('view').addEventListener('click',function(){
+ if(!savedPdf)return;
+ $('viewer').src=objectUrl;
+ $('viewerTitle').textContent=savedPdf.name;
+ $('viewerCard').classList.remove('hidden');
+});
+$('closeViewer').addEventListener('click',function(){$('viewerCard').classList.add('hidden');$('viewer').src=''});
+update();
 </script>
 <script src="back-button.js"></script>
 </body>
