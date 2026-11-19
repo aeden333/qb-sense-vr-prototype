@@ -20,6 +20,8 @@ h2{text-transform:uppercase;margin:0 0 8px}
 .pdf-frame{width:100%;height:70vh;border:1px solid var(--border);border-radius:8px;background:#fff}
 .route-row{display:grid;grid-template-columns:90px 1fr 1fr;gap:10px;align-items:center;margin-bottom:10px}
 select,input{padding:10px;border:1px solid var(--border);border-radius:6px;font-size:14px;width:100%}
+#aiCanvas{display:none}
+.ai-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;margin:12px 0}
 </style>
 </head>
 <body>
@@ -34,6 +36,15 @@ select,input{padding:10px;border:1px solid var(--border);border-radius:6px;font-
 <div id="routeRows"></div>
 <div id="convertStatus"></div>
 <button class="btn" id="savePlay">Save play to Two-Minute Drill</button>
+</div>
+<div class="card">
+<h2>AI play conversion</h2>
+<p>Save your PDF below, then enter the page number containing the play you want to convert. Gemini will suggest the play name, concept, and routes. Review the result before saving it.</p>
+<div class="ai-row">
+<div><label>PDF page number</label><input id="aiPage" type="number" min="1" value="1"></div>
+<button class="btn" id="aiConvert">AI convert this page</button>
+</div>
+<canvas id="aiCanvas"></canvas>
 </div>
 <div class="card">
 <h2>Team plays</h2>
@@ -58,6 +69,7 @@ select,input{padding:10px;border:1px solid var(--border);border-radius:6px;font-
 <button class="btn ghost" id="closeViewer">Close PDF</button>
 </div>
 </main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="playbook.js"></script>
 <script>
 function $(i){return document.getElementById(i)}
@@ -164,6 +176,64 @@ $('clear').addEventListener('click',function(){
 });
 $('view').addEventListener('click',showPdf);
 $('closeViewer').addEventListener('click',function(){$('viewerCard').classList.add('hidden');$('viewer').src=''});
+function normalizeRoute(value){
+ var allowed=['slant','out','comeback','curl','flat','drag','dig','post','corner','seam','sit'];
+ value=(value||'').toString().trim().toLowerCase();
+ if(allowed.indexOf(value)>=0)return value;
+ if(value.indexOf('go')>=0||value.indexOf('vertical')>=0)return 'seam';
+ if(value.indexOf('screen')>=0)return 'flat';
+ if(value.indexOf('hook')>=0)return 'curl';
+ return 'slant';
+}
+function normalizeSide(value){
+ value=(value||'').toString().trim().toLowerCase();
+ if(value.indexOf('left')>=0)return 'left';
+ if(value.indexOf('right')>=0)return 'right';
+ return 'middle';
+}
+$('aiConvert').addEventListener('click',async function(){
+ if(!savedRecord){setConvert('Save your PDF playbook first.',false);return}
+ var pageNumber=Number($('aiPage').value);
+ if(!pageNumber||pageNumber<1){setConvert('Enter a valid page number.',false);return}
+ setConvert('Reading PDF page '+pageNumber+'…',true);
+ try{
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  var buffer=await savedRecord.file.arrayBuffer();
+  var pdf=await pdfjsLib.getDocument({data:buffer}).promise;
+  if(pageNumber>pdf.numPages){setConvert('That page does not exist. This PDF has '+pdf.numPages+' pages.',false);return}
+  var page=await pdf.getPage(pageNumber);
+  var scale=1.6;
+  var viewport=page.getViewport({scale:scale});
+  var canvas=$('aiCanvas');
+  canvas.width=viewport.width;
+  canvas.height=viewport.height;
+  await page.render({canvasContext:canvas.getContext('2d'),viewport:viewport}).promise;
+  var dataUrl=canvas.toDataURL('image/jpeg',0.85);
+  var imageData=dataUrl.split(',')[1];
+  setConvert('Asking Gemini to read the play…',true);
+  var response=await fetch('/api/convert-play',{
+   method:'POST',
+   headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({imageData:imageData,mimeType:'image/jpeg'})
+  });
+  var result=await response.json();
+  if(!response.ok){setConvert(result.error||'AI conversion failed.',false);return}
+  var play=result.play;
+  $('playName').value=play.name||'';
+  $('playConcept').value=play.concept||'';
+  var receivers=(play.receivers||[]).slice(0,5);
+  if(!receivers.length){setConvert('Gemini could not identify any routes. Enter them manually.',false);return}
+  $('receiverCount').value=String(receivers.length);
+  buildRows();
+  for(var i=0;i<receivers.length;i++){
+   $('side'+i).value=normalizeSide(receivers[i].side);
+   $('route'+i).value=normalizeRoute(receivers[i].route);
+  }
+  setConvert('AI conversion complete. Review the play, then save it.',true);
+ }catch(error){
+  setConvert('Could not convert this page. Check that the PDF is saved and try again.',false);
+ }
+});
 buildRows();
 getRecord().then(function(record){savedRecord=record;update()}).catch(function(){update()});
 </script>
