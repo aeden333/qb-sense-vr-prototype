@@ -40,6 +40,7 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <label id="playerWrap" class="hidden">Player <select id="player"><option value="">Results tab (just me)</option></select></label>
 </div>
 <p><b>Level: <span id="lvlVal">1</span>/10</b><br><input type="range" id="lvl" min="1" max="10" value="1"></p>
+<p><b>Playbook:</b> <span id="pbStatus">Default plays</span></p>
 <small>The starting clock (0:10 to 2:00) and the number of timeouts (1 to 3) are picked at random for every drive. Play calls and coverages are random every snap. The pass rush is always full and blitzes are random. Level 10 = real pass-rush timing. Levels 1-9 add training time. More blitzers shorten the pressure window. A snap with the clock running costs 10 seconds. A timeout stops that clock for free. A spike costs 2 seconds and a down. The drive ends on a touchdown, a made or missed field goal, an interception, a turnover on downs or when time runs out. Your score is saved to the Progress tab. If players have been added to the Players tab, you can pick one to save to that player instead.</small>
 <small>The starting clock (0:10 to 2:00) and the number of timeouts (1 to 3) are picked at random for every drive. Play calls and coverages are random every snap. The pass rush is always full and blitzes are random. Level 10 = real pass-rush timing. Levels 1-9 add training time. More blitzers shorten the pressure window. The game clock counts down in real time during plays and stays running between snaps after an in-bounds play. Use a timeout or spike to stop it. A timeout stops that clock for free. A spike costs 2 seconds and a down. The drive ends on a touchdown, a made or missed field goal, an interception, a turnover on downs or when time runs out. Your score is saved to the Progress tab. If players have been added to the Players tab, you can pick one to save to that player instead.</small>
 <p><button class="btn" id="start">Start drive</button></p>
@@ -64,6 +65,7 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 </div>
 <div class="card"><b>Coaching cues</b><ul><li>Look at the safeties first. Two deep safeties often mean Cover 2 or man. One deep safety often means Cover 1 or Cover 3. No deep safety means Cover 0 and a blitz.</li><li>Defenders close to the line over your receivers usually mean man coverage.</li><li>Sidelines and incompletions stop the clock. Middle-of-the-field catches do not.</li><li>With the clock running and under about 30 seconds, call a timeout or spike before you snap.</li><li>Throwing it away is a good play. It stops the clock and keeps the drive alive.</li><li>Do not force it. An interception ends the drive.</li></ul></div>
 </main>
+<script src="playbook.js"></script>
 <script>
 var cv=document.getElementById('c'),g=cv.getContext('2d');
 var W=640,H=440,LOSY=250,PX=5,QBX=320,QBY=312,SL=6,SR=634;
@@ -101,6 +103,11 @@ var PLAYS=[
 {n:'Checkdown',x:250,y:30,p:[[-60,-30]],c:'Q'}
 ]}
 ];
+function pickPlay(){
+var np=getPlay();
+if(!np||!Array.isArray(np.r)||!np.r.length)np=PLAYS[Math.floor(Math.random()*PLAYS.length)];
+return np;
+}
 var PROB={'Man':{Q:0.3,M:0.3,D:0.25},'Cover 0':{Q:0.45,M:0.4,D:0.45},'Cover 1':{Q:0.3,M:0.3,D:0.2},'Cover 2':{Q:0.55,M:0.35,D:0.35},'Cover 3':{Q:0.55,M:0.4,D:0.2},'Cover 4':{Q:0.5,M:0.35,D:0.15}};
 var ALLCOV=['Man','Cover 0','Cover 1','Cover 2','Cover 3','Cover 4'];
 var COVNOTE={'Man':'Man: crossing routes and quick throws beat it.','Cover 0':'Cover 0: no deep help. Get rid of it fast or hit the deep shot.','Cover 1':'Cover 1: man with a deep safety. Work the quick routes.','Cover 2':'Cover 2: the flats and sideline holes are soft.','Cover 3':'Cover 3: the short and medium routes are soft.','Cover 4':'Cover 4: quarters. Take what is underneath.'};
@@ -121,7 +128,7 @@ return 'throw it away';
 function passerRating(a,c,y,t,i){if(!a)return 0;function k(v){return Math.max(0,Math.min(2.375,v))}return (k((c/a-0.3)*5)+k((y/a-3)*0.25)+k(t/a*20)+k(2.375-i/a*25))/6*100}
 function openP(i){var p=PROB[st.cvg][st.play.r[i].c]+0.04*st.extra;return Math.max(0.05,Math.min(0.85,p))}
 function nextPlay(){
-var np;do{np=PLAYS[Math.floor(Math.random()*PLAYS.length)]}while(np===st.play);
+var np;do{np=pickPlay()}while(np===st.play);
 st.play=np;st.pv=true;
 st.cvg=ALLCOV[Math.floor(Math.random()*ALLCOV.length)];
 var w=Math.random();st.extra=w<0.35?0:w<0.7?1:w<0.9?2:3;
@@ -498,7 +505,11 @@ $('start').addEventListener('click',function(){
   setPhase('pre');
   nextPlay();
 });
-
+function updPlaybookStatus(){
+var team=getTeamPlaybook();
+$('pbStatus').textContent=(team&&isTeamPlaybookActive())?'Team playbook active':'Default plays';
+}
+updPlaybookStatus();
 loadPlayers();
 tick();
 </script>
