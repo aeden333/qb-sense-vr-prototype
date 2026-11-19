@@ -16,36 +16,47 @@ export default async function handler(request, response) {
   const prompt = `Analyze this American football play diagram. Identify the play name, offensive concept, and the routes run by 3 to 5 eligible receivers.\n\nReturn only a JSON object with this exact shape:\n{\n  "name": "play name",\n  "concept": "offensive concept",\n  "receivers": [\n    {\n      "side": "left",\n      "route": "slant"\n    }\n  ]\n}\n\nUse only these route values: slant, out, comeback, curl, flat, drag, dig, post, corner, seam, sit.\nUse only these side values: left, middle, right.\nDo not include markdown, explanations, or any text outside the JSON object.`;
 
   try {
-    const apiResponse = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            role: 'user',
-            parts: [
-              { text: prompt },
-              { inline_data: { mime_type: mimeType, data: imageData } }
-            ]
-          }],
-          generationConfig: {
-            temperature: 0.1,
-            responseMimeType: 'application/json'
-          }
-        })
-      }
-    );
+    const apiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/interactions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
+        'Api-Revision': '2026-05-20'
+      },
+      body: JSON.stringify({
+        model: 'gemini-3.8-flash',
+        store: false,
+        input: [
+          { type: 'text', text: prompt },
+          { type: 'image', data: imageData, mime_type: mimeType }
+        ]
+      })
+    });
 
     const data = await apiResponse.json();
 
     if (!apiResponse.ok) {
-      const message = data?.error?.message || 'Gemini rejected the request.';
+      const message = data?.error?.message || data?.message || 'Gemini rejected the request.';
       return response.status(apiResponse.status).json({ error: message });
     }
 
-    const parts = data?.candidates?.[0]?.content?.parts || [];
-    const text = parts.map(function(part) { return part.text || ''; }).join('\n').trim();
+    const steps = data?.steps || [];
+    let text = '';
+
+    for (let i = steps.length - 1; i >= 0; i--) {
+      const step = steps[i];
+      if (step?.type !== 'model_output') continue;
+      const contents = step?.content || [];
+      for (let j = 0; j < contents.length; j++) {
+        if (contents[j]?.type === 'text' && contents[j]?.text) {
+          text = contents[j].text;
+          break;
+        }
+      }
+      if (text) break;
+    }
+
+    if (!text && data?.output_text) text = data.output_text;
 
     if (!text) {
       return response.status(502).json({ error: 'Gemini did not return any play data.' });
