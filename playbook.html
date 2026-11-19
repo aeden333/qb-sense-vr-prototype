@@ -113,7 +113,6 @@ function update(){
  var team=getTeamPlaybook();
  $('teamCount').textContent=team?team.plays.length:0;
  $('teamStatus').textContent=team&&isTeamPlaybookActive()?'Team plays active':'Default plays';
- $('pbName').textContent=savedRecord?savedRecord.name:'None';
  $('view').classList.toggle('hidden',!savedRecord);
 }
 function buildRows(){
@@ -169,7 +168,10 @@ $('save').addEventListener('click',function(){
  if(file.type!=='application/pdf'&&!file.name.toLowerCase().endsWith('.pdf')){setStatus('Please choose a PDF file.',false);return}
  setStatus('Saving PDF…',true);
  var record={id:'team-playbook',name:file.name,size:file.size,addedAt:new Date().toISOString(),file:file};
- saveRecord(record).then(function(){savedRecord=record;setStatus('PDF playbook saved: '+file.name,true);update()}).catch(function(){setStatus('Could not save the PDF.',false)});
+ saveRecord(record).then(function(){savedRecord=record;setStatus('PDF playbook saved: '+file.name,true);update()}).catch(function(error){
+  var reason=error&&error.name?error.name:'Unknown browser storage error';
+  setStatus('Could not save the PDF: '+reason+'. If you are using Private Browsing, open this page in a normal window and allow site data.',false);
+ });
 });
 $('clear').addEventListener('click',function(){
  deleteRecord().then(function(){savedRecord=null;if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null}$('pdfFile').value='';$('viewerCard').classList.add('hidden');setStatus('Saved PDF removed.',true);update()}).catch(function(){setStatus('Could not remove the PDF.',false)});
