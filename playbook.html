@@ -15,44 +15,55 @@ main{max-width:760px;margin:0 auto;padding:18px 14px 48px}
 h2{text-transform:uppercase;margin:0 0 8px}
 .btn{background:var(--green);color:#fff;border:0;border-radius:6px;padding:12px 18px;font-weight:800;cursor:pointer;text-transform:uppercase;text-decoration:none;display:inline-block}
 .btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--border)}
-#status{font-weight:800;min-height:22px;margin:10px 0}
+#status,#convertStatus{font-weight:800;min-height:22px;margin:10px 0}
 .hidden{display:none}
 .pdf-frame{width:100%;height:70vh;border:1px solid var(--border);border-radius:8px;background:#fff}
+.route-row{display:grid;grid-template-columns:90px 1fr 1fr;gap:10px;align-items:center;margin-bottom:10px}
+select,input{padding:10px;border:1px solid var(--border);border-radius:6px;font-size:14px;width:100%}
 </style>
 </head>
 <body>
 <header><h1>Team Playbook</h1><a href="index.html#drills">Back to drills</a></header>
 <main>
 <div class="card">
+<h2>Convert PDF play</h2>
+<p>Use this after viewing a play in your PDF. Choose where each receiver starts and which route they run. Saved plays will appear in the Two-Minute Drill.</p>
+<label>Play name</label><input id="playName" placeholder="Example: Team Mesh">
+<label>Concept</label><input id="playConcept" placeholder="Example: Mesh">
+<label>Receivers</label><select id="receiverCount"><option>3</option><option selected>4</option><option>5</option></select>
+<div id="routeRows"></div>
+<div id="convertStatus"></div>
+<button class="btn" id="savePlay">Save play to Two-Minute Drill</button>
+</div>
+<div class="card">
+<h2>Team plays</h2>
+<p><b>Saved plays:</b> <span id="teamCount">0</span></p>
+<p><b>Drill status:</b> <span id="teamStatus">Default plays</span></p>
+<button class="btn ghost" id="useTeam">Use team plays</button>
+<button class="btn ghost" id="useDefault">Use default plays</button>
+<button class="btn ghost" id="clearTeam">Remove team plays</button>
+</div>
+<div class="card">
 <h2>Upload team playbook</h2>
-<p>Choose your team’s PDF playbook. It will stay saved in this browser.</p>
+<p>Choose your team’s PDF playbook. It will stay saved in this browser for reference.</p>
 <input type="file" id="pdfFile" accept="application/pdf,.pdf">
 <div id="status"></div>
 <button class="btn" id="save">Save PDF playbook</button>
-<button class="btn ghost" id="activate">Use this playbook</button>
-<button class="btn ghost" id="deactivate">Use default plays</button>
-<button class="btn ghost" id="clear">Remove saved PDF</button>
-</div>
-<div class="card">
-<h2>Saved playbook</h2>
-<p><b>Status:</b> <span id="pbStatus">Default plays</span></p>
-<p><b>File:</b> <span id="pbName">None</span></p>
 <button class="btn ghost hidden" id="view">Open PDF</button>
+<button class="btn ghost" id="clear">Remove saved PDF</button>
 </div>
 <div class="card hidden" id="viewerCard">
 <h2 id="viewerTitle">Playbook</h2>
 <iframe id="viewer" class="pdf-frame" title="Team playbook PDF"></iframe>
 <button class="btn ghost" id="closeViewer">Close PDF</button>
 </div>
-<div class="card">
-<h2>Important</h2>
-<p>Your PDF playbook is saved for reference in this browser. The Two-Minute Drill still uses its built-in plays until PDF plays are converted into selectable routes.</p>
-</div>
 </main>
+<script src="playbook.js"></script>
 <script>
 function $(i){return document.getElementById(i)}
 var savedRecord=null,objectUrl=null;
 function setStatus(msg,good){var s=$('status');s.textContent=msg;s.style.color=good?'#14532D':'#DC2626'}
+function setConvert(msg,good){var s=$('convertStatus');s.textContent=msg;s.style.color=good?'#14532D':'#DC2626'}
 function openDatabase(){
  return new Promise(function(resolve,reject){
   var request=indexedDB.open('qbsense_team_playbook',1);
@@ -67,44 +78,78 @@ function openDatabase(){
 function saveRecord(record){
  return openDatabase().then(function(db){
   return new Promise(function(resolve,reject){
-   var tx=db.transaction('pdf','readwrite');
-   tx.objectStore('pdf').put(record);
-   tx.oncomplete=resolve;tx.onerror=function(){reject(tx.error)};
+   var tx=db.transaction('pdf','readwrite');tx.objectStore('pdf').put(record);tx.oncomplete=resolve;tx.onerror=function(){reject(tx.error)};
   });
  });
 }
 function getRecord(){
  return openDatabase().then(function(db){
   return new Promise(function(resolve,reject){
-   var tx=db.transaction('pdf','readonly');
-   var request=tx.objectStore('pdf').get('team-playbook');
-   request.onsuccess=function(){resolve(request.result||null)};
-   request.onerror=function(){reject(request.error)};
+   var request=db.transaction('pdf','readonly').objectStore('pdf').get('team-playbook');
+   request.onsuccess=function(){resolve(request.result||null)};request.onerror=function(){reject(request.error)};
   });
  });
 }
 function deleteRecord(){
  return openDatabase().then(function(db){
   return new Promise(function(resolve,reject){
-   var tx=db.transaction('pdf','readwrite');
-   tx.objectStore('pdf').delete('team-playbook');
-   tx.oncomplete=resolve;tx.onerror=function(){reject(tx.error)};
+   var tx=db.transaction('pdf','readwrite');tx.objectStore('pdf').delete('team-playbook');tx.oncomplete=resolve;tx.onerror=function(){reject(tx.error)};
   });
  });
 }
 function update(){
- var active=localStorage.getItem('qbsense_pdf_playbook_active')==='true';
- $('pbStatus').textContent=active&&savedRecord?'This PDF playbook is active':'Default plays';
+ var team=getTeamPlaybook();
+ $('teamCount').textContent=team?team.plays.length:0;
+ $('teamStatus').textContent=team&&isTeamPlaybookActive()?'Team plays active':'Default plays';
  $('pbName').textContent=savedRecord?savedRecord.name:'None';
  $('view').classList.toggle('hidden',!savedRecord);
 }
+function buildRows(){
+ var n=Number($('receiverCount').value),html='';
+ for(var i=0;i<n;i++){
+  html+='<div class="route-row"><b>WR '+(i+1)+'</b><select id="side'+i+'"><option value="left">Left</option><option value="middle">Middle</option><option value="right">Right</option></select><select id="route'+i+'"><option value="slant">Slant</option><option value="out">Out</option><option value="comeback">Comeback</option><option value="curl">Curl</option><option value="flat">Flat</option><option value="drag">Drag</option><option value="dig">Dig</option><option value="post">Post</option><option value="corner">Corner</option><option value="seam">Seam / Go</option><option value="sit">Sit</option></select></div>';
+ }
+ $('routeRows').innerHTML=html;
+}
+function routeData(side,route){
+ var x=side==='left'?70:side==='right'?570:320;
+ var r={n:route,x:x,y:0,p:[],c:'Q'};
+ if(route==='slant')r.p=[[0,-30],[side==='left'?70:-70,-90]];
+ else if(route==='out')r.p=[[0,-70],[side==='left'?-70:70,-70]];
+ else if(route==='comeback')r.p=[[0,-170],[side==='left'?-40:40,-210],[side==='left'?-110:110,-140]];
+ else if(route==='curl')r.p=[[0,-110],[side==='left'?-50:50,-80]];
+ else if(route==='flat')r.p=[[side==='left'?70:-70,-25]];
+ else if(route==='drag')r.p=[[0,-25],[side==='left'?450:-450,-30]];
+ else if(route==='dig')r.p=[[0,-120],[side==='left'?-140:140,-120]];
+ else if(route==='post')r.p=[[0,-170],[side==='left'?-120:120,-250]];
+ else if(route==='corner')r.p=[[0,-170],[side==='left'?-70:70,-250]];
+ else if(route==='seam')r.p=[[0,-220]];
+ else if(route==='sit')r.p=[[0,-95],[0,-85]];
+ if(route==='seam'||route==='post'||route==='corner')r.c='D';
+ else if(route==='dig'||route==='comeback')r.c='M';
+ return r;
+}
+$('receiverCount').addEventListener('change',buildRows);
+$('savePlay').addEventListener('click',function(){
+ var name=$('playName').value.trim(),concept=$('playConcept').value.trim();
+ if(!name||!concept){setConvert('Enter a play name and concept.',false);return}
+ var n=Number($('receiverCount').value),routes=[];
+ for(var i=0;i<n;i++)routes.push(routeData($('side'+i).value,$('route'+i).value));
+ var team=getTeamPlaybook()||{name:'Team Playbook',plays:[]};
+ team.plays.push({name:name,concept:concept,r:routes});
+ saveTeamPlaybook(team);
+ setTeamPlaybookActive(true);
+ setConvert('Saved '+name+'. It is now available in the Two-Minute Drill.',true);
+ update();
+});
+$('useTeam').addEventListener('click',function(){setTeamPlaybookActive(true);setStatus('Team plays active.',true);update()});
+$('useDefault').addEventListener('click',function(){setTeamPlaybookActive(false);setStatus('Using default plays.',true);update()});
+$('clearTeam').addEventListener('click',function(){clearTeamPlaybook();setTeamPlaybookActive(false);setStatus('Team plays removed.',true);update()});
 function showPdf(){
  if(!savedRecord)return;
  if(objectUrl)URL.revokeObjectURL(objectUrl);
  objectUrl=URL.createObjectURL(savedRecord.file);
- $('viewer').src=objectUrl;
- $('viewerTitle').textContent=savedRecord.name;
- $('viewerCard').classList.remove('hidden');
+ $('viewer').src=objectUrl;$('viewerTitle').textContent=savedRecord.name;$('viewerCard').classList.remove('hidden');
 }
 $('save').addEventListener('click',function(){
  var file=$('pdfFile').files[0];
@@ -112,35 +157,15 @@ $('save').addEventListener('click',function(){
  if(file.type!=='application/pdf'&&!file.name.toLowerCase().endsWith('.pdf')){setStatus('Please choose a PDF file.',false);return}
  setStatus('Saving PDF…',true);
  var record={id:'team-playbook',name:file.name,size:file.size,addedAt:new Date().toISOString(),file:file};
- saveRecord(record).then(function(){
-  savedRecord=record;
-  localStorage.setItem('qbsense_pdf_playbook_active','true');
-  setStatus('PDF playbook saved: '+file.name,true);update();
- }).catch(function(){setStatus('Could not save the PDF. Try again.',false)});
-});
-$('activate').addEventListener('click',function(){
- if(!savedRecord){setStatus('Save a PDF first.',false);return}
- localStorage.setItem('qbsense_pdf_playbook_active','true');
- setStatus('This PDF playbook is now active for reference.',true);update();
-});
-$('deactivate').addEventListener('click',function(){
- localStorage.setItem('qbsense_pdf_playbook_active','false');
- setStatus('Using default plays.',true);update();
+ saveRecord(record).then(function(){savedRecord=record;setStatus('PDF playbook saved: '+file.name,true);update()}).catch(function(){setStatus('Could not save the PDF.',false)});
 });
 $('clear').addEventListener('click',function(){
- deleteRecord().then(function(){
-  savedRecord=null;
-  if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null}
-  localStorage.setItem('qbsense_pdf_playbook_active','false');
-  $('pdfFile').value='';$('viewerCard').classList.add('hidden');
-  setStatus('Saved PDF removed.',true);update();
- }).catch(function(){setStatus('Could not remove the PDF.',false)});
+ deleteRecord().then(function(){savedRecord=null;if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null}$('pdfFile').value='';$('viewerCard').classList.add('hidden');setStatus('Saved PDF removed.',true);update()}).catch(function(){setStatus('Could not remove the PDF.',false)});
 });
 $('view').addEventListener('click',showPdf);
 $('closeViewer').addEventListener('click',function(){$('viewerCard').classList.add('hidden');$('viewer').src=''});
-getRecord().then(function(record){
- savedRecord=record;update();
-}).catch(function(){update()});
+buildRows();
+getRecord().then(function(record){savedRecord=record;update()}).catch(function(){update()});
 </script>
 <script src="back-button.js"></script>
 </body>
