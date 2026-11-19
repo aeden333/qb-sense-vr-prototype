@@ -56,7 +56,7 @@ select,input{padding:10px;border:1px solid var(--border);border-radius:6px;font-
 </div>
 <div class="card">
 <h2>Upload team playbook</h2>
-<p>Choose your team’s PDF playbook. It will stay saved in this browser for reference.</p>
+<p>Choose your team’s PDF playbook. It will stay saved in this browser, even after refreshing the page.</p>
 <input type="file" id="pdfFile" accept="application/pdf,.pdf">
 <div id="status"></div>
 <button class="btn" id="save">Save PDF playbook</button>
@@ -162,16 +162,23 @@ function showPdf(){
  objectUrl=URL.createObjectURL(savedRecord.file);
  $('viewer').src=objectUrl;$('viewerTitle').textContent=savedRecord.name;$('viewerCard').classList.remove('hidden');
 }
-$('save').addEventListener('click',function(){
+$('save').addEventListener('click',async function(){
  var file=$('pdfFile').files[0];
  if(!file){setStatus('Choose a PDF first.',false);return}
  if(file.type!=='application/pdf'&&!file.name.toLowerCase().endsWith('.pdf')){setStatus('Please choose a PDF file.',false);return}
  setStatus('Saving PDF…',true);
- var record={id:'team-playbook',name:file.name,size:file.size,addedAt:new Date().toISOString(),file:file};
- saveRecord(record).then(function(){savedRecord=record;setStatus('PDF playbook saved: '+file.name,true);update()}).catch(function(error){
+ try{
+  var data=await file.arrayBuffer();
+  var record={id:'team-playbook',name:file.name,size:file.size,addedAt:new Date().toISOString(),data:data};
+  await saveRecord(record);
+  savedRecord=record;
+  savedRecord.file=new File([data],file.name,{type:'application/pdf'});
+  setStatus('PDF playbook saved: '+file.name+'. It will remain after refreshing.',true);
+  update();
+ }catch(error){
   var reason=error&&error.name?error.name:'Unknown browser storage error';
   setStatus('Could not save the PDF: '+reason+'. If you are using Private Browsing, open this page in a normal window and allow site data.',false);
- });
+ }
 });
 $('clear').addEventListener('click',function(){
  deleteRecord().then(function(){savedRecord=null;if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null}$('pdfFile').value='';$('viewerCard').classList.add('hidden');setStatus('Saved PDF removed.',true);update()}).catch(function(){setStatus('Could not remove the PDF.',false)});
@@ -243,7 +250,17 @@ $('aiConvert').addEventListener('click',async function(){
  }
 });
 buildRows();
-getRecord().then(function(record){savedRecord=record;update()}).catch(function(){update()});
+getRecord().then(function(record){
+ if(record&&record.data){
+  record.file=new File([record.data],record.name||'team-playbook.pdf',{type:'application/pdf'});
+  savedRecord=record;
+  setStatus('Saved PDF restored: '+(record.name||'team playbook')+'.',true);
+ }else if(record&&record.file){
+  savedRecord=record;
+  setStatus('Saved PDF restored: '+(record.name||'team playbook')+'.',true);
+ }
+ update();
+}).catch(function(){update()});
 </script>
 <script src="back-button.js"></script>
 </body>
