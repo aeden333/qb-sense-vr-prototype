@@ -13,18 +13,7 @@ export default async function handler(request, response) {
     return response.status(400).json({ error: 'A PDF page image is required.' });
   }
 
-  const prompt = `Analyze this American football play diagram. Return ONLY valid JSON with this exact structure:
-{
-  "name": "play name",
-  "concept": "offensive concept",
-  "receivers": [
-    {
-      "side": "left|middle|right",
-      "route": "slant|out|comeback|curl|flat|drag|dig|post|corner|seam|sit"
-    }
-  ]
-}
-Use 3 to 5 receivers. Do not include explanations, markdown, or extra text.`;
+  const prompt = `Analyze this American football play diagram. Identify the play name, offensive concept, and the routes run by 3 to 5 eligible receivers.\n\nReturn only a JSON object with this exact shape:\n{\n  "name": "play name",\n  "concept": "offensive concept",\n  "receivers": [\n    {\n      "side": "left",\n      "route": "slant"\n    }\n  ]\n}\n\nUse only these route values: slant, out, comeback, curl, flat, drag, dig, post, corner, seam, sit.\nUse only these side values: left, middle, right.\nDo not include markdown, explanations, or any text outside the JSON object.`;
 
   try {
     const apiResponse = await fetch(
@@ -34,21 +23,44 @@ Use 3 to 5 receivers. Do not include explanations, markdown, or extra text.`;
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{
+            role: 'user',
             parts: [
               { text: prompt },
               { inline_data: { mime_type: mimeType, data: imageData } }
             ]
-          }]
+          }],
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: 'application/json'
+          }
         })
       }
     );
 
     const data = await apiResponse.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const jsonText = text.replace(/^```json\\s*/i, '').replace(/\\s*```$/i, '');
+
+    if (!apiResponse.ok) {
+      const message = data?.error?.message || 'Gemini rejected the request.';
+      return response.status(apiResponse.status).json({ error: message });
+    }
+
+    const parts = data?.candidates?.[0]?.content?.parts || [];
+    const text = parts.map(function(part) { return part.text || ''; }).join('\n').trim();
+
+    if (!text) {
+      return response.status(502).json({ error: 'Gemini did not return any play data.' });
+    }
+
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+
+    if (start === -1 || end === -1 || end <= start) {
+      return response.status(502).json({ error: 'Gemini did not return valid play data.' });
+    }
+
     let play;
     try {
-      play = JSON.parse(jsonText);
+      play = JSON.parse(text.slice(start, end + 1));
     } catch (error) {
       return response.status(502).json({ error: 'Gemini did not return valid play data.' });
     }
@@ -56,6 +68,15 @@ Use 3 to 5 receivers. Do not include explanations, markdown, or extra text.`;
     if (!play || !Array.isArray(play.receivers) || !play.receivers.length) {
       return response.status(502).json({ error: 'Could not identify a playable route concept.' });
     }
+
+    play.receivers = play.receivers.slice(0, 5).map(function(receiver) {
+      const side = String(receiver.side || 'middle').toLowerCase();
+      const route = String(receiver.route || 'slant').toLowerCase();
+      return {
+        side: side.includes('left') ? 'left' : side.includes('right') ? 'right' : 'middle',
+        route: route
+      };
+    });
 
     return response.status(200).json({ play });
   } catch (error) {
