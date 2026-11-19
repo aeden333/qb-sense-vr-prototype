@@ -18,7 +18,6 @@ h2{text-transform:uppercase;margin:0 0 8px}
 #status{font-weight:800;min-height:22px;margin:10px 0}
 .hidden{display:none}
 .pdf-frame{width:100%;height:70vh;border:1px solid var(--border);border-radius:8px;background:#fff}
-.item{display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;background:#fff;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -26,7 +25,7 @@ h2{text-transform:uppercase;margin:0 0 8px}
 <main>
 <div class="card">
 <h2>Upload team playbook</h2>
-<p>Choose your team’s PDF playbook. You can save it here and open it anytime.</p>
+<p>Choose your team’s PDF playbook. It will stay saved in this browser.</p>
 <input type="file" id="pdfFile" accept="application/pdf,.pdf">
 <div id="status"></div>
 <button class="btn" id="save">Save PDF playbook</button>
@@ -52,25 +51,75 @@ h2{text-transform:uppercase;margin:0 0 8px}
 </main>
 <script>
 function $(i){return document.getElementById(i)}
-var savedPdf=null,objectUrl=null;
+var savedRecord=null,objectUrl=null;
 function setStatus(msg,good){var s=$('status');s.textContent=msg;s.style.color=good?'#14532D':'#DC2626'}
+function openDatabase(){
+ return new Promise(function(resolve,reject){
+  var request=indexedDB.open('qbsense_team_playbook',1);
+  request.onupgradeneeded=function(){
+   var db=request.result;
+   if(!db.objectStoreNames.contains('pdf'))db.createObjectStore('pdf',{keyPath:'id'});
+  };
+  request.onsuccess=function(){resolve(request.result)};
+  request.onerror=function(){reject(request.error)};
+ });
+}
+function saveRecord(record){
+ return openDatabase().then(function(db){
+  return new Promise(function(resolve,reject){
+   var tx=db.transaction('pdf','readwrite');
+   tx.objectStore('pdf').put(record);
+   tx.oncomplete=resolve;tx.onerror=function(){reject(tx.error)};
+  });
+ });
+}
+function getRecord(){
+ return openDatabase().then(function(db){
+  return new Promise(function(resolve,reject){
+   var tx=db.transaction('pdf','readonly');
+   var request=tx.objectStore('pdf').get('team-playbook');
+   request.onsuccess=function(){resolve(request.result||null)};
+   request.onerror=function(){reject(request.error)};
+  });
+ });
+}
+function deleteRecord(){
+ return openDatabase().then(function(db){
+  return new Promise(function(resolve,reject){
+   var tx=db.transaction('pdf','readwrite');
+   tx.objectStore('pdf').delete('team-playbook');
+   tx.oncomplete=resolve;tx.onerror=function(){reject(tx.error)};
+  });
+ });
+}
 function update(){
  var active=localStorage.getItem('qbsense_pdf_playbook_active')==='true';
- $('pbStatus').textContent=active&&savedPdf?'This PDF playbook is active':'Default plays';
- $('pbName').textContent=savedPdf?savedPdf.name:'None';
- $('view').classList.toggle('hidden',!savedPdf);
+ $('pbStatus').textContent=active&&savedRecord?'This PDF playbook is active':'Default plays';
+ $('pbName').textContent=savedRecord?savedRecord.name:'None';
+ $('view').classList.toggle('hidden',!savedRecord);
+}
+function showPdf(){
+ if(!savedRecord)return;
+ if(objectUrl)URL.revokeObjectURL(objectUrl);
+ objectUrl=URL.createObjectURL(savedRecord.file);
+ $('viewer').src=objectUrl;
+ $('viewerTitle').textContent=savedRecord.name;
+ $('viewerCard').classList.remove('hidden');
 }
 $('save').addEventListener('click',function(){
  var file=$('pdfFile').files[0];
  if(!file){setStatus('Choose a PDF first.',false);return}
  if(file.type!=='application/pdf'&&!file.name.toLowerCase().endsWith('.pdf')){setStatus('Please choose a PDF file.',false);return}
- savedPdf=file;
- if(objectUrl)URL.revokeObjectURL(objectUrl);
- objectUrl=URL.createObjectURL(file);
- setStatus('PDF playbook saved: '+file.name,true);update();
+ setStatus('Saving PDF…',true);
+ var record={id:'team-playbook',name:file.name,size:file.size,addedAt:new Date().toISOString(),file:file};
+ saveRecord(record).then(function(){
+  savedRecord=record;
+  localStorage.setItem('qbsense_pdf_playbook_active','true');
+  setStatus('PDF playbook saved: '+file.name,true);update();
+ }).catch(function(){setStatus('Could not save the PDF. Try again.',false)});
 });
 $('activate').addEventListener('click',function(){
- if(!savedPdf){setStatus('Save a PDF first.',false);return}
+ if(!savedRecord){setStatus('Save a PDF first.',false);return}
  localStorage.setItem('qbsense_pdf_playbook_active','true');
  setStatus('This PDF playbook is now active for reference.',true);update();
 });
@@ -79,20 +128,19 @@ $('deactivate').addEventListener('click',function(){
  setStatus('Using default plays.',true);update();
 });
 $('clear').addEventListener('click',function(){
- savedPdf=null;
- if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null}
- localStorage.setItem('qbsense_pdf_playbook_active','false');
- $('pdfFile').value='';$('viewerCard').classList.add('hidden');
- setStatus('Saved PDF removed.',true);update();
+ deleteRecord().then(function(){
+  savedRecord=null;
+  if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null}
+  localStorage.setItem('qbsense_pdf_playbook_active','false');
+  $('pdfFile').value='';$('viewerCard').classList.add('hidden');
+  setStatus('Saved PDF removed.',true);update();
+ }).catch(function(){setStatus('Could not remove the PDF.',false)});
 });
-$('view').addEventListener('click',function(){
- if(!savedPdf)return;
- $('viewer').src=objectUrl;
- $('viewerTitle').textContent=savedPdf.name;
- $('viewerCard').classList.remove('hidden');
-});
+$('view').addEventListener('click',showPdf);
 $('closeViewer').addEventListener('click',function(){$('viewerCard').classList.add('hidden');$('viewer').src=''});
-update();
+getRecord().then(function(record){
+ savedRecord=record;update();
+}).catch(function(){update()});
 </script>
 <script src="back-button.js"></script>
 </body>
