@@ -15,8 +15,17 @@ export default async function handler(request, response) {
 
   const prompt = `Analyze this American football play diagram. Identify the play name, offensive concept, and the routes run by exactly 4 or 5 eligible receivers.\n\nInclude wide receivers, slot receivers, tight ends, and running backs when they have a route. Check both sides of the formation and include short routes, flat routes, checkdowns, and drags.\n\nReturn exactly 4 receivers if the diagram clearly shows 4 routes. Return exactly 5 receivers if the diagram clearly shows 5 routes. Do not return 2 or 3 receivers.\n\nReturn only a JSON object with this exact shape:\n{\n  "name": "play name",\n  "concept": "offensive concept",\n  "receivers": [\n    {\n      "side": "left",\n      "route": "slant"\n    }\n  ]\n}\n\nUse only these route values: slant, out, comeback, curl, flat, drag, dig, post, corner, seam, sit.\nUse only these side values: left, middle, right.\nDo not include markdown, explanations, or any text outside the JSON object.`;
 
-  try {
-    const apiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/interactions', {
+  function isHighDemand(message) {
+    const text = String(message || '').toLowerCase();
+    return text.includes('high demand') || text.includes('try again later') || text.includes('overloaded') || text.includes('rate limit');
+  }
+
+  function delay(ms) {
+    return new Promise(function(resolve) { setTimeout(resolve, ms); });
+  }
+
+  async function askGemini(model) {
+    return fetch('https://generativelanguage.googleapis.com/v1beta/interactions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -24,7 +33,7 @@ export default async function handler(request, response) {
         'Api-Revision': '2026-05-20'
       },
       body: JSON.stringify({
-        model: 'gemini-3.8-flash',
+        model: model,
         store: false,
         input: [
           { type: 'text', text: prompt },
@@ -32,14 +41,9 @@ export default async function handler(request, response) {
         ]
       })
     });
+  }
 
-    const data = await apiResponse.json();
-
-    if (!apiResponse.ok) {
-      const message = data?.error?.message || data?.message || 'Gemini rejected the request.';
-      return response.status(apiResponse.status).json({ error: message });
-    }
-
+  function extractPlay(data) {
     const steps = data?.steps || [];
     let text = '';
 
@@ -57,39 +61,56 @@ export default async function handler(request, response) {
     }
 
     if (!text && data?.output_text) text = data.output_text;
-
-    if (!text) {
-      return response.status(502).json({ error: 'Gemini did not return any play data.' });
-    }
+    if (!text) return null;
 
     const start = text.indexOf('{');
     const end = text.lastIndexOf('}');
+    if (start === -1 || end === -1 || end <= start) return null;
 
-    if (start === -1 || end === -1 || end <= start) {
-      return response.status(502).json({ error: 'Gemini did not return valid play data.' });
-    }
-
-    let play;
     try {
-      play = JSON.parse(text.slice(start, end + 1));
+      const play = JSON.parse(text.slice(start, end + 1));
+      if (!play || !Array.isArray(play.receivers) || play.receivers.length < 4) return null;
+      play.receivers = play.receivers.slice(0, 5).map(function(receiver) {
+        const side = String(receiver.side || 'middle').toLowerCase();
+        const route = String(receiver.route || 'slant').toLowerCase();
+        return {
+          side: side.includes('left') ? 'left' : side.includes('right') ? 'right' : 'middle',
+          route: route
+        };
+      });
+      return play;
     } catch (error) {
-      return response.status(502).json({ error: 'Gemini did not return valid play data.' });
+      return null;
+    }
+  }
+
+  try {
+    let lastError = '';
+    const models = ['gemini-3.8-flash', 'gemini-3.8-flash', 'gemini-4-hydrogen'];
+
+    for (let attempt = 0; attempt < models.length; attempt++) {
+      const model = models[attempt];
+      const apiResponse = await askGemini(model);
+      const data = await apiResponse.json();
+
+      if (!apiResponse.ok) {
+        lastError = data?.error?.message || data?.message || 'Gemini rejected the request.';
+        if (isHighDemand(lastError) && attempt < models.length - 1) {
+          await delay(15000);
+          continue;
+        }
+        return response.status(apiResponse.status).json({ error: lastError });
+      }
+
+      const play = extractPlay(data);
+      if (play) {
+        return response.status(200).json({ play });
+      }
+
+      lastError = 'Gemini did not identify 4 or 5 receivers. Try another page or enter the routes manually.';
     }
 
-    if (!play || !Array.isArray(play.receivers) || play.receivers.length < 4) {
-      return response.status(502).json({ error: 'Gemini did not identify 4 or 5 receivers. Try another page or enter the routes manually.' });
-    }
-
-    play.receivers = play.receivers.slice(0, 5).map(function(receiver) {
-      const side = String(receiver.side || 'middle').toLowerCase();
-      const route = String(receiver.route || 'slant').toLowerCase();
-      return {
-        side: side.includes('left') ? 'left' : side.includes('right') ? 'right' : 'middle',
-        route: route
-      };
-    });
-
-    return response.status(200).json({ play });
+    return response.status(502).json({ error: lastError });
   } catch (error) {
     return response.status(500).json({ error: 'Could not convert the play.' });
   }
