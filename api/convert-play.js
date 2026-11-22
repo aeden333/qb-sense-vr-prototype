@@ -13,7 +13,7 @@ export default async function handler(request, response) {
     return response.status(400).json({ error: 'A PDF page image is required.' });
   }
 
-  const prompt = `Analyze this American football play diagram. Identify the play name, offensive concept, and the routes run by exactly 4 or 5 eligible receivers.\n\nInclude wide receivers, slot receivers, tight ends, and running backs when they have a route. Check both sides of the formation and include short routes, flat routes, checkdowns, and drags.\n\nReturn exactly 4 receivers if the diagram clearly shows 4 routes. Return exactly 5 receivers if the diagram clearly shows 5 routes. Do not return 2 or 3 receivers.\n\nReturn only a JSON object with this exact shape:\n{\n  "name": "play name",\n  "concept": "offensive concept",\n  "receivers": [\n    {\n      "side": "left",\n      "route": "slant"\n    }\n  ]\n}\n\nUse only these route values: slant, out, comeback, curl, flat, drag, dig, post, corner, seam, sit.\nUse only these side values: left, middle, right.\nDo not include markdown, explanations, or any text outside the JSON object.`;
+  const prompt = `Analyze this American football playbook page. It may contain one play or multiple separate play diagrams.\n\nIdentify each separate play. Do not combine routes, receivers, or concepts from different diagrams.\n\nFor each play, identify every eligible offensive player with a drawn route: wide receivers, slot receivers, tight ends, running backs, and any other skill player. Include short routes, flat routes, checkdowns, and drags.\n\nFor each individual play, return between 2 and 5 receivers, based only on the routes clearly shown in that play. Do not invent routes.\n\nReturn only a JSON object with this exact shape:\n{\n  "plays": [\n    {\n      "name": "play name",\n      "concept": "offensive concept",\n      "receivers": [\n        {\n          "side": "left",\n          "route": "slant"\n        }\n      ]\n    }\n  ]\n}\n\nUse only these route values: slant, out, comeback, curl, flat, drag, dig, post, corner, seam, sit.\nUse only these side values: left, middle, right.\nDo not include markdown, explanations, or any text outside the JSON object.`;
 
   function isHighDemand(message) {
     const text = String(message || '').toLowerCase();
@@ -43,7 +43,7 @@ export default async function handler(request, response) {
     });
   }
 
-  function extractPlay(data) {
+  function extractPlays(data) {
     const steps = data?.steps || [];
     let text = '';
 
@@ -61,26 +61,33 @@ export default async function handler(request, response) {
     }
 
     if (!text && data?.output_text) text = data.output_text;
-    if (!text) return null;
+    if (!text) return [];
 
     const start = text.indexOf('{');
     const end = text.lastIndexOf('}');
-    if (start === -1 || end === -1 || end <= start) return null;
+    if (start === -1 || end === -1 || end <= start) return [];
 
     try {
-      const play = JSON.parse(text.slice(start, end + 1));
-      if (!play || !Array.isArray(play.receivers) || play.receivers.length < 4) return null;
-      play.receivers = play.receivers.slice(0, 5).map(function(receiver) {
-        const side = String(receiver.side || 'middle').toLowerCase();
-        const route = String(receiver.route || 'slant').toLowerCase();
+      const result = JSON.parse(text.slice(start, end + 1));
+      const plays = Array.isArray(result?.plays) ? result.plays : [];
+      return plays.filter(function(play) {
+        return play && Array.isArray(play.receivers) && play.receivers.length >= 2;
+      }).slice(0, 10).map(function(play) {
         return {
-          side: side.includes('left') ? 'left' : side.includes('right') ? 'right' : 'middle',
-          route: route
+          name: play.name || 'Unnamed play',
+          concept: play.concept || '',
+          receivers: play.receivers.slice(0, 5).map(function(receiver) {
+            const side = String(receiver.side || 'middle').toLowerCase();
+            const route = String(receiver.route || 'slant').toLowerCase();
+            return {
+              side: side.includes('left') ? 'left' : side.includes('right') ? 'right' : 'middle',
+              route: route
+            };
+          })
         };
       });
-      return play;
     } catch (error) {
-      return null;
+      return [];
     }
   }
 
@@ -102,12 +109,12 @@ export default async function handler(request, response) {
         return response.status(apiResponse.status).json({ error: lastError });
       }
 
-      const play = extractPlay(data);
-      if (play) {
-        return response.status(200).json({ play });
+      const plays = extractPlays(data);
+      if (plays.length) {
+        return response.status(200).json({ plays: plays });
       }
 
-      lastError = 'Gemini did not identify 4 or 5 receivers. Try another page or enter the routes manually.';
+      lastError = 'Gemini did not identify any playable plays. Try another page or enter the routes manually.';
     }
 
     return response.status(502).json({ error: lastError });
