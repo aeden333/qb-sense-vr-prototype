@@ -13,7 +13,7 @@ export default async function handler(request, response) {
     return response.status(400).json({ error: 'A PDF page image is required.' });
   }
 
-  const prompt = `Analyze this American football play diagram. Identify the play name, offensive concept, and the routes run by 3 to 5 eligible receivers.\n\nReturn only a JSON object with this exact shape:\n{\n  "name": "play name",\n  "concept": "offensive concept",\n  "receivers": [\n    {\n      "side": "left",\n      "route": "slant"\n    }\n  ]\n}\n\nUse only these route values: slant, out, comeback, curl, flat, drag, dig, post, corner, seam, sit.\nUse only these side values: left, middle, right.\nDo not include markdown, explanations, or any text outside the JSON object.`;
+  const prompt = `Analyze this American football play diagram. Identify the play name, offensive concept, and the routes run by exactly 4 or 5 eligible receivers.\n\nInclude wide receivers, slot receivers, tight ends, and running backs when they have a route. Check both sides of the formation and include short routes, flat routes, checkdowns, and drags.\n\nReturn exactly 4 receivers if the diagram clearly shows 4 routes. Return exactly 5 receivers if the diagram clearly shows 5 routes. Do not return 2 or 3 receivers.\n\nReturn only a JSON object with this exact shape:\n{\n  "name": "play name",\n  "concept": "offensive concept",\n  "receivers": [\n    {\n      "side": "left",\n      "route": "slant"\n    }\n  ]\n}\n\nUse only these route values: slant, out, comeback, curl, flat, drag, dig, post, corner, seam, sit.\nUse only these side values: left, middle, right.\nDo not include markdown, explanations, or any text outside the JSON object.`;
 
   try {
     const apiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/interactions', {
@@ -76,8 +76,8 @@ export default async function handler(request, response) {
       return response.status(502).json({ error: 'Gemini did not return valid play data.' });
     }
 
-    if (!play || !Array.isArray(play.receivers) || !play.receivers.length) {
-      return response.status(502).json({ error: 'Could not identify a playable route concept.' });
+    if (!play || !Array.isArray(play.receivers) || play.receivers.length < 4) {
+      return response.status(502).json({ error: 'Gemini did not identify 4 or 5 receivers. Try another page or enter the routes manually.' });
     }
 
     play.receivers = play.receivers.slice(0, 5).map(function(receiver) {
