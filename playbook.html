@@ -37,7 +37,7 @@ select,input{padding:10px;border:1px solid var(--border);border-radius:6px;font-
 <label>Formation</label><select id="formation"><option value="custom">Custom</option><option value="spread">Spread</option><option value="trips-left">Trips Left</option><option value="trips-right">Trips Right</option><option value="bunch-left">Bunch Left</option><option value="bunch-right">Bunch Right</option><option value="2x2-tight-left">2x2 Tight Left</option><option value="2x2-tight-right">2x2 Tight Right</option><option value="empty">Empty</option></select>
 <div id="routeRows"></div>
 <canvas id="playPreview" width="640" height="360"></canvas>
-<p><b>Drag a yellow player</b> to set an exact split. Its alignment will change to Custom spot.</p>
+<p><b>Drag a yellow player</b> to set an exact split on or behind the line of scrimmage.</p>
 <div id="convertStatus"></div>
 <button class="btn" id="savePlay">Save play to Two-Minute Drill</button>
 </div>
@@ -220,8 +220,8 @@ function moveDrag(event){
  event.preventDefault();
  var point=canvasPoint(event);
  var x=Math.max(20,Math.min(620,point.x));
- var y=Math.max(255,Math.min(345,300-point.y));
- customPositions[dragIndex]={x:x,y:y};
+ var y=Math.max(300,Math.min(345,point.y));
+ customPositions[dragIndex]={x:x,y:300-y};
  if($('side'+dragIndex)){$('side'+dragIndex).value='custom'}
  drawPreview();
 }
