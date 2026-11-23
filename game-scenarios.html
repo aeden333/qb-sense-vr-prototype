@@ -90,40 +90,10 @@ function draw(){var GLy=LOSY-G.ball*PX;g.clearRect(0,0,W,H);g.fillStyle='#1a5c2e
 var last=performance.now();function tick(){var now=performance.now(),dt=Math.max(0,(now-last)/1000);last=now;var live=phase==='read'||phase==='yac',between=phase==='pre'&&G.running;if(live||between){G.clock=Math.max(0,G.clock-dt);$('clkT').textContent=fmt(G.clock);if(G.clock<=0&&phase==='pre')endDrive('Time expired',false)}if(phase==='read'){var el=Date.now()-st.t0;$('clk').style.width=(Math.max(0,1-el/st.dur)*100)+'%';if(el>=st.press)sack()}else if(phase==='yac')stepYac();draw();requestAnimationFrame(tick)}
 function snap(){if(phase!=='pre')return;if(G.clock<=0){G.clock=0;endDrive('Time expired before the snap.',false);return}last=performance.now();st.pv=false;st.t0=Date.now();$('msg').style.color='#111827';var reads=[];for(var i=0;i<st.play.r.length;i++)reads.push(i+1);$('msg').textContent=st.play.name+'. Read '+reads.join(', ')+' before the rush gets home.';$('covNote').textContent='';$('clk').style.width='100%';setPhase('read')}
 function throwTo(i){if(phase!=='read')return;var el=Date.now()-st.t0,dec=el/1000,ok=i===st.ans,p=cl(el/(st.dur*.75)),R=st.play.r[i],m=$('msg');G.times.push(dec);G.plays++;G.att++;if(st.extra>0)G.pressureAtt++;if(ok)G.correct++;st.dec=dec;$('rt').textContent=dec.toFixed(1)+'s';if(!st.cov[i]){if(st.extra>0)G.pressureComp++;m.style.color=ok?'#14532D':'#B45309';m.textContent=(ok?'Right read. ':'Open, but '+nameOf(st.ans)+' was first. ')+'Caught on the '+R.n+'. He runs until a defender touches him.';logRep({
-  drill: 'Game Situations',
-  concept: st.play.name,
-  coverage: st.cvg,
-  correctRead: nameOf(st.ans),
-  qbChoice: nameOf(i),
-  decisionTime: dec,
-  result: 'completion'
-});startYac(i,p)}else if(Math.random()<.35){G.ints++;G.forced++;m.style.color='#DC2626';m.textContent='Forced into coverage and intercepted.';logRep({
-  drill: 'Game Situations',
-  concept: st.play.name,
-  coverage: st.cvg,
-  correctRead: nameOf(st.ans),
-  qbChoice: nameOf(i),
-  decisionTime: dec,
-  result: 'interception'
-});after({t:'int'})}else{G.forced++;m.style.color='#DC2626';m.textContent='Covered. Pass broken up. Best play: '+nameOf(st.ans)+'.';after({t:'inc',dec:dec})logRep({
-  drill: 'Game Situations',
-  concept: st.play.name,
-  coverage: st.cvg,
-  correctRead: nameOf(st.ans),
-  qbChoice: nameOf(i),
-  decisionTime: (Date.now() - st.t0) / 1000,
-  result: 'incompletion'
+});startYac(i,p)}else if(Math.random()<.35){G.ints++;G.forced++;m.style.color='#DC2626';m.textContent='Forced into coverage and intercepted.';logRep({});after({t:'int'})}else{G.forced++;m.style.color='#DC2626';m.textContent='Covered. Pass broken up. Best play: '+nameOf(st.ans)+'.';after({t:'inc',dec:dec})logRep(
 });}}
 function throwAway(){if(phase!=='read')return;var dec=(Date.now()-st.t0)/1000,ok=st.ans===st.play.r.length,m=$('msg');G.times.push(dec);G.plays++;G.att++;if(st.extra>0)G.pressureAtt++;if(ok)G.correct++;st.dec=dec;$('rt').textContent=dec.toFixed(1)+'s';m.style.color=ok?'#14532D':'#B45309';m.textContent=ok?'Smart. Nobody was open, so you threw it away. The clock stops.':'You threw it away, but '+nameOf(st.ans)+' was open.';after({t:'inc',dec:dec})}
 function sack(){if(phase!=='read')return;G.plays++;G.sacks++;G.times.push(st.press/1000);st.dec=st.press/1000;$('msg').style.color='#DC2626';$('msg').textContent='Sacked for a 7-yard loss. The rush got home. Best play: '+nameOf(st.ans)+'.';after({t:'sack',dec:st.dec})logRep({
-  drill: 'Game Situations',
-  concept: st.play.name,
-  coverage: st.cvg,
-  correctRead: nameOf(st.ans),
-  qbChoice: 'sack',
-  decisionTime: (Date.now() - st.t0) / 1000,
-  result: 'sack'
-});}
 function startYac(i,p){var rr=rpos(i,p),dd=dpos(i,p),a=Math.random()<.5?-1:1,b=Math.random()<.5?-1:1;st.y={x:rr.x,y:rr.y,t:0,last:Date.now(),oob:!!st.play.r[i].oob,defs:[{x:dd.x,y:dd.y},{x:rr.x+a*(70+Math.random()*50),y:rr.y-60-Math.random()*40},{x:rr.x+b*(120+Math.random()*60),y:rr.y-40}]};setPhase('yac')}
 function stepYac(){var Y=st.y,now=Date.now(),dt=Math.min(.05,(now-Y.last)/1000);Y.last=now;Y.t+=dt;if(Y.oob)Y.x+=(Y.x<320?-1:1)*100*dt;else Y.y-=100*dt;Y.defs.forEach(function(d){var dx=Y.x-d.x,dy=Y.y-d.y,L=Math.hypot(dx,dy)||1;d.x+=dx/L*108*dt;d.y+=dy/L*108*dt});var GLy=LOSY-G.ball*PX,touched=Y.defs.some(function(d){return Math.hypot(Y.x-d.x,Y.y-d.y)<18});if(Y.y<=GLy)finishYac('td');else if(touched||Y.t>6)finishYac('tackle');else if(Y.x<=SL||Y.x>=SR)finishYac('oob')}
 function finishYac(kind){var Y=st.y,gain=kind==='td'?G.ball:Math.round((LOSY-Y.y)/PX);st.y=null;after({t:'catch',gain:gain,oob:kind==='oob',dec:st.dec,yt:Y.t,kind:kind})}
