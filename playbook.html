@@ -118,22 +118,24 @@ function update(){
 function buildRows(){
  var n=Number($('receiverCount').value),html='';
  for(var i=0;i<n;i++){
-  html+='<div class="route-row"><b>WR '+(i+1)+'</b><select id="side'+i+'"><option value="left">Left</option><option value="left-hash">Left Hash</option><option value="middle-left">Middle Left (left tackle)</option><option value="middle">Middle (center)</option><option value="middle-right">Middle Right (right tackle)</option><option value="right-hash">Right Hash</option><option value="right">Right</option></select><select id="route'+i+'"><option value="slant">Slant</option><option value="out">Out</option><option value="comeback">Comeback</option><option value="curl">Curl</option><option value="flat">Flat</option><option value="drag">Drag</option><option value="dig">Dig</option><option value="post">Post</option><option value="corner">Corner</option><option value="seam">Seam / Go</option><option value="sit">Sit</option></select></div>';
+  html+='<div class="route-row"><b>'+(i===4?'RB 5':'WR '+(i+1))+'</b><select id="side'+i+'"><option value="left">Left</option><option value="left-hash">Left Hash</option><option value="middle-left">Middle Left (left tackle)</option><option value="middle">Middle (center)</option><option value="middle-right">Middle Right (right tackle)</option><option value="right-hash">Right Hash</option><option value="right">Right</option><option value="qb-left">Left of QB</option><option value="qb-right">Right of QB</option><option value="behind-qb">Behind QB</option></select><select id="route'+i+'"><option value="slant">Slant</option><option value="out">Out</option><option value="comeback">Comeback</option><option value="curl">Curl</option><option value="flat">Flat</option><option value="drag">Drag</option><option value="dig">Dig</option><option value="post">Post</option><option value="corner">Corner</option><option value="seam">Seam / Go</option><option value="sit">Sit</option></select></div>';
  }
  $('routeRows').innerHTML=html;
 }
 function routeData(side,route){
- var x=side==='left'?70:side==='left-hash'?190:side==='middle-left'?220:side==='middle-right'?420:side==='right-hash'?450:side==='right'?570:320;
- var r={n:route,x:x,y:0,p:[],c:'Q'};
- if(route==='slant')r.p=[[0,-30],[side==='left'||side==='left-hash'||side==='middle-left'?70:-70,-90]];
- else if(route==='out')r.p=[[0,-70],[side==='left'||side==='left-hash'||side==='middle-left'?-70:70,-70]];
- else if(route==='comeback')r.p=[[0,-170],[side==='left'||side==='left-hash'||side==='middle-left'?-40:40,-210],[side==='left'||side==='left-hash'||side==='middle-left'?-110:110,-140]];
- else if(route==='curl')r.p=[[0,-110],[side==='left'||side==='left-hash'||side==='middle-left'?-50:50,-80]];
- else if(route==='flat')r.p=[[side==='left'||side==='left-hash'||side==='middle-left'?70:-70,-25]];
- else if(route==='drag')r.p=[[0,-25],[side==='left'||side==='left-hash'||side==='middle-left'?450:-450,-30]];
- else if(route==='dig')r.p=[[0,-120],[side==='left'||side==='left-hash'||side==='middle-left'?-140:140,-120]];
- else if(route==='post')r.p=[[0,-170],[side==='left'||side==='left-hash'||side==='middle-left'?-120:120,-250]];
- else if(route==='corner')r.p=[[0,-170],[side==='left'||side==='left-hash'||side==='middle-left'?-70:70,-250]];
+ var x=side==='left'?70:side==='left-hash'?190:side==='middle-left'?220:side==='middle-right'?420:side==='right-hash'?450:side==='right'?570:side==='qb-left'?270:side==='qb-right'?370:320;
+ var y=side==='behind-qb'?45:side==='qb-left'||side==='qb-right'?10:0;
+ var r={n:route,x:x,y:y,p:[],c:'Q'};
+ var leftSide=side==='left'||side==='left-hash'||side==='middle-left'||side==='qb-left';
+ if(route==='slant')r.p=[[0,-30],[leftSide?70:-70,-90]];
+ else if(route==='out')r.p=[[0,-70],[leftSide?-70:70,-70]];
+ else if(route==='comeback')r.p=[[0,-170],[leftSide?-40:40,-210],[leftSide?-110:110,-140]];
+ else if(route==='curl')r.p=[[0,-110],[leftSide?-50:50,-80]];
+ else if(route==='flat')r.p=[[leftSide?70:-70,-25]];
+ else if(route==='drag')r.p=[[0,-25],[leftSide?450:-450,-30]];
+ else if(route==='dig')r.p=[[0,-120],[leftSide?-140:140,-120]];
+ else if(route==='post')r.p=[[0,-170],[leftSide?-120:120,-250]];
+ else if(route==='corner')r.p=[[0,-170],[leftSide?-70:70,-250]];
  else if(route==='seam')r.p=[[0,-220]];
  else if(route==='sit')r.p=[[0,-95],[0,-85]];
  if(route==='seam'||route==='post'||route==='corner')r.c='D';
@@ -200,6 +202,9 @@ function normalizeSide(value){
  if(value==='right-hash'||value==='right_hash')return 'right-hash';
  if(value==='middle-left'||value==='middle_left')return 'middle-left';
  if(value==='middle-right'||value==='middle_right')return 'middle-right';
+ if(value==='qb-left'||value==='qb_left')return 'qb-left';
+ if(value==='qb-right'||value==='qb_right')return 'qb-right';
+ if(value==='behind-qb'||value==='behind_qb'||value==='backfield')return 'behind-qb';
  if(value.indexOf('left')>=0)return 'left';
  if(value.indexOf('right')>=0)return 'right';
  return 'middle';
