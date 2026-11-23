@@ -110,6 +110,7 @@ function endDrive(res,win){
     localStorage.setItem('qbsense_game_results',JSON.stringify(all));
   }catch(e){}
   setPhase('end');
+}
 function useTimeout(){if(phase!=='pre'||!G.running||G.timeouts<1)return;G.timeouts--;G.toUsed++;G.running=false;$('msg').style.color='#111827';$('msg').textContent='Timeout. The clock is stopped.';setPhase('pre')}
 function spike(){if(phase!=='pre'||!G.running)return;G.att++;G.spikes++;G.clock-=2;G.down++;G.running=false;if(G.clock<=0){G.clock=0;upd();endDrive('Time expired',false);return}if(G.down>4){upd();endDrive('Turnover on downs after the spike',false);return}$('msg').style.color='#111827';$('msg').textContent='Spiked the ball. Clock stopped, down used.';setPhase('pre')}
 function kick(){if(phase!=='pre'||G.deficit>3||G.ball>43)return;var kd=G.ball+17,pr=kd<=30?.95:kd<=40?.88:kd<=50?.75:kd<=57?.55:.4;if(Math.random()<pr){$('msg').style.color='#14532D';if(G.deficit===-2){$('msg').textContent='The '+kd+'-yard field goal is good. You win.';endDrive('Field goal (win)',true)}else{$('msg').textContent='The '+kd+'-yard field goal is good. The game is tied.';endDrive('Field goal (tie)',true)}}else endDrive('Missed field goal',false)}
