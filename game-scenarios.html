@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game Situations | QB Sense VR</title>
+<style>
+:root{--navy:#0A1628;--green:#14532D;--bg:#F6F7F9;--muted:#5B6B7C;--border:#E2E8F0}
+body{margin:0;background:var(--bg);font-family:system-ui,Arial,sans-serif;color:#111827}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+header h1{margin:0;font-size:20px;font-weight:900;text-transform:uppercase}
+header a{color:#fff;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;text-decoration:none;border:1px solid rgba(255,255,255,.4);padding:8px 12px;border-radius:6px}
+main{max-width:760px;margin:0 auto;padding:18px 14px 48px}
+.card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px}
+h2{text-transform:uppercase;margin:0 0 8px}
+.btn{background:var(--green);color:#fff;border:0;border-radius:6px;padding:12px 18px;font-weight:800;cursor:pointer;text-transform:uppercase;text-decoration:none;display:inline-block}
+.btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--border)}
+.choice{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px;margin:10px 0;font-size:15px;cursor:pointer}
+.choice:hover{border-color:var(--green)}
+.choice.correct{border-color:#14532D;background:#ECFDF5}
+.choice.wrong{border-color:#DC2626;background:#FEF2F2}
+#feedback{font-weight:800;min-height:24px;margin:12px 0}
+.hidden{display:none}
+.stat{display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:8px 0}
+</style>
+</head>
+<body>
+<header><h1>Game Situations</h1><a href="index.html#drills">Back to drills</a></header>
+<main>
+<div class="card">
+<h2>Game Situations Drill</h2>
+<p>Make the best quarterback decision in real football moments. Choose the best answer for each situation.</p>
+<div class="stat"><span>Scenario</span><b id="scenarioNumber">1 / 10</b></div>
+<div class="stat"><span>Score</span><b id="score">0</b></div>
+</div>
+<div class="card">
+<h2 id="situationTitle">Loading…</h2>
+<p id="situationText"></p>
+<div id="choices"></div>
+<div id="feedback"></div>
+<button class="btn hidden" id="next">Next scenario</button>
+<button class="btn hidden" id="restart">Run another drill</button>
+</div>
+</main>
+<script>
+var scenarios=[
+{title:'Fourth and 2 — Late Fourth Quarter',text:'You trail by 3 with 1:20 left. It is fourth-and-2 at midfield. The defense is in Cover 2 with both safeties deep.',choices:['Punt and trust your defense','Go for it with a high-percentage quick throw or QB sneak','Throw a deep shot to the end zone'],correct:1,feedback:'Convert first. A quick throw, QB sneak, or designed run gives you the best chance to keep the drive alive.'},
+{title:'Third and 8 — Red Zone',text:'You are at the opponent’s 18. It is third-and-8. The defense shows single-high coverage with press corners outside.',choices:['Check down to the running back','Take a shot to the back pylon','Throw a quick slant or dig against single-high coverage'],correct:2,feedback:'Against single-high coverage, a slant, dig, or crosser can create a throwing lane and move the chains.'},
+{title:'Two-Minute Drill — No Timeouts',text:'You have 1:45 left, no timeouts, and need a touchdown. You complete a pass in bounds at the opponent’s 35.',choices:['Spike the ball immediately','Hurrying to the line and running another play','Let the clock run and settle for a field goal'],correct:1,feedback:'With no timeouts, hurry to the line and run another play. A spike costs a down; saving time matters more.'},
+{title:'Goal-to-Go — Fourth Down',text:'You are at the opponent’s 3 on fourth-and-goal, trailing by 4 late. The defense has nine players in the box.',choices:['Kick the field goal','Run a quick-out or slant to the short side','Force a deep post into a crowded end zone'],correct:1,feedback:'With a condensed defense, use a quick throw or run play. Do not force a low-percentage deep throw into traffic.'},
+{title:'Backed Up — Own 5',text:'You are at your own 5 after a penalty. It is second-and-12. The defense is playing soft coverage.',choices:['Force a deep ball over the middle','Take the short completion and work for breathing room','Take a sack to protect the field position'],correct:1,feedback:'Take the safe completion or run to create room. Do not force a dangerous throw from deep in your own territory.'},
+{title:'Third and Long — Two-Minute Drill',text:'It is third-and-14 with 1:05 left and no timeouts. You need a first down to stay alive.',choices:['Throw a checkdown short of the sticks','Take a shot downfield to a single-read receiver','Use a quick out, comeback, or crosser to get to the sticks'],correct:2,feedback:'Use a route that can reach the marker. A checkdown short of the sticks ends the drive; a low-percentage shot wastes the possession.'},
+{title:'End of Half — 12 Seconds Left',text:'You have the ball at midfield with 12 seconds and one timeout. You need a field goal.',choices:['Throw a deep Hail Mary','Run one quick completion to get into range, then use your timeout','Take a knee'],correct:1,feedback:'Get into field-goal range with one quick completion, then use the timeout to set up the kick.'},
+{title:'Winning Drive — Fourth and 1',text:'You are at the opponent’s 35, trailing by 3, with 0:25 left. It is fourth-and-1. Your kicker is within range.',choices:['Kick the game-tying field goal','Go for the first down with a QB sneak or quick throw','Throw deep to the end zone'],correct:0,feedback:'If the field goal ties the game and gives your team a chance in overtime, take the points unless your coach has a specific aggressive plan.'},
+{title:'Hail Mary — Final Play',text:'You trail by 4 with 3 seconds left at midfield. It is the final play.',choices:['Throw a short completion and try to score','Throw a deep Hail Mary into the end zone','Spike the ball'],correct:1,feedback:'On the final play, give your receivers a chance in the end zone. A short completion cannot score from midfield.'},
+{title:'Two-Point Conversion — Win the Game',text:'You trail by 1 with no time left. It is a two-point conversion. The defense is in man coverage.',choices:['Run a QB power','Use a quick slant, flat, or pick play against man coverage','Throw a deep corner route'],correct:1,feedback:'Against man coverage, use a quick throw or a designed pick/rub concept. Do not force a deep throw in a condensed field.'}
+];
+var current=0,score=0,answered=false;
+function $(i){return document.getElementById(i)}
+function show(){
+ var s=scenarios[current];
+ $('scenarioNumber').textContent=(current+1)+' / '+scenarios.length;
+ $('situationTitle').textContent=s.title;
+ $('situationText').textContent=s.text;
+ $('feedback').textContent='';
+ $('feedback').style.color='';
+ $('next').classList.add('hidden');
+ $('restart').classList.add('hidden');
+ var box=$('choices');box.innerHTML='';
+ s.choices.forEach(function(choice,index){
+  var button=document.createElement('button');
+  button.className='choice';
+  button.textContent=choice;
+  button.onclick=function(){answer(index,button)};
+  box.appendChild(button);
+ });
+}
+function answer(index,button){
+ if(answered)return;
+ answered=true;
+ var s=scenarios[current];
+ var buttons=document.querySelectorAll('.choice');
+ buttons[s.correct].classList.add('correct');
+ if(index===s.correct){score++;$('feedback').textContent='Correct. '+s.feedback;$('feedback').style.color='#14532D'}
+ else{button.classList.add('wrong');$('feedback').textContent='Not the best choice. '+s.feedback;$('feedback').style.color='#DC2626'}
+ $('score').textContent=score;
+ if(current<scenarios.length-1){$('next').classList.remove('hidden')}else{$('restart').classList.remove('hidden');$('feedback').textContent+=' Final score: '+score+'/'+scenarios.length+'.'}
+}
+$('next').onclick=function(){current++;answered=false;show()};
+$('restart').onclick=function(){current=0;score=0;answered=false;$('score').textContent='0';show()};
+show();
+</script>
+<script src="back-button.js"></script>
+</body>
+</html>
