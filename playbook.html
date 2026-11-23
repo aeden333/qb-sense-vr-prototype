@@ -150,7 +150,7 @@ function routeData(side,route,custom){
  var y=side==='behind-qb'?45:side==='qb-left'||side==='qb-right'?10:0;
  if(side==='custom'&&custom){x=custom.x;y=custom.y}
  var r={n:route,x:x,y:y,p:[],c:'Q'};
- var leftSide=side==='left'||side==='left-hash'||side==='middle-left'||side==='qb-left'||(side==='custom'&&custom&&custom.x<320);
+ var leftSide=!(side==='left'||side==='left-hash'||side==='middle-left'||side==='qb-left'||(side==='custom'&&custom&&custom.x<320));
  if(route==='slant')r.p=[[0,-30],[leftSide?70:-70,-90]];
  else if(route==='out')r.p=[[0,-70],[leftSide?-70:70,-70]];
  else if(route==='comeback')r.p=[[0,-170],[leftSide?-40:40,-210],[leftSide?-110:110,-140]];
