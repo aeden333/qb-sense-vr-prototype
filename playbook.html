@@ -33,6 +33,7 @@ select,input{padding:10px;border:1px solid var(--border);border-radius:6px;font-
 <label>Play name</label><input id="playName" placeholder="Example: Team Mesh">
 <label>Concept</label><input id="playConcept" placeholder="Example: Mesh">
 <label>Receivers</label><select id="receiverCount"><option>2</option><option>3</option><option selected>4</option><option>5</option></select>
+<label>Formation</label><select id="formation"><option value="custom">Custom</option><option value="spread">Spread</option><option value="trips-left">Trips Left</option><option value="trips-right">Trips Right</option><option value="bunch-left">Bunch Left</option><option value="bunch-right">Bunch Right</option><option value="empty">Empty</option></select>
 <div id="routeRows"></div>
 <div id="convertStatus"></div>
 <button class="btn" id="savePlay">Save play to Two-Minute Drill</button>
@@ -122,6 +123,20 @@ function buildRows(){
  }
  $('routeRows').innerHTML=html;
 }
+function applyFormation(){
+ var formation=$('formation').value;
+ if(formation==='custom')return;
+ $('receiverCount').value='5';
+ buildRows();
+ var alignments=[];
+ if(formation==='spread')alignments=['left','right','left-hash','right-hash','behind-qb'];
+ else if(formation==='trips-left')alignments=['left','left-hash','middle-left','right','behind-qb'];
+ else if(formation==='trips-right')alignments=['left','middle-right','right-hash','right','behind-qb'];
+ else if(formation==='bunch-left')alignments=['left','left-hash','middle-left','right','behind-qb'];
+ else if(formation==='bunch-right')alignments=['left','middle-right','right-hash','right','behind-qb'];
+ else if(formation==='empty')alignments=['left','right','left-hash','right-hash','middle'];
+ for(var i=0;i<alignments.length;i++){$('side'+i).value=alignments[i]}
+}
 function routeData(side,route){
  var x=side==='left'?70:side==='left-hash'?190:side==='middle-left'?220:side==='middle-right'?420:side==='right-hash'?450:side==='right'?570:side==='qb-left'?270:side==='qb-right'?370:320;
  var y=side==='behind-qb'?45:side==='qb-left'||side==='qb-right'?10:0;
@@ -144,6 +159,7 @@ function routeData(side,route){
  return r;
 }
 $('receiverCount').addEventListener('change',buildRows);
+$('formation').addEventListener('change',applyFormation);
 $('savePlay').addEventListener('click',function(){
  var name=$('playName').value.trim(),concept=$('playConcept').value.trim();
  if(!name||!concept){setConvert('Enter a play name and concept.',false);return}
