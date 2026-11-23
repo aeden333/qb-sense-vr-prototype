@@ -122,7 +122,7 @@ function update(){
 function buildRows(){
  var n=Number($('receiverCount').value),html='';
  for(var i=0;i<n;i++){
-  html+='<div class="route-row"><b>'+(i===4?'RB 5':'WR '+(i+1))+'</b><select id="side'+i+'"><option value="left">Left</option><option value="left-hash">Left Hash</option><option value="middle-left">Middle Left (left tackle)</option><option value="middle">Middle (center)</option><option value="middle-right">Middle Right (right tackle)</option><option value="right-hash">Right Hash</option><option value="right">Right</option><option value="qb-left">Left of QB</option><option value="qb-right">Right of QB</option><option value="behind-qb">Behind QB</option><option value="custom">Custom spot</option></select><select id="route'+i+'"><option value="slant">Slant</option><option value="out">Out</option><option value="comeback">Comeback</option><option value="curl">Curl</option><option value="flat">Flat</option><option value="wheel">Wheel</option><option value="drag">Drag</option><option value="dig">Dig</option><option value="post">Post</option><option value="corner">Corner</option><option value="seam">Seam / Go</option><option value="sit">Sit</option></select></div>';
+  html+='<div class="route-row"><b>'+(i===4?'RB 5':'WR '+(i+1))+'</b><select id="side'+i+'"><option value="left">Left</option><option value="left-hash">Left Hash</option><option value="middle-left">Middle Left (left tackle)</option><option value="middle">Middle (center)</option><option value="middle-right">Middle Right (right tackle)</option><option value="right-hash">Right Hash</option><option value="right">Right</option><option value="qb-left">Left of QB</option><option value="qb-right">Right of QB</option><option value="behind-qb">Behind QB</option><option value="custom">Custom spot</option></select><select id="route'+i+'"><option value="slant">Slant</option><option value="out">Out</option><option value="comeback">Comeback</option><option value="curl">Curl</option><option value="flat">Flat</option><option value="flat-left">Flat Left</option><option value="flat-right">Flat Right</option><option value="wheel">Wheel</option><option value="drag">Drag</option><option value="dig">Dig</option><option value="post">Post</option><option value="corner">Corner</option><option value="seam">Seam / Go</option><option value="sit">Sit</option><option value="swing-left">Swing Left</option><option value="swing-right">Swing Right</option></select></div>';
  }
  $('routeRows').innerHTML=html;
  drawPreview();
@@ -156,6 +156,8 @@ function routeData(side,route,custom){
  else if(route==='comeback')r.p=[[0,-170],[leftSide?-40:40,-210],[leftSide?-110:110,-140]];
  else if(route==='curl')r.p=[[0,-110],[leftSide?-50:50,-80]];
  else if(route==='flat')r.p=[[leftSide?70:-70,-25]];
+ else if(route==='flat-left')r.p=[[leftSide?70:-70,-25]];
+ else if(route==='flat-right')r.p=[[leftSide?-70:70,-25]];
  else if(route==='wheel')r.p=[[leftSide?55:-55,-20],[leftSide?75:-75,-180]];
  else if(route==='drag')r.p=[[0,-25],[leftSide?450:-450,-30]];
  else if(route==='dig')r.p=[[0,-120],[leftSide?-140:140,-120]];
@@ -163,6 +165,8 @@ function routeData(side,route,custom){
  else if(route==='corner')r.p=[[0,-170],[leftSide?-70:70,-250]];
  else if(route==='seam')r.p=[[0,-220]];
  else if(route==='sit')r.p=[[0,-95],[0,-85]];
+ else if(route==='swing-left')r.p=[[leftSide?85:-85,-20]];
+ else if(route==='swing-right')r.p=[[leftSide?-85:85,-20]];
  if(route==='seam'||route==='post'||route==='corner'||route==='wheel')r.c='D';
  else if(route==='dig'||route==='comeback')r.c='M';
  return r;
@@ -284,13 +288,17 @@ $('clear').addEventListener('click',function(){
 $('view').addEventListener('click',showPdf);
 $('closeViewer').addEventListener('click',function(){$('viewerCard').classList.add('hidden');$('viewer').src=''});
 function normalizeRoute(value){
- var allowed=['slant','out','comeback','curl','flat','wheel','drag','dig','post','corner','seam','sit'];
+ var allowed=['slant','out','comeback','curl','flat','flat-left','flat-right','wheel','drag','dig','post','corner','seam','sit','swing-left','swing-right'];
  value=(value||'').toString().trim().toLowerCase();
  if(allowed.indexOf(value)>=0)return value;
  if(value.indexOf('wheel')>=0)return 'wheel';
  if(value.indexOf('go')>=0||value.indexOf('vertical')>=0)return 'seam';
  if(value.indexOf('screen')>=0)return 'flat';
  if(value.indexOf('hook')>=0)return 'curl';
+ if(value.indexOf('swing left')>=0||value.indexOf('swing-left')>=0)return 'swing-left';
+ if(value.indexOf('swing right')>=0||value.indexOf('swing-right')>=0)return 'swing-right';
+ if(value.indexOf('flat left')>=0||value.indexOf('flat-left')>=0)return 'flat-left';
+ if(value.indexOf('flat right')>=0||value.indexOf('flat-right')>=0)return 'flat-right';
  return 'slant';
 }
 function normalizeSide(value){
