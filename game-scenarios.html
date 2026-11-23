@@ -22,6 +22,7 @@ h2{text-transform:uppercase;margin:0 0 8px}
 #feedback{font-weight:800;min-height:24px;margin:12px 0}
 .hidden{display:none}
 .stat{display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:8px 0}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 </style>
 </head>
 <body>
@@ -32,6 +33,7 @@ h2{text-transform:uppercase;margin:0 0 8px}
 <p>Make the best quarterback decision in real football moments. Choose the best answer for each situation.</p>
 <div class="stat"><span>Scenario</span><b id="scenarioNumber">1 / 10</b></div>
 <div class="stat"><span>Score</span><b id="score">0</b></div>
+<div class="actions"><button class="btn ghost" id="random">🎲 Random scenario</button></div>
 </div>
 <div class="card">
 <h2 id="situationTitle">Loading…</h2>
@@ -86,8 +88,14 @@ function answer(index,button){
  $('score').textContent=score;
  if(current<scenarios.length-1){$('next').classList.remove('hidden')}else{$('restart').classList.remove('hidden');$('feedback').textContent+=' Final score: '+score+'/'+scenarios.length+'.'}
 }
+function randomScenario(){
+ var next;
+ do{next=Math.floor(Math.random()*scenarios.length)}while(scenarios.length>1&&next===current);
+ current=next;answered=false;show();
+}
 $('next').onclick=function(){current++;answered=false;show()};
 $('restart').onclick=function(){current=0;score=0;answered=false;$('score').textContent='0';show()};
+$('random').onclick=randomScenario;
 show();
 </script>
 <script src="back-button.js"></script>
