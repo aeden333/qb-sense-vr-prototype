@@ -18,7 +18,7 @@ h2{text-transform:uppercase;margin:0 0 8px}
 #status,#convertStatus{font-weight:800;min-height:22px;margin:10px 0}
 .hidden{display:none}
 .pdf-frame{width:100%;height:70vh;border:1px solid var(--border);border-radius:8px;background:#fff}
-.route-row{display:grid;grid-template-columns:90px 1fr 1fr;gap:10px;align-items:center;margin-bottom:10px}
+.route-row{display:grid;grid-template-columns:150px 1fr 1fr;gap:10px;align-items:center;margin-bottom:10px}
 select,input{padding:10px;border:1px solid var(--border);border-radius:6px;font-size:14px;width:100%}
 #aiCanvas{display:none}
 .ai-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;margin:12px 0}
@@ -32,7 +32,7 @@ select,input{padding:10px;border:1px solid var(--border);border-radius:6px;font-
 <p>Use this after viewing a play in your PDF. Choose where each receiver starts and which route they run. Saved plays will appear in the Two-Minute Drill.</p>
 <label>Play name</label><input id="playName" placeholder="Example: Team Mesh">
 <label>Concept</label><input id="playConcept" placeholder="Example: Mesh">
-<label>Receivers</label><select id="receiverCount"><option>3</option><option selected>4</option><option>5</option></select>
+<label>Receivers</label><select id="receiverCount"><option>2</option><option>3</option><option selected>4</option><option>5</option></select>
 <div id="routeRows"></div>
 <div id="convertStatus"></div>
 <button class="btn" id="savePlay">Save play to Two-Minute Drill</button>
@@ -118,22 +118,22 @@ function update(){
 function buildRows(){
  var n=Number($('receiverCount').value),html='';
  for(var i=0;i<n;i++){
-  html+='<div class="route-row"><b>WR '+(i+1)+'</b><select id="side'+i+'"><option value="left">Left</option><option value="middle">Middle</option><option value="right">Right</option></select><select id="route'+i+'"><option value="slant">Slant</option><option value="out">Out</option><option value="comeback">Comeback</option><option value="curl">Curl</option><option value="flat">Flat</option><option value="drag">Drag</option><option value="dig">Dig</option><option value="post">Post</option><option value="corner">Corner</option><option value="seam">Seam / Go</option><option value="sit">Sit</option></select></div>';
+  html+='<div class="route-row"><b>WR '+(i+1)+'</b><select id="side'+i+'"><option value="left">Left</option><option value="left-hash">Left Hash</option><option value="middle-left">Middle Left (left tackle)</option><option value="middle">Middle (center)</option><option value="middle-right">Middle Right (right tackle)</option><option value="right-hash">Right Hash</option><option value="right">Right</option></select><select id="route'+i+'"><option value="slant">Slant</option><option value="out">Out</option><option value="comeback">Comeback</option><option value="curl">Curl</option><option value="flat">Flat</option><option value="drag">Drag</option><option value="dig">Dig</option><option value="post">Post</option><option value="corner">Corner</option><option value="seam">Seam / Go</option><option value="sit">Sit</option></select></div>';
  }
  $('routeRows').innerHTML=html;
 }
 function routeData(side,route){
- var x=side==='left'?70:side==='right'?570:320;
+ var x=side==='left'?70:side==='left-hash'?190:side==='middle-left'?220:side==='middle-right'?420:side==='right-hash'?450:side==='right'?570:320;
  var r={n:route,x:x,y:0,p:[],c:'Q'};
- if(route==='slant')r.p=[[0,-30],[side==='left'?70:-70,-90]];
- else if(route==='out')r.p=[[0,-70],[side==='left'?-70:70,-70]];
- else if(route==='comeback')r.p=[[0,-170],[side==='left'?-40:40,-210],[side==='left'?-110:110,-140]];
- else if(route==='curl')r.p=[[0,-110],[side==='left'?-50:50,-80]];
- else if(route==='flat')r.p=[[side==='left'?70:-70,-25]];
- else if(route==='drag')r.p=[[0,-25],[side==='left'?450:-450,-30]];
- else if(route==='dig')r.p=[[0,-120],[side==='left'?-140:140,-120]];
- else if(route==='post')r.p=[[0,-170],[side==='left'?-120:120,-250]];
- else if(route==='corner')r.p=[[0,-170],[side==='left'?-70:70,-250]];
+ if(route==='slant')r.p=[[0,-30],[side==='left'||side==='left-hash'||side==='middle-left'?70:-70,-90]];
+ else if(route==='out')r.p=[[0,-70],[side==='left'||side==='left-hash'||side==='middle-left'?-70:70,-70]];
+ else if(route==='comeback')r.p=[[0,-170],[side==='left'||side==='left-hash'||side==='middle-left'?-40:40,-210],[side==='left'||side==='left-hash'||side==='middle-left'?-110:110,-140]];
+ else if(route==='curl')r.p=[[0,-110],[side==='left'||side==='left-hash'||side==='middle-left'?-50:50,-80]];
+ else if(route==='flat')r.p=[[side==='left'||side==='left-hash'||side==='middle-left'?70:-70,-25]];
+ else if(route==='drag')r.p=[[0,-25],[side==='left'||side==='left-hash'||side==='middle-left'?450:-450,-30]];
+ else if(route==='dig')r.p=[[0,-120],[side==='left'||side==='left-hash'||side==='middle-left'?-140:140,-120]];
+ else if(route==='post')r.p=[[0,-170],[side==='left'||side==='left-hash'||side==='middle-left'?-120:120,-250]];
+ else if(route==='corner')r.p=[[0,-170],[side==='left'||side==='left-hash'||side==='middle-left'?-70:70,-250]];
  else if(route==='seam')r.p=[[0,-220]];
  else if(route==='sit')r.p=[[0,-95],[0,-85]];
  if(route==='seam'||route==='post'||route==='corner')r.c='D';
@@ -195,7 +195,11 @@ function normalizeRoute(value){
  return 'slant';
 }
 function normalizeSide(value){
- value=(value||'').toString().trim().toLowerCase();
+ value=(value||'').toString().trim().toLowerCase().replace(/\s+/g,'-');
+ if(value==='left-hash'||value==='left_hash')return 'left-hash';
+ if(value==='right-hash'||value==='right_hash')return 'right-hash';
+ if(value==='middle-left'||value==='middle_left')return 'middle-left';
+ if(value==='middle-right'||value==='middle_right')return 'middle-right';
  if(value.indexOf('left')>=0)return 'left';
  if(value.indexOf('right')>=0)return 'right';
  return 'middle';
