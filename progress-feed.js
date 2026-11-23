@@ -1,12 +1,12 @@
 (function(){
-var KEYS=[['qbsense_progression_results','Progression Reads'],['qbsense_blitz_results','Blitz Recognition'],['qbsense_redzone_results','Red-Zone Decisions'],['qbsense_twominute_results','Two-Minute Drill']];
+var KEYS=[['qbsense_progression_results','Progression Reads'],['qbsense_blitz_results','Blitz Recognition'],['qbsense_redzone_results','Red-Zone Decisions'],['qbsense_twominute_results','Two-Minute Drill'],['qbsense_game_results','Game Situations']];
 function load(){
   var me=localStorage.getItem('qbsense_user')||'guest',all=[];
   KEYS.forEach(function(k){
     try{
       JSON.parse(localStorage.getItem(k[0])||'[]').forEach(function(r){
         if((r.email||'guest')===me){
-          all.push({drill:k[1],date:r.date,level:r.level||1,acc:Number(r.accuracy)||0,time:r.avgTime!=null?Number(r.avgTime):null,pr:r.pressureResponse!=null?Number(r.pressureResponse):null,concept:r.concept||'',cov:r.coverage||'',result:r.result||'',tot:Number(r.total)||0,pa:Number(r.passAtt)||0,pc:Number(r.passComp)||0,py:Number(r.passYds)||0,pt:Number(r.passTd)||0,pi:Number(r.passInt)||0});
+          all.push({drill:k[1],date:r.date,level:r.level||1,acc:Number(r.accuracy)||0,time:r.avgTime!=null?Number(r.avgTime):null,pr:r.pressureResponse!=null?Number(r.pressureResponse):(r.pressureAtt?Number(r.pressureComp)/Number(r.pressureAtt)*100:null),concept:r.concept||'',cov:r.coverage||'',result:r.result||'',tot:Number(r.total)||0,pa:Number(r.passAtt)||0,pc:Number(r.passComp)||0,py:Number(r.passYds)||0,pt:Number(r.passTd)||0,pi:Number(r.passInt)||0,forced:Number(r.forced)||0,pAtt:Number(r.pressureAtt)||0,pComp:Number(r.pressureComp)||0});
         }
       });
     }catch(e){}
@@ -25,6 +25,23 @@ function mk(tag,txt,attrs){
   if(txt!=null)e.textContent=txt;
   if(attrs)for(var k in attrs)e.setAttribute(k,attrs[k]);
   return e;
+}
+function coachFocus(list){
+  var gs=list.filter(function(a){return a.drill==='Game Situations'}).slice(-10);
+  if(!gs.length)return '';
+  var acc=avg(gs.map(function(a){return a.acc}));
+  var ts=gs.filter(function(a){return a.time!=null}).map(function(a){return a.time});
+  var t=ts.length?avg(ts):0;
+  var f=gs.reduce(function(s,a){return s+a.forced},0),tot=gs.reduce(function(s,a){return s+a.tot},0);
+  var fr=tot?f/tot:0;
+  var pA=gs.reduce(function(s,a){return s+a.pAtt},0),pC=gs.reduce(function(s,a){return s+a.pComp},0);
+  var pr=pA?pC/pA:1;
+  var worst='accuracy',w=1-acc/100;
+  var dt=t?t/2.0:0;if(dt-1>w){worst='decision time';w=dt-1}
+  if(fr>w){worst='forced throws';w=fr}
+  if(pA&&(1-pr)>w){worst='pressure response';w=1-pr}
+  var tips={accuracy:'Find the first open receiver before the rush gets home.',decision:'Get the ball out faster — read progression, then throw.',forced:'Do not force into coverage. Take the checkdown or throw it away.',pressure:'Under pressure, get to the quick outlet sooner.'};
+  return tips[worst];
 }
 function homeRender(){
   var cards=document.querySelectorAll('#home .stat-card');
@@ -47,7 +64,7 @@ function homeRender(){
     if(!lb||!v)return;
     var name=lb.textContent.trim(),txt='--',w=0;
     if(name==='QB Rating'){
-      c.title='NFL passer rating (0 to 158.3) from your Two-Minute Drill passing stats: completions, yards, touchdowns and interceptions per attempt.';
+      c.title='NFL passer rating (0 to 158.3) from your passing stats: completions, yards, touchdowns and interceptions per attempt.';
       if(rt!==null){txt=rt.toFixed(1);w=Math.round(rt/158.3*100)}
     }
     else if(name==='Decision Time'){if(ts.length){txt=tA.toFixed(1)+'s';w=Math.max(5,Math.min(100,Math.round(100-(tA-1)*25)))}}
@@ -80,7 +97,8 @@ function chart(list){
   });
   var pl=document.createElementNS(NS,'polyline');
   pl.setAttribute('points',pts.map(function(p){return p[0]+','+p[1]}).join(' '));
-  pl.setAttribute('fill','none');pl.setAttribute('stroke','#14532D');pl.setAttribute('stroke-width','3');
+  pl.setAttribute('fill','none');
+  pl.setAttribute('stroke','#14532D');pl.setAttribute('stroke-width','3');
   svg.appendChild(pl);
   pts.forEach(function(p){
     var c=document.createElementNS(NS,'circle');
@@ -128,6 +146,8 @@ function render(){
     return d+': '+l.length+' session'+(l.length===1?'':'s')+', average '+Math.round(avg(l.map(function(a){return a.acc})))+'%, best '+Math.max.apply(null,l.map(function(a){return a.acc}))+'%';
   });
   card.appendChild(mk('p',parts.join('. ')+'.'));
+  var cf=coachFocus(all);
+  if(cf){card.appendChild(mk('div','Coaching focus',{'class':'label','style':'margin-top:10px'}));card.appendChild(mk('p',cf));}
   card.appendChild(mk('div','Accuracy over your last '+Math.min(30,n)+' sessions',{'class':'label'}));
   card.appendChild(chart(all.slice(-30)));
   card.appendChild(mk('div','Recent sessions',{'class':'label','style':'margin-top:14px'}));
@@ -137,7 +157,7 @@ function render(){
   tbl.appendChild(hr);
   all.slice(-10).reverse().forEach(function(a){
     var tr=mk('tr');
-    var det='Level '+a.level+(a.concept?' | '+a.concept:'')+(a.cov?' | '+a.cov:'')+(a.result?' | '+a.result:'');
+    var det='Level '+a.level+(a.concept?' | '+a.concept:'')+(a.cov?' | '+a.cov:'')+(a.result?' | '+a.result:'')+(a.forced?' | '+a.forced+' forced':'')+(a.pAtt?' | '+a.pComp+'/'+a.pAtt+' under pressure':'');
     [new Date(a.date).toLocaleDateString(),a.drill,det,a.acc+'%',a.time!=null?a.time.toFixed(1)+'s':'-'].forEach(function(v){tr.appendChild(mk('td',v,{'style':'padding:6px;border-bottom:1px solid #F1F5F9'}))});
     tbl.appendChild(tr);
   });
