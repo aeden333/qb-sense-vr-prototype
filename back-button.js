@@ -20,10 +20,29 @@ if(m)m.insertBefore(a,m.firstChild);else document.body.insertBefore(a,document.b
 var isGameSituations=!!document.getElementById('scenario');
 var isTwoMinute=!!document.getElementById('def');
 if(!isGameSituations&&!isTwoMinute)return;
-var defenses=isGameSituations
-?['Man','Cover 0','Cover 1','Cover 2','Cover 3','Cover 4','Cover 2 Man','Cover 3 Match','Cover 6','Cover 4 Palms','Fire Zone','Simulated Blitz']
-:['Man','Cover 0','Cover 1','Cover 2','Cover 3','Cover 4'];
+var defenses=['Man','Cover 0','Cover 1','Cover 2','Cover 3','Cover 4','Cover 2 Man','Cover 3 Match','Cover 6','Cover 4 Palms','Fire Zone','Simulated Blitz'];
+if(isTwoMinute){
+var extraProbs={'Cover 2 Man':{Q:.35,M:.25,D:.3},'Cover 3 Match':{Q:.5,M:.3,D:.25},'Cover 6':{Q:.5,M:.3,D:.2},'Cover 4 Palms':{Q:.5,M:.3,D:.2},'Fire Zone':{Q:.4,M:.35,D:.3},'Simulated Blitz':{Q:.35,M:.3,D:.35}};
+Object.keys(extraProbs).forEach(function(name){if(!window.PROB[name])window.PROB[name]=extraProbs[name]});
+var extraNotes={'Cover 2 Man':'Cover 2 Man: two deep, man underneath. Crossing routes and quick throws beat it.','Cover 3 Match':'Cover 3 Match: three deep, match underneath. Work the middle and short.','Cover 6':'Cover 6: quarter-quarter-half. The half side is soft to the flat.','Cover 4 Palms':'Cover 4 Palms: quarters with palms. Corners and safeties match outside and slot routes.','Fire Zone':'Fire Zone: five rush, three deep, three under. Get rid of it fast.','Simulated Blitz':'Simulated blitz: some rushers drop. Read the real pressure, not the look.'};
+Object.keys(extraNotes).forEach(function(name){if(!window.COVNOTE[name])window.COVNOTE[name]=extraNotes[name]});
+var alignConfig={'Cover 2 Man':{cd:6,sf:'two',lb:28},'Cover 3 Match':{cd:10,sf:'single',lb:30},'Cover 6':{cd:12,sf:'half',lb:30},'Cover 4 Palms':{cd:10,sf:'two',lb:32},'Fire Zone':{cd:8,sf:'single',lb:20},'Simulated Blitz':{cd:8,sf:'two',lb:15}};
+var originalAlign=window.align;
+window.align=function(inclBlitz){
+var cfg=alignConfig[window.st&&window.st.cvg];
+if(!cfg||!window.st||!window.st.play)return originalAlign(inclBlitz);
+var L=window.LOSY,cd=[],sf=[],lb=[];
+window.st.play.r.forEach(function(route){cd.push({x:route.x,y:L-cfg.cd})});
+var shells={'none':[],'single':[[320,L-130]],'two':[[160,L-130],[480,L-130]],'half':[[480,L-130]]};
+(shells[cfg.sf]||[]).forEach(function(q){sf.push({x:q[0],y:q[1]})});
+var total=inclBlitz?11:11-window.st.extra;
+var lbCount=Math.max(0,total-cd.length-sf.length);
+for(var k=0;k<lbCount;k++)lb.push({x:100+k*80,y:L-cfg.lb});
+return{cd:cd,sf:sf,lb:lb};
+};
+}
 var originalDefenses=(window.ALLCOV||[]).slice();
+if(isTwoMinute)originalDefenses=defenses.slice();
 if(!originalDefenses.length)return;
 var coach=document.querySelector('.coach');
 if(!coach)return;
