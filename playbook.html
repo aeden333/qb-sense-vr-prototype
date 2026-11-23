@@ -236,7 +236,9 @@ $('aiConvert').addEventListener('click',async function(){
    return;
   }
   if(!response.ok){setConvert(result.error||('AI conversion failed with status '+response.status+'.'),false);return}
-  var play=result.play;
+  var plays=Array.isArray(result.plays)?result.plays:[];
+  if(!plays.length){setConvert('Gemini did not identify a playable play. Try another page or enter the routes manually.',false);return}
+  var play=plays[0];
   $('playName').value=play.name||'';
   $('playConcept').value=play.concept||'';
   var receivers=(play.receivers||[]).slice(0,5);
@@ -247,7 +249,9 @@ $('aiConvert').addEventListener('click',async function(){
    $('side'+i).value=normalizeSide(receivers[i].side);
    $('route'+i).value=normalizeRoute(receivers[i].route);
   }
-  setConvert('AI conversion complete. Review the play, then save it.',true);
+  var message='AI conversion complete. Review the play, then save it.';
+  if(plays.length>1)message='Found '+plays.length+' plays. Loaded the first play: '+(play.name||'Unnamed play')+'. Review it, then save it.';
+  setConvert(message,true);
  }catch(error){
   var details=(error&&error.message)?error.message:String(error);
   setConvert('Could not convert this page: '+details,false);
