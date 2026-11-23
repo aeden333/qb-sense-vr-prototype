@@ -96,7 +96,7 @@ function throwTo(i){if(phase!=='read')return;var el=Date.now()-st.t0,dec=el/1000
   correctRead: nameOf(st.ans),
   qbChoice: nameOf(i),
   decisionTime: (Date.now() - st.t0) / 1000,
-  result: 'throw'
+  result: 'incompletion'
 });}}
 function throwAway(){if(phase!=='read')return;var dec=(Date.now()-st.t0)/1000,ok=st.ans===st.play.r.length,m=$('msg');G.times.push(dec);G.plays++;G.att++;if(st.extra>0)G.pressureAtt++;if(ok)G.correct++;st.dec=dec;$('rt').textContent=dec.toFixed(1)+'s';m.style.color=ok?'#14532D':'#B45309';m.textContent=ok?'Smart. Nobody was open, so you threw it away. The clock stops.':'You threw it away, but '+nameOf(st.ans)+' was open.';after({t:'inc',dec:dec})}
 function sack(){if(phase!=='read')return;G.plays++;G.sacks++;G.times.push(st.press/1000);st.dec=st.press/1000;$('msg').style.color='#DC2626';$('msg').textContent='Sacked for a 7-yard loss. The rush got home. Best play: '+nameOf(st.ans)+'.';after({t:'sack',dec:st.dec})logRep({
