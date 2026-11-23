@@ -53,6 +53,8 @@ var exists=false;
 for(var i=0;i<coverageSelect.options.length;i++){if(coverageSelect.options[i].value===name||coverageSelect.options[i].textContent===name){exists=true;break}}
 if(!exists){var option=document.createElement('option');option.value=name;option.textContent=name;coverageSelect.appendChild(option)}
 });
+window.ALLCOV=defenses.slice();
+return;
 }
 var originalDefenses=(window.ALLCOV||[]).slice();
 if(isTwoMinute)originalDefenses=defenses.slice();
