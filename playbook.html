@@ -122,7 +122,7 @@ function update(){
 function buildRows(){
  var n=Number($('receiverCount').value),html='';
  for(var i=0;i<n;i++){
-  html+='<div class="route-row"><b>'+(i===4?'RB 5':'WR '+(i+1))+'</b><select id="side'+i+'"><option value="left">Left</option><option value="left-hash">Left Hash</option><option value="middle-left">Middle Left (left tackle)</option><option value="middle">Middle (center)</option><option value="middle-right">Middle Right (right tackle)</option><option value="right-hash">Right Hash</option><option value="right">Right</option><option value="qb-left">Left of QB</option><option value="qb-right">Right of QB</option><option value="behind-qb">Behind QB</option><option value="custom">Custom spot</option></select><select id="route'+i+'"><option value="slant">Slant</option><option value="out">Out</option><option value="comeback">Comeback</option><option value="curl">Curl</option><option value="flat">Flat</option><option value="flat-left">Flat Left</option><option value="flat-right">Flat Right</option><option value="wheel">Wheel</option><option value="drag">Drag</option><option value="dig">Dig</option><option value="post">Post</option><option value="corner">Corner</option><option value="seam">Seam / Go</option><option value="sit">Sit</option><option value="swing-left">Swing Left</option><option value="swing-right">Swing Right</option></select></div>';
+  html+='<div class="route-row"><b>'+(i===4?'RB 5':'WR '+(i+1))+'</b><select id="side'+i+'"><option value="left">Left</option><option value="left-hash">Left Hash</option><option value="middle-left">Middle Left (left tackle)</option><option value="middle">Middle (center)</option><option value="middle-right">Middle Right (right tackle)</option><option value="right-hash">Right Hash</option><option value="right">Right</option><option value="qb-left">Left of QB</option><option value="qb-right">Right of QB</option><option value="behind-qb">Behind QB</option><option value="custom">Custom spot</option></select><select id="route'+i+'"><option value="slant">Slant</option><option value="out">Out</option><option value="comeback">Comeback</option><option value="curl">Curl</option><option value="flat">Flat</option><option value="flat-left">Flat Left</option><option value="flat-right">Flat Right</option><option value="wheel">Wheel</option><option value="wheel-left">Wheel Left</option><option value="wheel-right">Wheel Right</option><option value="drag">Drag</option><option value="dig">Dig</option><option value="post">Post</option><option value="corner">Corner</option><option value="seam">Seam / Go</option><option value="sit">Sit</option><option value="swing-left">Swing Left</option><option value="swing-right">Swing Right</option></select></div>';
  }
  $('routeRows').innerHTML=html;
  drawPreview();
@@ -159,6 +159,8 @@ function routeData(side,route,custom){
  else if(route==='flat-left')r.p=[[leftSide?70:-70,-25]];
  else if(route==='flat-right')r.p=[[leftSide?-70:70,-25]];
  else if(route==='wheel')r.p=[[leftSide?55:-55,-20],[leftSide?75:-75,-180]];
+ else if(route==='wheel-left')r.p=[[leftSide?55:-55,-20],[leftSide?75:-75,-180]];
+ else if(route==='wheel-right')r.p=[[leftSide?-55:55,-20],[leftSide?-75:75,-180]];
  else if(route==='drag')r.p=[[0,-25],[leftSide?450:-450,-30]];
  else if(route==='dig')r.p=[[0,-120],[leftSide?-140:140,-120]];
  else if(route==='post')r.p=[[0,-170],[leftSide?-120:120,-250]];
@@ -167,7 +169,7 @@ function routeData(side,route,custom){
  else if(route==='sit')r.p=[[0,-95],[0,-85]];
  else if(route==='swing-left')r.p=[[leftSide?85:-85,-20]];
  else if(route==='swing-right')r.p=[[leftSide?-85:85,-20]];
- if(route==='seam'||route==='post'||route==='corner'||route==='wheel')r.c='D';
+ if(route==='seam'||route==='post'||route==='corner'||route==='wheel'||route==='wheel-left'||route==='wheel-right')r.c='D';
  else if(route==='dig'||route==='comeback')r.c='M';
  return r;
 }
@@ -288,9 +290,11 @@ $('clear').addEventListener('click',function(){
 $('view').addEventListener('click',showPdf);
 $('closeViewer').addEventListener('click',function(){$('viewerCard').classList.add('hidden');$('viewer').src=''});
 function normalizeRoute(value){
- var allowed=['slant','out','comeback','curl','flat','flat-left','flat-right','wheel','drag','dig','post','corner','seam','sit','swing-left','swing-right'];
+ var allowed=['slant','out','comeback','curl','flat','flat-left','flat-right','wheel','wheel-left','wheel-right','drag','dig','post','corner','seam','sit','swing-left','swing-right'];
  value=(value||'').toString().trim().toLowerCase();
  if(allowed.indexOf(value)>=0)return value;
+ if(value.indexOf('wheel left')>=0||value.indexOf('wheel-left')>=0)return 'wheel-left';
+ if(value.indexOf('wheel right')>=0||value.indexOf('wheel-right')>=0)return 'wheel-right';
  if(value.indexOf('wheel')>=0)return 'wheel';
  if(value.indexOf('go')>=0||value.indexOf('vertical')>=0)return 'seam';
  if(value.indexOf('screen')>=0)return 'flat';
