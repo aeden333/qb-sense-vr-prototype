@@ -3,7 +3,7 @@
 function inject(){
 var pricing=document.getElementById('pricing');
 if(!pricing||document.getElementById('checkoutCard'))return;
-var plans={starter:{name:'Starter',price:19,link:''},pro:{name:'QB Pro',price:39,link:''},team:{name:'Coach & Team',price:99,link:''}};
+var plans={starter:{name:'Starter',price:19,link:'https://buy.stripe.com/test_5kQbJ3ajUdYX78yf8g7EQ00'},pro:{name:'QB Pro',price:39,link:'https://buy.stripe.com/test_7sY9AV77I5sr50q9NW7EQ01'},team:{name:'Coach & Team',price:99,link:'https://buy.stripe.com/test_6oU7sN3Vw8ED2Sid087EQ02'}};
 var card=document.createElement('div');
 card.id='checkoutCard';card.className='card';card.style.scrollMarginTop='120px';
 card.innerHTML='<h2>Start your subscription</h2><p>Select your plan below or use a Choose button above. Hardware offers remain visible for reference, but cannot be purchased yet.</p><div class="field"><label for="checkoutPlan">Choose your plan</label><select id="checkoutPlan"><option value="">Select a plan</option><option value="starter">Starter — $19/month</option><option value="pro">QB Pro — $39/month</option><option value="team">Coach &amp; Team — $99/month</option></select></div><div id="checkoutDetails"></div><div class="field"><label for="checkoutBilling">Billing period</label><select id="checkoutBilling"><option value="monthly">Monthly — software only</option><option value="annual" disabled>Annual software pricing — not configured</option></select></div><div class="field"><label for="checkoutHeadset">VR headset rental — Coming soon</label><select id="checkoutHeadset" disabled><option>Coming soon — unavailable for purchase</option></select></div><div class="field"><label for="checkoutVest">Haptic vest — Coming soon</label><select id="checkoutVest" disabled><option>Coming soon — unavailable for purchase</option></select></div><div id="checkoutTotal" class="price-total" aria-live="polite"></div><p id="checkoutStatus" role="status"></p><button type="button" class="btn primary" id="checkoutButton" disabled>Continue to secure checkout</button>';
@@ -22,7 +22,7 @@ if(choose)choose.addEventListener('click',function(event){event.preventDefault()
 function update(){
 details.replaceChildren();
 var selected=plans[plan.value];
-if(!selected){total.textContent='Select a plan to see your price.';status.textContent='Stripe checkout links have not been configured.';button.disabled=true;return;}
+if(!selected){total.textContent='Select a plan to see your price.';status.textContent='Choose a software plan to continue to Stripe test checkout.';button.disabled=true;return;}
 var source=sources[plan.value];
 if(source){
 var heading=document.createElement('h3');heading.textContent=selected.name+' — existing plan details';details.appendChild(heading);
