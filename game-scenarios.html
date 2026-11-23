@@ -76,13 +76,17 @@ var plays=[
 ];
 function $(i){return document.getElementById(i)}
 function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function formatClock(seconds){
+ var m=Math.floor(seconds/60),s=seconds%60;
+ return m+':'+(s<10?'0':'')+s;
+}
 function newSituation(){
  var yard=rnd(5,95),down=rnd(1,4),toGo=rnd(1,12),time=rnd(25,180),diff=rnd(-7,7);
  state={yard:yard,down:down,toGo:toGo,time:time,diff:diff,drive:state.drive||1,iq:state.iq||0,you:state.you||0,opp:state.opp||0,active:true};
  var cover=['Cover 2','Cover 3','Man coverage','Cover 4','Blitz-heavy'];
  state.cover=cover[rnd(0,cover.length-1)];
  update();
- $('situation').innerHTML='<b>Situation:</b> '+(diff<0?'You trail by '+Math.abs(diff):diff===0?'Tied game':'You lead by '+diff)+' with '+time+' seconds left. It is '+down+'-'+toGo+' at your own '+yard+'. Defense: '+state.cover+'.';
+ $('situation').innerHTML='<b>Situation:</b> '+(diff<0?'You trail by '+Math.abs(diff):diff===0?'Tied game':'You lead by '+diff)+' with '+formatClock(time)+' left. It is '+down+'-'+toGo+' at your own '+yard+'. Defense: '+state.cover+'.';
  showPlays();
 }
 function update(){
@@ -90,7 +94,7 @@ function update(){
  $('scoreLine').textContent='You '+(state.you||0)+' — '+(state.opp||0)+' Opponent';
  $('downDistance').textContent=state.down+'-'+state.toGo;
  $('ballOn').textContent='Own '+state.yard;
- $('clock').textContent=state.time+'s';
+ $('clock').textContent=state.time!==undefined?formatClock(state.time):'—';
  $('iq').textContent=state.iq||0;
  var left=(state.yard/100*82)+9;
  $('ball').style.left=left+'%';
