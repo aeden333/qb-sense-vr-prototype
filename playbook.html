@@ -20,9 +20,9 @@ h2{text-transform:uppercase;margin:0 0 8px}
 .pdf-frame{width:100%;height:70vh;border:1px solid var(--border);border-radius:8px;background:#fff}
 .route-row{display:grid;grid-template-columns:150px 1fr 1fr;gap:10px;align-items:center;margin-bottom:10px}
 select,input{padding:10px;border:1px solid var(--border);border-radius:6px;font-size:14px;width:100%}
-#aiCanvas,#playPreview{display:none}
+#aiCanvas{display:none}
 .ai-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end;margin:12px 0}
-#playPreview{width:100%;height:auto;border:1px solid var(--border);border-radius:8px;background:#14532D;margin:12px 0}
+#playPreview{width:100%;height:auto;border:1px solid var(--border);border-radius:8px;background:#14532D;margin:12px 0;touch-action:none;cursor:grab}
 </style>
 </head>
 <body>
@@ -30,13 +30,14 @@ select,input{padding:10px;border:1px solid var(--border);border-radius:6px;font-
 <main>
 <div class="card">
 <h2>Convert PDF play</h2>
-<p>Use this after viewing a play in your PDF. Choose where each receiver starts and which route they run. Saved plays will appear in the Two-Minute Drill.</p>
+<p>Use this after viewing a play in your PDF. Choose where each receiver starts and which route they run. Drag any player in the preview to create an exact custom split. Saved plays will appear in the Two-Minute Drill.</p>
 <label>Play name</label><input id="playName" placeholder="Example: Team Mesh">
 <label>Concept</label><input id="playConcept" placeholder="Example: Mesh">
 <label>Receivers</label><select id="receiverCount"><option>2</option><option>3</option><option selected>4</option><option>5</option></select>
 <label>Formation</label><select id="formation"><option value="custom">Custom</option><option value="spread">Spread</option><option value="trips-left">Trips Left</option><option value="trips-right">Trips Right</option><option value="bunch-left">Bunch Left</option><option value="bunch-right">Bunch Right</option><option value="2x2-tight-left">2x2 Tight Left</option><option value="2x2-tight-right">2x2 Tight Right</option><option value="empty">Empty</option></select>
 <div id="routeRows"></div>
 <canvas id="playPreview" width="640" height="360"></canvas>
+<p><b>Drag a yellow player</b> to set an exact split. Its alignment will change to Custom spot.</p>
 <div id="convertStatus"></div>
 <button class="btn" id="savePlay">Save play to Two-Minute Drill</button>
 </div>
@@ -76,7 +77,7 @@ select,input{padding:10px;border:1px solid var(--border);border-radius:6px;font-
 <script src="playbook.js"></script>
 <script>
 function $(i){return document.getElementById(i)}
-var savedRecord=null,objectUrl=null;
+var savedRecord=null,objectUrl=null,customPositions=[null,null,null,null,null],dragIndex=-1;
 function setStatus(msg,good){var s=$('status');s.textContent=msg;s.style.color=good?'#14532D':'#DC2626'}
 function setConvert(msg,good){var s=$('convertStatus');s.textContent=msg;s.style.color=good?'#14532D':'#DC2626'}
 function openDatabase(){
@@ -121,7 +122,7 @@ function update(){
 function buildRows(){
  var n=Number($('receiverCount').value),html='';
  for(var i=0;i<n;i++){
-  html+='<div class="route-row"><b>'+(i===4?'RB 5':'WR '+(i+1))+'</b><select id="side'+i+'"><option value="left">Left</option><option value="left-hash">Left Hash</option><option value="middle-left">Middle Left (left tackle)</option><option value="middle">Middle (center)</option><option value="middle-right">Middle Right (right tackle)</option><option value="right-hash">Right Hash</option><option value="right">Right</option><option value="qb-left">Left of QB</option><option value="qb-right">Right of QB</option><option value="behind-qb">Behind QB</option></select><select id="route'+i+'"><option value="slant">Slant</option><option value="out">Out</option><option value="comeback">Comeback</option><option value="curl">Curl</option><option value="flat">Flat</option><option value="wheel">Wheel</option><option value="drag">Drag</option><option value="dig">Dig</option><option value="post">Post</option><option value="corner">Corner</option><option value="seam">Seam / Go</option><option value="sit">Sit</option></select></div>';
+  html+='<div class="route-row"><b>'+(i===4?'RB 5':'WR '+(i+1))+'</b><select id="side'+i+'"><option value="left">Left</option><option value="left-hash">Left Hash</option><option value="middle-left">Middle Left (left tackle)</option><option value="middle">Middle (center)</option><option value="middle-right">Middle Right (right tackle)</option><option value="right-hash">Right Hash</option><option value="right">Right</option><option value="qb-left">Left of QB</option><option value="qb-right">Right of QB</option><option value="behind-qb">Behind QB</option><option value="custom">Custom spot</option></select><select id="route'+i+'"><option value="slant">Slant</option><option value="out">Out</option><option value="comeback">Comeback</option><option value="curl">Curl</option><option value="flat">Flat</option><option value="wheel">Wheel</option><option value="drag">Drag</option><option value="dig">Dig</option><option value="post">Post</option><option value="corner">Corner</option><option value="seam">Seam / Go</option><option value="sit">Sit</option></select></div>';
  }
  $('routeRows').innerHTML=html;
  drawPreview();
@@ -130,6 +131,7 @@ function applyFormation(){
  var formation=$('formation').value;
  if(formation==='custom')return;
  $('receiverCount').value='5';
+ customPositions=[null,null,null,null,null];
  buildRows();
  var alignments=[];
  if(formation==='spread')alignments=['left','right','left-hash','right-hash','behind-qb'];
@@ -143,11 +145,12 @@ function applyFormation(){
  for(var i=0;i<alignments.length;i++){$('side'+i).value=alignments[i]}
  drawPreview();
 }
-function routeData(side,route){
+function routeData(side,route,custom){
  var x=side==='left'?70:side==='left-hash'?190:side==='middle-left'?220:side==='middle-right'?420:side==='right-hash'?450:side==='right'?570:side==='qb-left'?270:side==='qb-right'?370:320;
  var y=side==='behind-qb'?45:side==='qb-left'||side==='qb-right'?10:0;
+ if(side==='custom'&&custom){x=custom.x;y=custom.y}
  var r={n:route,x:x,y:y,p:[],c:'Q'};
- var leftSide=side==='left'||side==='left-hash'||side==='middle-left'||side==='qb-left';
+ var leftSide=side==='left'||side==='left-hash'||side==='middle-left'||side==='qb-left'||(side==='custom'&&custom&&custom.x<320);
  if(route==='slant')r.p=[[0,-30],[leftSide?70:-70,-90]];
  else if(route==='out')r.p=[[0,-70],[leftSide?-70:70,-70]];
  else if(route==='comeback')r.p=[[0,-170],[leftSide?-40:40,-210],[leftSide?-110:110,-140]];
@@ -179,9 +182,9 @@ function drawPreview(){
  for(var i=0;i<n;i++){
   var side=$('side'+i)?$('side'+i).value:'middle';
   var route=$('route'+i)?$('route'+i).value:'slant';
-  var play=routeData(side,route);
+  var play=routeData(side,route,customPositions[i]);
   var startX=play.x,startY=300-play.y;
-  ctx.fillStyle='#FFD700';ctx.beginPath();ctx.arc(startX,startY,7,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=dragIndex===i?'#fff':'#FFD700';ctx.beginPath();ctx.arc(startX,startY,8,0,Math.PI*2);ctx.fill();
   ctx.fillStyle='#fff';ctx.font='bold 11px Arial';ctx.fillText(i===4?'RB':'WR'+(i+1),startX-12,startY-12);
   ctx.strokeStyle=play.c==='D'?'#EF4444':play.c==='M'?'#F59E0B':'#38BDF8';ctx.lineWidth=3;
   ctx.beginPath();ctx.moveTo(startX,startY);
@@ -189,6 +192,50 @@ function drawPreview(){
   ctx.stroke();
  }
 }
+function canvasPoint(event){
+ var canvas=$('playPreview'),rect=canvas.getBoundingClientRect();
+ var clientX=event.touches?event.touches[0].clientX:event.clientX;
+ var clientY=event.touches?event.touches[0].clientY:event.clientY;
+ return {x:(clientX-rect.left)*(canvas.width/rect.width),y:(clientY-rect.top)*(canvas.height/rect.height)};
+}
+function findPlayer(point){
+ var n=Number($('receiverCount').value),closest=-1,distance=25;
+ for(var i=0;i<n;i++){
+  var side=$('side'+i)?$('side'+i).value:'middle';
+  var route=$('route'+i)?$('route'+i).value:'slant';
+  var play=routeData(side,route,customPositions[i]);
+  var x=play.x,y=300-play.y;
+  var d=Math.sqrt(Math.pow(point.x-x,2)+Math.pow(point.y-y,2));
+  if(d<distance){distance=d;closest=i}
+ }
+ return closest;
+}
+function startDrag(event){
+ var point=canvasPoint(event);
+ dragIndex=findPlayer(point);
+ if(dragIndex>=0){event.preventDefault();drawPreview()}
+}
+function moveDrag(event){
+ if(dragIndex<0)return;
+ event.preventDefault();
+ var point=canvasPoint(event);
+ var x=Math.max(20,Math.min(620,point.x));
+ var y=Math.max(255,Math.min(345,300-point.y));
+ customPositions[dragIndex]={x:x,y:y};
+ if($('side'+dragIndex)){$('side'+dragIndex).value='custom'}
+ drawPreview();
+}
+function endDrag(){
+ if(dragIndex>=0){dragIndex=-1;drawPreview()}
+}
+var preview=$('playPreview');
+preview.addEventListener('mousedown',startDrag);
+preview.addEventListener('mousemove',moveDrag);
+preview.addEventListener('mouseup',endDrag);
+preview.addEventListener('mouseleave',endDrag);
+preview.addEventListener('touchstart',startDrag,{passive:false});
+preview.addEventListener('touchmove',moveDrag,{passive:false});
+preview.addEventListener('touchend',endDrag);
 $('receiverCount').addEventListener('change',buildRows);
 $('formation').addEventListener('change',applyFormation);
 $('routeRows').addEventListener('change',drawPreview);
@@ -196,7 +243,7 @@ $('savePlay').addEventListener('click',function(){
  var name=$('playName').value.trim(),concept=$('playConcept').value.trim();
  if(!name||!concept){setConvert('Enter a play name and concept.',false);return}
  var n=Number($('receiverCount').value),routes=[];
- for(var i=0;i<n;i++)routes.push(routeData($('side'+i).value,$('route'+i).value));
+ for(var i=0;i<n;i++)routes.push(routeData($('side'+i).value,$('route'+i).value,customPositions[i]));
  var team=getTeamPlaybook()||{name:'Team Playbook',plays:[]};
  team.plays.push({name:name,concept:concept,r:routes});
  saveTeamPlaybook(team);
@@ -255,6 +302,7 @@ function normalizeSide(value){
  if(value==='qb-left'||value==='qb_left')return 'qb-left';
  if(value==='qb-right'||value==='qb_right')return 'qb-right';
  if(value==='behind-qb'||value==='behind_qb'||value==='backfield')return 'behind-qb';
+ if(value==='custom'||value==='custom-spot')return 'custom';
  if(value.indexOf('left')>=0)return 'left';
  if(value.indexOf('right')>=0)return 'right';
  return 'middle';
