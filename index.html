@@ -100,10 +100,64 @@ input,select,textarea{width:100%;max-width:520px;padding:11px;border:1px solid v
 <script src="analytics.js" defer></script>
 </head>
 <body>
-<script>if(!localStorage.getItem('qbsense_user'))location.replace('login.html');</script>
+<div id="authOverlay" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at 15% 20%, rgba(20,83,45,.55), transparent 45%),radial-gradient(circle at 85% 80%, rgba(245,158,11,.18), transparent 40%),linear-gradient(135deg,#050B14 0%,#0A1628 55%,#0F2438 100%);">
+  <div style="width:100%;max-width:960px;display:grid;grid-template-columns:1fr;gap:28px;align-items:center;">
+    <div style="color:#fff;text-align:center;">
+      <div style="display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);padding:8px 14px;border-radius:999px;font-size:11px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:#CBD5E1;"><span style="width:8px;height:8px;border-radius:50%;background:#F59E0B;"></span> QB Sense VR</div>
+      <h1 style="margin:20px 0 12px;font-size:clamp(38px,7vw,64px);line-height:.98;font-weight:900;letter-spacing:-.04em;text-transform:uppercase;">Train the read.<br><span style="color:#F59E0B;">Feel the pressure.</span><br>Make the throw.</h1>
+      <p style="margin:0 auto;max-width:520px;color:#B8C4D2;font-size:16px;line-height:1.6;">QB Sense helps quarterbacks read defenses, recognize pressure, move in the pocket, and make faster decisions—without taking real hits.</p>
+      <div style="margin-top:24px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+        <span style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#E5E7EB;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:800;">Blitz recognition</span>
+        <span style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#E5E7EB;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:800;">Pocket movement</span>
+        <span style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#E5E7EB;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:800;">Coach mode</span>
+      </div>
+    </div>
+    <div style="background:rgba(255,255,255,.97);border:1px solid rgba(255,255,255,.35);border-radius:20px;padding:30px 26px;box-shadow:0 30px 80px rgba(0,0,0,.45);">
+      <div id="authForms">
+        <div style="text-align:center;margin-bottom:20px;">
+          <div style="width:54px;height:54px;margin:0 auto 12px;border-radius:16px;background:linear-gradient(135deg,#14532D,#166534);display:grid;place-items:center;color:#fff;font-weight:900;font-size:20px;box-shadow:0 10px 25px rgba(20,83,45,.35);">QB</div>
+          <h2 style="margin:0;font-size:26px;font-weight:900;letter-spacing:-.02em;">Welcome to QB Sense</h2>
+          <p style="margin:6px 0 0;color:#5B6B7C;font-size:14px;">Create an account or log in to start training.</p>
+        </div>
+        <div style="display:flex;background:#F1F5F9;border-radius:10px;padding:4px;margin-bottom:18px;">
+          <button id="showSignup" type="button" style="flex:1;border:0;background:#fff;color:#0A1628;padding:10px;border-radius:8px;font-weight:900;font-size:12px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.08);">Sign up</button>
+          <button id="showLogin" type="button" style="flex:1;border:0;background:transparent;color:#5B6B7C;padding:10px;border-radius:8px;font-weight:900;font-size:12px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;">Log in</button>
+        </div>
+        <form id="signupForm" style="display:block;">
+          <label style="display:block;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#5B6B7C;margin-bottom:6px;">Email</label>
+          <input id="signupEmail" type="email" placeholder="you@example.com" required style="width:100%;padding:13px 14px;margin-bottom:12px;border:1px solid #D8E0E8;border-radius:10px;font-size:15px;background:#fff;box-sizing:border-box;">
+          <label style="display:block;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#5B6B7C;margin-bottom:6px;">Password</label>
+          <input id="signupPassword" type="password" placeholder="Create a password" required minlength="6" style="width:100%;padding:13px 14px;margin-bottom:16px;border:1px solid #D8E0E8;border-radius:10px;font-size:15px;background:#fff;box-sizing:border-box;">
+          <button type="submit" style="width:100%;padding:14px;border:0;border-radius:10px;background:linear-gradient(135deg,#14532D,#166534);color:#fff;font-size:15px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;box-shadow:0 10px 22px rgba(20,83,45,.25);">Create account</button>
+        </form>
+        <form id="loginForm" style="display:none;">
+          <label style="display:block;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#5B6B7C;margin-bottom:6px;">Email</label>
+          <input id="loginEmail" type="email" placeholder="you@example.com" required style="width:100%;padding:13px 14px;margin-bottom:12px;border:1px solid #D8E0E8;border-radius:10px;font-size:15px;background:#fff;box-sizing:border-box;">
+          <label style="display:block;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#5B6B7C;margin-bottom:6px;">Password</label>
+          <input id="loginPassword" type="password" placeholder="Your password" required style="width:100%;padding:13px 14px;margin-bottom:16px;border:1px solid #D8E0E8;border-radius:10px;font-size:15px;background:#fff;box-sizing:border-box;">
+          <button type="submit" style="width:100%;padding:14px;border:0;border-radius:10px;background:linear-gradient(135deg,#14532D,#166534);color:#fff;font-size:15px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;box-shadow:0 10px 22px rgba(20,83,45,.25);">Log in</button>
+        </form>
+        <p id="authMessage" style="min-height:20px;margin:14px 0 0;text-align:center;font-size:13px;font-weight:700;color:#DC2626;"></p>
+        <p style="margin:18px 0 0;text-align:center;font-size:11px;color:#7B8794;line-height:1.5;">By continuing, you agree to use QB Sense for football training purposes.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const showSignupButton=document.getElementById("showSignup");
+const showLoginButton=document.getElementById("showLogin");
+const signupFormCard=document.getElementById("signupForm");
+const loginFormCard=document.getElementById("loginForm");
+function showSignupTab(){signupFormCard.style.display="block";loginFormCard.style.display="none";showSignupButton.style.background="#fff";showSignupButton.style.color="#0A1628";showSignupButton.style.boxShadow="0 1px 3px rgba(0,0,0,.08)";showLoginButton.style.background="transparent";showLoginButton.style.color="#5B6B7C";showLoginButton.style.boxShadow="none";document.getElementById("authMessage").textContent="";}
+function showLoginTab(){signupFormCard.style.display="none";loginFormCard.style.display="block";showLoginButton.style.background="#fff";showLoginButton.style.color="#0A1628";showLoginButton.style.boxShadow="0 1px 3px rgba(0,0,0,.08)";showSignupButton.style.background="transparent";showSignupButton.style.color="#5B6B7C";showSignupButton.style.boxShadow="none";document.getElementById("authMessage").textContent="";}
+showSignupButton.addEventListener("click",showSignupTab);
+showLoginButton.addEventListener("click",showLoginTab);
+</script>
+
 <header>
 <div><h1>QB Sense VR</h1><p>Train the read. Feel the pressure. Make the throw.</p></div>
 <div class="vest"><div class="label">Haptic vest</div><strong id="vestStatus">Not connected</strong></div>
+<button id="logoutButton" onclick="logoutQB()" style="background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.25);padding:8px 12px;border-radius:6px;font-weight:800;font-size:11px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;">Log out</button>
 </header>
 <main>
 <div class="nav-wrap">
@@ -1016,5 +1070,26 @@ if(location.hash==='#drills'){go('drills');}
 <script src="clip-review.js"></script>
 <script src="pricing-checkout.js"></script>
 <script src="training-plan.js"></script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js";
+
+const firebaseConfig={apiKey:"AIzaSyDuvuM5uTaAY7tV3nazl7hZdCgC3GdxeC0",authDomain:"qb-sense.firebaseapp.com",projectId:"qb-sense",storageBucket:"qb-sense.firebasestorage.app",messagingSenderId:"304842558509",appId:"1:304842558509:web:0732a12a9ad5cd9e60bca4",measurementId:"G-SM1FMT6EXH"};
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const authOverlay=document.getElementById("authOverlay");
+const authMessage=document.getElementById("authMessage");
+const welcomeBanner=document.getElementById("welcomeBanner");
+const welcomeName=document.getElementById("welcomeName");
+
+function showApp(user){authOverlay.style.display="none";localStorage.setItem("qbsense_user",user.email);if(welcomeBanner&&welcomeName){welcomeName.textContent=user.displayName||user.email.split("@")[0];welcomeBanner.hidden=false;}}
+function showLogin(){authOverlay.style.display="flex";localStorage.removeItem("qbsense_user");if(welcomeBanner)welcomeBanner.hidden=true;}
+
+document.getElementById("signupForm").addEventListener("submit",async e=>{e.preventDefault();authMessage.style.color="#DC2626";authMessage.textContent="Creating account...";try{await createUserWithEmailAndPassword(auth,document.getElementById("signupEmail").value.trim(),document.getElementById("signupPassword").value);authMessage.style.color="#14532D";authMessage.textContent="Account created successfully!";}catch(error){authMessage.textContent=error.message;}});
+document.getElementById("loginForm").addEventListener("submit",async e=>{e.preventDefault();authMessage.style.color="#DC2626";authMessage.textContent="Logging in...";try{await signInWithEmailAndPassword(auth,document.getElementById("loginEmail").value.trim(),document.getElementById("loginPassword").value);authMessage.style.color="#14532D";authMessage.textContent="Logged in successfully!";}catch(error){authMessage.textContent="Incorrect email or password.";}});
+onAuthStateChanged(auth,user=>{if(user){showApp(user);}else{showLogin();}});
+window.logoutQB=async function(){await signOut(auth);};
+</script>
 </body>
 </html>
