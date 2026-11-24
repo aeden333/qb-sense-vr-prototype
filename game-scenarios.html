@@ -9,7 +9,7 @@
 body{margin:0;background:var(--bg);font-family:system-ui,Arial,sans-serif;color:#111827}
 header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px}
 header h1{margin:0;font-size:20px;font-weight:900;text-transform:uppercase}
-header a{color:#fff;font-size:12px;font-weight:800;text-transform:uppercase;text-decoration:none;border:1px solid rgba(255,255,255,.4);padding:8px 12px;border-radius:6px}
+header a{color:#fff;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;text-decoration:none;border:1px solid rgba(255,255,255,.4);padding:8px 12px;border-radius:6px}
 main{max-width:760px;margin:0 auto;padding:18px 14px 48px}
 .card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px}
 h2{text-transform:uppercase;margin:0 0 8px}
@@ -124,6 +124,7 @@ function saveResult(){var n=G.plays,acc=n?Math.round(G.correct/n*100):0,avg=G.ti
 function showDone(){$('game').classList.add('hidden');$('done').classList.remove('hidden');var n=G.plays,acc=n?Math.round(G.correct/n*100):0,avg=G.times.length?G.times.reduce(function(a,b){return a+b},0)/G.times.length:0;saveResult();buildReport();$('dRes').textContent='Result: '+G.result;$('dAcc').textContent=acc+'%';$('dOk').textContent=G.correct+'/'+n;$('dTime').textContent=avg.toFixed(1)+'s';$('dTo').textContent=G.timeouts;$('dClk').textContent=fmt(G.clock);$('dPass').textContent=G.comp+'/'+G.att;$('dYds').textContent=G.yds;$('dTd').textContent=G.td;$('dInt').textContent=G.ints;$('dTip').textContent=G.win?'You finished the drive. Try a higher level next.':G.result==='Interception'?'Do not force throws into coverage. Throw it away and live for the next down.':'Manage the clock and take the open completion.'}
 $('start').onclick=function(){var sc=$('scenario').value;G.level=+$('lvl').value;G.scenario=$('scenario').options[$('scenario').selectedIndex].text;if(sc!=='random'){var S=SCENARIOS[sc];G.ball=S.ball;G.down=S.down;G.toGo=S.toGo;G.clock=S.clock;G.deficit=S.deficit;G.timeouts=S.timeouts}else{var v=$('def').value;G.deficit=v==='rand'?[-2,-3,-6,0,7][rnd(0,4)]:+v;G.ball=75;G.down=1;G.toGo=10;G.clock=rnd(30,180);G.timeouts=rnd(1,3)}G.running=false;G.plays=0;G.correct=0;G.times=[];G.sacks=0;G.ints=0;G.att=0;G.comp=0;G.yds=0;G.td=0;G.forced=0;G.pressureAtt=0;G.pressureComp=0;G.spikes=0;G.toUsed=0;$('setup').classList.add('hidden');$('game').classList.remove('hidden');nextPlay();setPhase('pre');tick()};
 </script>
+<script src="offensive-line.js"></script>
 <script src="back-button.js"></script>
 <script src="rep-review.js"></script>
 </body>
