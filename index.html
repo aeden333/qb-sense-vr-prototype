@@ -98,58 +98,105 @@ input,select,textarea{width:100%;max-width:520px;padding:11px;border:1px solid v
 @media(max-width:640px){header{flex-direction:column;align-items:flex-start;gap:8px}.vest{text-align:left}.hero{padding:32px 20px}.hero-actions .btn{width:100%}.price-card.featured{border-width:2px}}
 </style>
 <script src="analytics.js" defer></script>
+
+<style>
+#authOverlay{padding:0!important;}
+#authOverlay .auth-inner{padding:22px 18px 34px!important;gap:20px!important;}
+#authOverlay h1{font-size:clamp(32px,9vw,52px)!important;}
+#authOverlay .auth-card{padding:26px 20px!important;border-radius:20px!important;}
+.auth-input{font-size:16px!important;}
+@media(max-width:760px){
+  #authOverlay .auth-inner{grid-template-columns:1fr!important;text-align:center;}
+  #authOverlay .auth-features{justify-content:center!important;}
+  #authOverlay .auth-card{max-width:100%!important;}
+}
+</style>
 </head>
 <body>
-<div id="authOverlay" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at 15% 20%, rgba(20,83,45,.55), transparent 45%),radial-gradient(circle at 85% 80%, rgba(245,158,11,.18), transparent 40%),linear-gradient(135deg,#050B14 0%,#0A1628 55%,#0F2438 100%);">
-  <div style="width:100%;max-width:960px;display:grid;grid-template-columns:1fr;gap:28px;align-items:center;">
-    <div style="color:#fff;text-align:center;">
-      <div style="display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);padding:8px 14px;border-radius:999px;font-size:11px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:#CBD5E1;"><span style="width:8px;height:8px;border-radius:50%;background:#F59E0B;"></span> QB Sense VR</div>
-      <h1 style="margin:20px 0 12px;font-size:clamp(38px,7vw,64px);line-height:.98;font-weight:900;letter-spacing:-.04em;text-transform:uppercase;">Train the read.<br><span style="color:#F59E0B;">Feel the pressure.</span><br>Make the throw.</h1>
-      <p style="margin:0 auto;max-width:520px;color:#B8C4D2;font-size:16px;line-height:1.6;">QB Sense helps quarterbacks read defenses, recognize pressure, move in the pocket, and make faster decisions—without taking real hits.</p>
-      <div style="margin-top:24px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
-        <span style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#E5E7EB;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:800;">Blitz recognition</span>
-        <span style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#E5E7EB;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:800;">Pocket movement</span>
-        <span style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#E5E7EB;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:800;">Coach mode</span>
+<div id="authOverlay" style="position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;background:#050B14;overflow:auto;">
+  <div style="position:relative;background:linear-gradient(90deg,#0A1628 0%,#123B22 50%,#0A1628 100%);border-bottom:1px solid rgba(245,158,11,.25);padding:16px 20px;text-align:center;">
+    <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.04) 0 2px,transparent 2px 90px);"></div>
+    <div style="position:relative;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
+      <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#14532D,#166534);display:grid;place-items:center;color:#fff;font-weight:900;font-size:15px;">QB</div>
+      <div style="text-align:left;">
+        <div style="font-size:17px;font-weight:900;letter-spacing:-.02em;color:#fff;text-transform:uppercase;">QB Sense VR</div>
+        <div style="font-size:10px;color:#9CA3AF;letter-spacing:.14em;text-transform:uppercase;">Train the read. Feel the pressure. Make the throw.</div>
       </div>
     </div>
-    <div style="background:rgba(255,255,255,.97);border:1px solid rgba(255,255,255,.35);border-radius:20px;padding:30px 26px;box-shadow:0 30px 80px rgba(0,0,0,.45);">
-      <div id="authForms">
-        <div style="text-align:center;margin-bottom:20px;">
-          <div style="width:54px;height:54px;margin:0 auto 12px;border-radius:16px;background:linear-gradient(135deg,#14532D,#166534);display:grid;place-items:center;color:#fff;font-weight:900;font-size:20px;box-shadow:0 10px 25px rgba(20,83,45,.35);">QB</div>
-          <h2 style="margin:0;font-size:26px;font-weight:900;letter-spacing:-.02em;">Welcome to QB Sense</h2>
-          <p style="margin:6px 0 0;color:#5B6B7C;font-size:14px;">Create an account or log in to start training.</p>
+  </div>
+
+  <div style="position:relative;flex:1;display:flex;align-items:center;justify-content:center;padding:28px 20px;">
+    <div style="position:absolute;inset:0;background:radial-gradient(circle at 15% 25%, rgba(20,83,45,.55), transparent 45%),radial-gradient(circle at 85% 75%, rgba(245,158,11,.18), transparent 40%),linear-gradient(135deg,#050B14 0%,#0A1628 55%,#10263B 100%);"></div>
+    <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 2px,transparent 2px 90px);"></div>
+
+    <div class="auth-inner" style="position:relative;width:100%;max-width:1000px;display:grid;grid-template-columns:1fr;gap:26px;align-items:center;">
+      <div style="color:#fff;text-align:center;">
+        <div style="display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);padding:8px 16px;border-radius:999px;font-size:11px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#CBD5E1;"><span style="width:8px;height:8px;border-radius:50%;background:#F59E0B;"></span> Elite QB Training</div>
+        <h1 style="margin:20px 0 12px;font-size:clamp(38px,7vw,66px);line-height:.98;font-weight:900;letter-spacing:-.05em;text-transform:uppercase;">Train like it’s<br><span style="color:#F59E0B;">game day.</span></h1>
+        <p style="margin:0 auto;max-width:520px;color:#B9C5D3;font-size:16px;line-height:1.6;">Read defenses faster. Recognize pressure earlier. Make confident decisions in the pocket—without taking real hits.</p>
+        <div class="auth-features" style="margin-top:22px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;">
+          <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);color:#E5E7EB;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:800;">Blitz recognition</span>
+          <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);color:#E5E7EB;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:800;">Pocket movement</span>
+          <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);color:#E5E7EB;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:800;">Coach mode</span>
         </div>
-        <div style="display:flex;background:#F1F5F9;border-radius:10px;padding:4px;margin-bottom:18px;">
-          <button id="showSignup" type="button" style="flex:1;border:0;background:#fff;color:#0A1628;padding:10px;border-radius:8px;font-weight:900;font-size:12px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.08);">Sign up</button>
-          <button id="showLogin" type="button" style="flex:1;border:0;background:transparent;color:#5B6B7C;padding:10px;border-radius:8px;font-weight:900;font-size:12px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;">Log in</button>
+      </div>
+
+      <div class="auth-card" style="position:relative;background:rgba(255,255,255,.98);border:1px solid rgba(255,255,255,.4);border-radius:24px;padding:32px 26px;box-shadow:0 35px 90px rgba(0,0,0,.55);max-width:430px;margin:0 auto;width:100%;">
+        <div style="position:absolute;top:0;left:22px;right:22px;height:5px;border-radius:0 0 6px 6px;background:linear-gradient(90deg,#14532D,#F59E0B);"></div>
+        <div id="authForms">
+          <div style="text-align:center;margin-bottom:20px;">
+            <h2 style="margin:0;font-size:26px;font-weight:900;letter-spacing:-.03em;color:#0A1628;">Welcome back</h2>
+            <p style="margin:6px 0 0;color:#5B6B7C;font-size:14px;">Sign in to access your QB Sense training dashboard.</p>
+          </div>
+
+          <div style="display:flex;background:#EEF2F7;border-radius:12px;padding:5px;margin-bottom:18px;">
+            <button id="showSignup" type="button" style="flex:1;border:0;background:#fff;color:#0A1628;padding:11px;border-radius:9px;font-weight:900;font-size:12px;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.08);">Sign up</button>
+            <button id="showLogin" type="button" style="flex:1;border:0;background:transparent;color:#5B6B7C;padding:11px;border-radius:9px;font-weight:900;font-size:12px;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;">Log in</button>
+          </div>
+
+          <form id="signupForm" style="display:block;">
+            <label style="display:block;font-size:11px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;color:#5B6B7C;margin-bottom:7px;">Email address</label>
+            <input id="signupEmail" class="auth-input" type="email" placeholder="you@example.com" required style="width:100%;padding:14px 15px;margin-bottom:14px;border:1px solid #D9E1E9;border-radius:12px;font-size:16px;background:#fff;box-sizing:border-box;">
+            <label style="display:block;font-size:11px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;color:#5B6B7C;margin-bottom:7px;">Password</label>
+            <input id="signupPassword" class="auth-input" type="password" placeholder="Create a password" required minlength="6" style="width:100%;padding:14px 15px;margin-bottom:18px;border:1px solid #D9E1E9;border-radius:12px;font-size:16px;background:#fff;box-sizing:border-box;">
+            <button type="submit" style="width:100%;padding:15px;border:0;border-radius:12px;background:linear-gradient(135deg,#14532D,#166534);color:#fff;font-size:15px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;">Create account</button>
+          </form>
+
+          <form id="loginForm" style="display:none;">
+            <label style="display:block;font-size:11px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;color:#5B6B7C;margin-bottom:7px;">Email address</label>
+            <input id="loginEmail" class="auth-input" type="email" placeholder="you@example.com" required style="width:100%;padding:14px 15px;margin-bottom:8px;border:1px solid #D9E1E9;border-radius:12px;font-size:16px;background:#fff;box-sizing:border-box;">
+            <label style="display:block;font-size:11px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;color:#5B6B7C;margin-bottom:7px;">Password</label>
+            <input id="loginPassword" class="auth-input" type="password" placeholder="Your password" required style="width:100%;padding:14px 15px;margin-bottom:10px;border:1px solid #D9E1E9;border-radius:12px;font-size:16px;background:#fff;box-sizing:border-box;">
+            <button id="forgotPassword" type="button" style="background:none;border:0;color:#14532D;font-size:13px;font-weight:800;cursor:pointer;padding:0;margin-bottom:14px;">Forgot password?</button>
+            <button type="submit" style="width:100%;padding:15px;border:0;border-radius:12px;background:linear-gradient(135deg,#14532D,#166534);color:#fff;font-size:15px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;">Log in</button>
+          </form>
+
+          <div style="display:flex;align-items:center;gap:12px;margin:18px 0;">
+            <div style="flex:1;height:1px;background:#E2E8F0;"></div>
+            <span style="font-size:11px;color:#7B8794;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Or</span>
+            <div style="flex:1;height:1px;background:#E2E8F0;"></div>
+          </div>
+
+          <button id="googleSignIn" type="button" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:14px;border:1px solid #D9E1E9;border-radius:12px;background:#fff;color:#111827;font-size:15px;font-weight:800;cursor:pointer;">
+            <span style="display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#fff;border:1px solid #E5E7EB;font-weight:900;color:#4285F4;">G</span>
+            Continue with Google
+          </button>
+
+          <p id="authMessage" style="min-height:22px;margin:16px 0 0;text-align:center;font-size:13px;font-weight:800;color:#DC2626;"></p>
+          <p style="margin:16px 0 0;text-align:center;font-size:11px;color:#7B8794;line-height:1.55;">Secure sign-in powered by Firebase Authentication.</p>
         </div>
-        <form id="signupForm" style="display:block;">
-          <label style="display:block;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#5B6B7C;margin-bottom:6px;">Email</label>
-          <input id="signupEmail" type="email" placeholder="you@example.com" required style="width:100%;padding:13px 14px;margin-bottom:12px;border:1px solid #D8E0E8;border-radius:10px;font-size:15px;background:#fff;box-sizing:border-box;">
-          <label style="display:block;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#5B6B7C;margin-bottom:6px;">Password</label>
-          <input id="signupPassword" type="password" placeholder="Create a password" required minlength="6" style="width:100%;padding:13px 14px;margin-bottom:16px;border:1px solid #D8E0E8;border-radius:10px;font-size:15px;background:#fff;box-sizing:border-box;">
-          <button type="submit" style="width:100%;padding:14px;border:0;border-radius:10px;background:linear-gradient(135deg,#14532D,#166534);color:#fff;font-size:15px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;box-shadow:0 10px 22px rgba(20,83,45,.25);">Create account</button>
-        </form>
-        <form id="loginForm" style="display:none;">
-          <label style="display:block;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#5B6B7C;margin-bottom:6px;">Email</label>
-          <input id="loginEmail" type="email" placeholder="you@example.com" required style="width:100%;padding:13px 14px;margin-bottom:12px;border:1px solid #D8E0E8;border-radius:10px;font-size:15px;background:#fff;box-sizing:border-box;">
-          <label style="display:block;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#5B6B7C;margin-bottom:6px;">Password</label>
-          <input id="loginPassword" type="password" placeholder="Your password" required style="width:100%;padding:13px 14px;margin-bottom:16px;border:1px solid #D8E0E8;border-radius:10px;font-size:15px;background:#fff;box-sizing:border-box;">
-          <button type="submit" style="width:100%;padding:14px;border:0;border-radius:10px;background:linear-gradient(135deg,#14532D,#166534);color:#fff;font-size:15px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;box-shadow:0 10px 22px rgba(20,83,45,.25);">Log in</button>
-        </form>
-        <p id="authMessage" style="min-height:20px;margin:14px 0 0;text-align:center;font-size:13px;font-weight:700;color:#DC2626;"></p>
-        <p style="margin:18px 0 0;text-align:center;font-size:11px;color:#7B8794;line-height:1.5;">By continuing, you agree to use QB Sense for football training purposes.</p>
       </div>
     </div>
   </div>
 </div>
+
 <script>
 const showSignupButton=document.getElementById("showSignup");
 const showLoginButton=document.getElementById("showLogin");
 const signupFormCard=document.getElementById("signupForm");
 const loginFormCard=document.getElementById("loginForm");
-function showSignupTab(){signupFormCard.style.display="block";loginFormCard.style.display="none";showSignupButton.style.background="#fff";showSignupButton.style.color="#0A1628";showSignupButton.style.boxShadow="0 1px 3px rgba(0,0,0,.08)";showLoginButton.style.background="transparent";showLoginButton.style.color="#5B6B7C";showLoginButton.style.boxShadow="none";document.getElementById("authMessage").textContent="";}
-function showLoginTab(){signupFormCard.style.display="none";loginFormCard.style.display="block";showLoginButton.style.background="#fff";showLoginButton.style.color="#0A1628";showLoginButton.style.boxShadow="0 1px 3px rgba(0,0,0,.08)";showSignupButton.style.background="transparent";showSignupButton.style.color="#5B6B7C";showSignupButton.style.boxShadow="none";document.getElementById("authMessage").textContent="";}
+function showSignupTab(){signupFormCard.style.display="block";loginFormCard.style.display="none";showSignupButton.style.background="#fff";showSignupButton.style.color="#0A1628";showSignupButton.style.boxShadow="0 2px 6px rgba(0,0,0,.08)";showLoginButton.style.background="transparent";showLoginButton.style.color="#5B6B7C";showLoginButton.style.boxShadow="none";document.getElementById("authMessage").textContent="";}
+function showLoginTab(){signupFormCard.style.display="none";loginFormCard.style.display="block";showLoginButton.style.background="#fff";showLoginButton.style.color="#0A1628";showLoginButton.style.boxShadow="0 2px 6px rgba(0,0,0,.08)";showSignupButton.style.background="transparent";showSignupButton.style.color="#5B6B7C";showSignupButton.style.boxShadow="none";document.getElementById("authMessage").textContent="";}
 showSignupButton.addEventListener("click",showSignupTab);
 showLoginButton.addEventListener("click",showLoginTab);
 </script>
@@ -1073,7 +1120,7 @@ if(location.hash==='#drills'){go('drills');}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js";
 
 const firebaseConfig={apiKey:"AIzaSyDuvuM5uTaAY7tV3nazl7hZdCgC3GdxeC0",authDomain:"qb-sense.firebaseapp.com",projectId:"qb-sense",storageBucket:"qb-sense.firebasestorage.app",messagingSenderId:"304842558509",appId:"1:304842558509:web:0732a12a9ad5cd9e60bca4",measurementId:"G-SM1FMT6EXH"};
 const app=initializeApp(firebaseConfig);
@@ -1082,12 +1129,16 @@ const authOverlay=document.getElementById("authOverlay");
 const authMessage=document.getElementById("authMessage");
 const welcomeBanner=document.getElementById("welcomeBanner");
 const welcomeName=document.getElementById("welcomeName");
+const googleProvider=new GoogleAuthProvider();
 
 function showApp(user){authOverlay.style.display="none";localStorage.setItem("qbsense_user",user.email);if(welcomeBanner&&welcomeName){welcomeName.textContent=user.displayName||user.email.split("@")[0];welcomeBanner.hidden=false;}}
 function showLogin(){authOverlay.style.display="flex";localStorage.removeItem("qbsense_user");if(welcomeBanner)welcomeBanner.hidden=true;}
+function setMessage(text,color){authMessage.textContent=text;authMessage.style.color=color||"#DC2626";}
 
-document.getElementById("signupForm").addEventListener("submit",async e=>{e.preventDefault();authMessage.style.color="#DC2626";authMessage.textContent="Creating account...";try{await createUserWithEmailAndPassword(auth,document.getElementById("signupEmail").value.trim(),document.getElementById("signupPassword").value);authMessage.style.color="#14532D";authMessage.textContent="Account created successfully!";}catch(error){authMessage.textContent=error.message;}});
-document.getElementById("loginForm").addEventListener("submit",async e=>{e.preventDefault();authMessage.style.color="#DC2626";authMessage.textContent="Logging in...";try{await signInWithEmailAndPassword(auth,document.getElementById("loginEmail").value.trim(),document.getElementById("loginPassword").value);authMessage.style.color="#14532D";authMessage.textContent="Logged in successfully!";}catch(error){authMessage.textContent="Incorrect email or password.";}});
+document.getElementById("signupForm").addEventListener("submit",async e=>{e.preventDefault();setMessage("Creating account...");try{await createUserWithEmailAndPassword(auth,document.getElementById("signupEmail").value.trim(),document.getElementById("signupPassword").value);setMessage("Account created successfully!","#14532D");}catch(error){setMessage(error.message);}});
+document.getElementById("loginForm").addEventListener("submit",async e=>{e.preventDefault();setMessage("Logging in...");try{await signInWithEmailAndPassword(auth,document.getElementById("loginEmail").value.trim(),document.getElementById("loginPassword").value);setMessage("Logged in successfully!","#14532D");}catch(error){setMessage("Incorrect email or password.");}});
+document.getElementById("googleSignIn").addEventListener("click",async()=>{setMessage("Opening Google sign-in...","#14532D");try{await signInWithPopup(auth,googleProvider);}catch(error){setMessage(error.message);}});
+document.getElementById("forgotPassword").addEventListener("click",async()=>{const email=document.getElementById("loginEmail").value.trim();if(!email){setMessage("Enter your email first, then tap Forgot password.");return;}setMessage("Sending reset email...","#14532D");try{await sendPasswordResetEmail(auth,email);setMessage("Password reset email sent. Check your inbox.","#14532D");}catch(error){setMessage(error.message);}});
 onAuthStateChanged(auth,user=>{if(user){showApp(user);}else{showLogin();}});
 window.logoutQB=async function(){await signOut(auth);};
 </script>
