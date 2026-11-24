@@ -1137,7 +1137,25 @@ function showApp(user){authOverlay.style.display="none";localStorage.setItem("qb
 function showLogin(){authOverlay.style.display="flex";localStorage.removeItem("qbsense_user");if(welcomeBanner)welcomeBanner.hidden=true;}
 function setMessage(text,color){authMessage.textContent=text;authMessage.style.color=color||"#DC2626";}
 
-document.getElementById("signupForm").addEventListener("submit",async e=>{e.preventDefault();setMessage("Creating account...");try{await createUserWithEmailAndPassword(auth,document.getElementById("signupEmail").value.trim(),document.getElementById("signupPassword").value);setMessage("Account created successfully!","#14532D");}catch(error){setMessage(error.message);}});
+document.getElementById("signupForm").addEventListener("submit",async e=>{e.preventDefault();setMessage("Creating account...");try{
+  const userCredential = await createUserWithEmailAndPassword(
+    auth,
+    document.getElementById("signupEmail").value.trim(),
+    document.getElementById("signupPassword").value
+  );
+
+  const name = document.getElementById("signupName").value.trim();
+
+  if (name) {
+    await updateProfile(userCredential.user, {
+      displayName: name
+    });
+  }
+
+  setMessage("Account created successfully!", "#14532D");
+} catch(error) {
+  setMessage(error.message);
+}});
 document.getElementById("loginForm").addEventListener("submit",async e=>{e.preventDefault();setMessage("Logging in...");try{await signInWithEmailAndPassword(auth,document.getElementById("loginEmail").value.trim(),document.getElementById("loginPassword").value);setMessage("Logged in successfully!","#14532D");}catch(error){setMessage("Incorrect email or password.");}});
 document.getElementById("googleSignIn").addEventListener("click",async()=>{setMessage("Opening Google sign-in...","#14532D");try{await signInWithPopup(auth,googleProvider);}catch(error){setMessage(error.message);}});
 document.getElementById("forgotPassword").addEventListener("click",async()=>{const email=document.getElementById("loginEmail").value.trim();if(!email){setMessage("Enter your email first, then tap Forgot password.");return;}setMessage("Sending reset email...","#14532D");try{await sendPasswordResetEmail(auth,email);setMessage("Password reset email sent. Check your inbox.","#14532D");}catch(error){setMessage(error.message);}});
