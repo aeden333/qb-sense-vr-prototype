@@ -5,14 +5,14 @@ var ctx=canvas.getContext('2d');
 function drawOL(){
 try{
 if(typeof phase==='undefined'||typeof st==='undefined'||typeof LOSY==='undefined'||typeof QBX==='undefined'||typeof QBY==='undefined')return;
-if(phase!=='read')return;
-var now=Date.now()-st.t0;
-var progress=Math.max(0,Math.min(1,now/st.press));
+if(phase!=='pre'&&phase!=='read')return;
+var now=phase==='read'?Date.now()-st.t0:0;
+var progress=phase==='read'?Math.max(0,Math.min(1,now/st.press)):0;
 var startY=LOSY-6;
 var endY=QBY-34;
 var offsets=[-120,-60,0,60,120];
 var labels=['LT','LG','C','RG','RT'];
-var blitzSide=st.extra>0?(st.bx&&st.bx[0]<QBX?-1:1):0;
+var blitzSide=phase==='read'&&st.extra>0?(st.bx&&st.bx[0]<QBX?-1:1):0;
 ctx.save();
 ctx.strokeStyle='rgba(37,99,235,.45)';
 ctx.lineWidth=3;
@@ -24,7 +24,7 @@ var x=QBX+offsets[i];
 var y=startY+(endY-startY)*progress;
 var beaten=(blitzSide===1&&i>=3)||(blitzSide===-1&&i<=1);
 if(beaten){x+=blitzSide*progress*24;y+=progress*8}
-ctx.fillStyle=(progress>0.82)?'#B91C1C':'#2563EB';
+ctx.fillStyle=(phase==='read'&&progress>0.82)?'#B91C1C':'#2563EB';
 ctx.beginPath();ctx.arc(x,y,13,0,Math.PI*2);ctx.fill();
 ctx.fillStyle='#fff';ctx.font='bold 10px sans-serif';ctx.textAlign='center';
 ctx.fillText(labels[i],x,y+4);
