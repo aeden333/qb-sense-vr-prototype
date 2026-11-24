@@ -31,30 +31,51 @@ function badgeList(c){return[
 ] }
 function render(){
 var sec=document.getElementById('results');if(!sec)return;var c=compute();
-var card=document.getElementById('metricsCard');if(!card){card=document.createElement('div');card.id='metricsCard';card.className='card';sec.insertBefore(card,sec.firstChild)}
+var layout=document.getElementById('resultsLayout');
+if(!layout){
+layout=document.createElement('div');layout.id='resultsLayout';
+layout.style.cssText='display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;align-items:start';
+var main=document.createElement('div');main.id='resultsMain';main.style.minWidth='0';
+var side=document.createElement('aside');side.id='resultsSidebar';side.style.minWidth='0';
+var children=Array.prototype.slice.call(sec.children);
+children.forEach(function(child){main.appendChild(child)});
+layout.appendChild(main);layout.appendChild(side);sec.appendChild(layout);
+if(window.matchMedia&&window.matchMedia('(max-width:900px)').matches){layout.style.gridTemplateColumns='1fr'}
+}
+var main=document.getElementById('resultsMain'),side=document.getElementById('resultsSidebar');
+var card=document.getElementById('metricsCard');
+if(!card){card=document.createElement('div');card.id='metricsCard';card.className='card';side.appendChild(card)}
 var goal=50,pct=Math.min(100,Math.round(c.weekReps/goal*100)),trend=spark(c.ratings.map(function(r){return r.rating}));
 var badges=badgeList(c),unlocked=badges.filter(function(b){return b.value>=b.goal}).length;
-card.innerHTML='<h2>Streaks &amp; Milestones</h2><div class="stats"><span>This week <b>'+c.weekReps+'/'+goal+' reps</b></span><span>Streak <b>'+c.streak+' days</b></span><span>Total reps <b>'+c.totalReps+'</b></span></div><div style="height:8px;background:#E5E7EB;border-radius:4px;overflow:hidden;margin:8px 0"><span style="display:block;height:100%;width:'+pct+'%;background:#14532D"></span></div><div id="qbBadgeCollection" style="margin-top:24px"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px"><div><h3 style="margin:0;font-size:18px;line-height:1.3">Badge Collection</h3><p style="margin:2px 0 0;color:#5B6B7C;font-size:12.5px">Earn badges as you build reps, consistency, and accuracy.</p></div><span style="flex:none;padding:5px 10px;border-radius:999px;background:#F0FDF4;color:#14532D;font-size:11.5px;font-weight:800;white-space:nowrap">'+unlocked+' / '+badges.length+' unlocked</span></div><div id="qbBadgeGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px"></div><p style="font-size:11.5px;color:#64748B;line-height:1.45;margin:12px 0 0">Based on this account’s Progression Reads, Blitz Recognition, and Game Situations history saved in this browser. Streak badges reflect your current streak; the accuracy badge reflects your latest session. Records without a rep count do not increase rep milestones.</p></div><div class="stats" style="margin-top:10px"><span>QB Rating trend</span></div>'+(trend||'<small>Complete a few drills to see your trend.</small>');
+card.innerHTML='<h2 style="font-size:17px">Badge Collection</h2><p style="font-size:12px;color:#5B6B7C;margin:0 0 12px">'+unlocked+' of '+badges.length+' unlocked.</p><div id="qbBadgeGrid" style="display:grid;gap:8px"></div><p style="font-size:10.5px;color:#64748B;line-height:1.4;margin:10px 0 0">Streak badges reflect your current streak. The accuracy badge reflects your latest session. Rep milestones count recorded reps.</p>';
 var grid=card.querySelector('#qbBadgeGrid');
 badges.forEach(function(b){
-var earned=b.value>=b.goal,percent=Math.max(0,Math.min(100,Math.round(b.value/b.goal*100)));
+var earned=b.value>=b.goal;
 var tile=document.createElement('article');
-tile.style.cssText='position:relative;border:1px solid '+(earned?'#86EFAC':'#E2E8F0')+';border-radius:12px;padding:12px;background:'+(earned?'#F7FEF8':'#FFFFFF')+';color:#0A1628;box-shadow:0 1px 2px rgba(15,23,42,.04)';
+tile.style.cssText='border:1px solid '+(earned?'#86EFAC':'#E2E8F0')+';border-radius:10px;padding:10px;background:'+(earned?'#F7FEF8':'#FFFFFF')+';color:#0A1628';
 var top=document.createElement('div');top.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px';
+var left=document.createElement('div');left.style.cssText='display:flex;align-items:center;gap:8px;min-width:0';
 var icon=document.createElement('div');icon.textContent=b.icon;icon.setAttribute('aria-hidden','true');
-icon.style.cssText='display:grid;place-items:center;min-width:34px;height:34px;border-radius:9px;font-size:10.5px;font-weight:900;letter-spacing:-.02em;background:'+(earned?'#FDE68A':'#F1F5F9')+';color:'+(earned?'#78350F':'#475569');top.appendChild(icon);
-var status=document.createElement('span');status.textContent=earned?'Earned':'Locked';status.style.cssText='flex:none;padding:3px 7px;border-radius:999px;font-size:10px;font-weight:800;background:'+(earned?'#DCFCE7':'#F1F5F9')+';color:'+(earned?'#14532D':'#64748B');top.appendChild(status);
+icon.style.cssText='display:grid;place-items:center;min-width:30px;height:30px;border-radius:8px;font-size:9.5px;font-weight:900;background:'+(earned?'#FDE68A':'#F1F5F9')+';color:'+(earned?'#78350F':'#475569');left.appendChild(icon);
+var name=document.createElement('div');name.textContent=b.name;name.style.cssText='font-size:12.5px;font-weight:800;line-height:1.2';left.appendChild(name);
+top.appendChild(left);
+var status=document.createElement('span');status.textContent=earned?'Earned':'Locked';status.style.cssText='flex:none;padding:2px 6px;border-radius:999px;font-size:9.5px;font-weight:800;background:'+(earned?'#DCFCE7':'#F1F5F9')+';color:'+(earned?'#14532D':'#64748B');top.appendChild(status);
 tile.appendChild(top);
-var h=document.createElement('h4');h.textContent=b.name;h.style.cssText='margin:8px 0 3px;font-size:13px;line-height:1.25';tile.appendChild(h);
-var rule=document.createElement('p');rule.textContent=b.rule;rule.style.cssText='margin:0;font-size:11.5px;line-height:1.35;color:#5B6B7C';tile.appendChild(rule);
-var progress=document.createElement('progress');progress.max=b.goal;progress.value=Math.min(b.goal,Math.max(0,b.value));progress.setAttribute('aria-label',b.name+' progress');progress.style.cssText='display:block;width:100%;height:6px;margin:9px 0 5px;accent-color:#14532D';tile.appendChild(progress);
-var text=document.createElement('p');text.style.cssText='margin:0;font-size:11px;font-weight:600;color:#334155';
-text.textContent=b.unit==='%'?(c.hasResults?b.value+'% latest accuracy · 80% goal':'No session yet · 80% goal'):b.value+' / '+b.goal+' '+b.unit;tile.appendChild(text);
-if(!earned){var left=document.createElement('p');left.style.cssText='margin:3px 0 0;font-size:11px;color:#64748B';left.textContent=b.unit==='%'?'Finish your next recorded session at 80% or higher.':(b.goal-b.value)+' more '+b.unit+' to unlock.';tile.appendChild(left)}
+var rule=document.createElement('p');rule.textContent=b.rule;rule.style.cssText='margin:5px 0 0;font-size:10.5px;line-height:1.3;color:#5B6B7C';tile.appendChild(rule);
+var progress=document.createElement('progress');progress.max=b.goal;progress.value=Math.min(b.goal,Math.max(0,b.value));progress.setAttribute('aria-label',b.name+' progress');progress.style.cssText='display:block;width:100%;height:5px;margin:7px 0 4px;accent-color:#14532D';tile.appendChild(progress);
+var text=document.createElement('p');text.style.cssText='margin:0;font-size:10.5px;font-weight:600;color:#334155';
+text.textContent=b.unit==='%'?(c.hasResults?b.value+'% latest accuracy / 80% goal':'No session yet / 80% goal'):b.value+' / '+b.goal+' '+b.unit;tile.appendChild(text);
+if(!earned){var need=document.createElement('p');need.style.cssText='margin:2px 0 0;font-size:10px;color:#64748B';need.textContent=b.unit==='%'?'Finish your next recorded session at 80% or higher.':(b.goal-b.value)+' more '+b.unit+' to unlock.';tile.appendChild(need)}
 grid.appendChild(tile);
 });
+if(!document.getElementById('qbRatingTrend')){
+var trendCard=document.createElement('div');trendCard.id='qbRatingTrend';trendCard.className='card';
+trendCard.innerHTML='<div class="stats"><span>QB Rating trend</span></div>'+(trend||'<small>Complete a few drills to see your trend.</small>');
+main.appendChild(trendCard);
+}
 }
 document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('[data-page="results"],[data-goto="results"]'))setTimeout(render,0)});
+window.addEventListener('resize',function(){var l=document.getElementById('resultsLayout');if(l)l.style.gridTemplateColumns=window.matchMedia('(max-width:900px)').matches?'1fr':'minmax(0,1fr) 300px'});
 window.addEventListener('storage',render);
 window.addEventListener('pageshow',render);
 render();
