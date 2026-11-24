@@ -2,10 +2,19 @@
 function load(){try{return JSON.parse(localStorage.getItem('qbsense_clips')||'[]')}catch(e){return[]}}
 function save(a){localStorage.setItem('qbsense_clips',JSON.stringify(a))}
 function me(){return localStorage.getItem('qbsense_user')||'guest'}
+function target(){
+var sec=document.getElementById('results');if(!sec)return null;
+var main=document.getElementById('resultsMain')||sec;
+var stats=main.querySelector('.stats');
+if(stats&&stats.nextSibling)return{parent:main,before:stats.nextSibling};
+var trend=document.getElementById('qbRatingTrend');
+if(trend)return{parent:main,before:trend};
+return{parent:main,before:null};
+}
 function render(){
-var sec=document.getElementById('results');if(!sec)return;
+var place=target();if(!place)return;
 var card=document.getElementById('clipCard');
-if(!card){card=document.createElement('div');card.id='clipCard';card.className='card';sec.appendChild(card)}
+if(!card){card=document.createElement('div');card.id='clipCard';card.className='card';place.parent.insertBefore(card,place.before)}
 var clips=load().filter(function(c){return (c.email||'guest')===me()});
 var html='<h2>Clip Review</h2>';
 html+='<div class="field"><label>Video link (YouTube, Hudl, Google Drive)</label><input id="clipUrl" placeholder="https://..."></div>';
@@ -22,8 +31,7 @@ html+='</div>';
 card.innerHTML=html;
 var add=document.getElementById('addClip');
 if(add)add.onclick=function(){
-var url=document.getElementById('clipUrl').value.trim();
-if(!url)return;
+var url=document.getElementById('clipUrl').value.trim();if(!url)return;
 var rec={email:me(),date:new Date().toISOString(),url:url,drill:document.getElementById('clipDrill').value,coverage:document.getElementById('clipCoverage').value,concept:document.getElementById('clipConcept').value,result:document.getElementById('clipResult').value,note:document.getElementById('clipNote').value};
 var all=load();all.unshift(rec);save(all);render();
 };
