@@ -48,7 +48,7 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <p><button class="btn" id="start">Start session</button></p>
 </div>
 <div id="game" class="card hidden">
-<div class="stats"><span>Rep <b id="repN">0</b>/10</span><span>Correct <b id="okN">0</b></span><span>Level <b id="lvN">1</b></span><span>Last read <b id="rt">-</b></span><span id="pressureLabel">Rush remaining <b id="pressureTime">-</b></span></div>
+<div class="stats"><span>Rep <b id="repN">0</b>/10</span><span>Correct <b id="okN">0</b></span><span>Level <b id="lvN">1</span></span><span>Last read <b id="rt">-</b></span><span id="pressureLabel">Rush remaining <b id="pressureTime">-</b></span></div>
 <div id="sit"></div>
 <canvas id="c" width="640" height="440"></canvas>
 <div class="clock"><span id="clk"></span></div>
@@ -113,6 +113,14 @@ g.strokeStyle='rgba(255,255,255,.2)';g.lineWidth=1;
 for(var y=GL+PX;y<H;y+=PX){g.beginPath();g.moveTo(0,y);g.lineTo(W,y);g.stroke()}
 g.strokeStyle='#fff';g.lineWidth=4;g.beginPath();g.moveTo(0,GL);g.lineTo(W,GL);g.stroke();g.strokeStyle='#FACC15';g.lineWidth=3;g.beginPath();g.moveTo(0,st.los);g.lineTo(W,st.los);g.stroke();
 var live=st.on||st.done,el=live?elapsed():0,p=live?cl(el/st.routeMs):0;
+var olY=QY()-30,olX=[QB.x-120,QB.x-60,QB.x,QB.x+60,QB.x+120],olLabels=['LT','LG','C','RG','RT'];
+var olProgress=live&&st.rushOn?cl(el/st.press):0;
+g.strokeStyle='rgba(37,99,235,.45)';g.lineWidth=3;g.beginPath();g.arc(QB.x,QY()-8,95,Math.PI*1.15,Math.PI*1.85);g.stroke();
+for(var oi=0;oi<5;oi++){
+var ox=olX[oi],oy=olY+olProgress*16;
+if(st.rushOn&&((st.side===1&&oi>=3)||(st.side===-1&&oi<=1))){ox+=st.side*olProgress*22;oy+=olProgress*10}
+g.fillStyle=(st.rushOn&&olProgress>0.82)?'#B91C1C':'#2563EB';g.beginPath();g.arc(ox,oy,13,0,7);g.fill();
+g.fillStyle='#fff';g.font='bold 10px sans-serif';g.textAlign='center';g.fillText(olLabels[oi],ox,oy+4)}
 if(live){
 g.strokeStyle='rgba(255,255,255,.18)';g.setLineDash([6,6]);g.lineWidth=2;
 for(var i=0;i<n;i++){var a=pts(i);g.beginPath();g.moveTo(a[0][0],a[0][1]);for(var k=1;k<a.length;k++)g.lineTo(a[k][0],a[k][1]);g.stroke()}
