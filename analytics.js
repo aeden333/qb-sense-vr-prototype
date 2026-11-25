@@ -36,3 +36,13 @@
     }
   }, true);
 })();
+/* Load the local replay adapter from this existing deferred page bootstrap. */
+(function(){
+if(!/(?:twominute-sim|game-scenarios)\.html$/.test(location.pathname))return;
+var start=document.getElementById('start'),disabled=start?start.disabled:false;
+if(start)start.disabled=true;
+var script=document.createElement('script');script.src='saved-route-replay.js';
+script.onload=function(){if(start)start.disabled=disabled};
+script.onerror=function(){var note=document.createElement('p');note.setAttribute('role','alert');note.textContent='Saved-route replay could not load. Reload before starting the drill.';var setup=document.getElementById('setup');if(setup)setup.appendChild(note)};
+document.head.appendChild(script);
+})();
