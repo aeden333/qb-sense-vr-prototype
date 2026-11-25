@@ -37,7 +37,7 @@ loop();
 })();
 (function(){
 if(!/(?:twominute-sim|game-scenarios)\.html$/.test(location.pathname)||typeof nextPlay!=='function')return;
-// Depths are representative pre-snap yards, converted with the field's PX scale.
+// Representative coaching defaults, not universal coverage tells.
 var looks={
 'Man':{cb:1,slot:4,s:[14,14],lb:5,man:true},
 'Cover 0':{cb:1,slot:4,s:[],lb:4,man:true},
@@ -62,12 +62,13 @@ if(/twominute-sim\.html$/.test(location.pathname))Object.assign(PROB,{
 'Simulated Blitz':{Q:0.45,M:0.36,D:0.22}
 });
 Object.assign(COVNOTE,{
-'Cover 2 Man':'Cover 2 Man: underneath man coverage with two deep safeties. Work leverage and crossing routes.',
-'Cover 3 Match':'Cover 3 Match: a three-deep structure with route-matching rules. Read the defenders after the snap.',
-'Cover 6':'Cover 6: quarters to the left and a deep half to the right in this training look. Attack the appropriate side.',
-'Cover 4 Palms':'Cover 4 Palms: a two-high match structure. Corners can react to quick outside releases by the slot.',
-'Fire Zone':'Fire Zone: five rushers with a three-deep, three-under structure. Find the vacated underneath space.',
-'Simulated Blitz':'Simulated Blitz: show extra pressure but rush four. The alignment alone does not identify the rushers.'
+'Man':'Man: this teaching package uses two-high man-under, the same family as Cover 2 Man.',
+'Cover 2 Man':'Cover 2 Man: man underneath with two deep safeties. Read leverage and help.',
+'Cover 3 Match':'Cover 3 Match: one-high structure with formation-aware spacing. Full post-snap matching is not simulated.',
+'Cover 6':'Cover 6: quarters to receiver strength and a deep half opposite in this teaching package.',
+'Cover 4 Palms':'Cover 4 Palms: two-high, read-2 spacing with a trips poach check. Full post-snap matching is not simulated.',
+'Fire Zone':'Fire Zone: a five-rusher, three-deep pressure look. Post-snap coverage remains simplified.',
+'Simulated Blitz':'Simulated Blitz: show extra pressure with a four-man rush count. Rusher/dropper exchanges are not simulated.'
 });
 var coach=document.querySelector('#setup .coach');
 var select=document.getElementById('coverageChoice');
@@ -77,8 +78,6 @@ select=document.createElement('select');select.id='coverageChoice';
 ['Random'].concat(ALLCOV).forEach(function(name){var o=document.createElement('option');o.value=name==='Random'?'rand':name;o.textContent=name;select.appendChild(o)});
 label.appendChild(select);coach.insertBefore(label,coach.firstChild);
 }
-// Original nextPlay owns route choice and receiver-open sampling. Set the
-// selected coverage before its openP calls so probabilities remain consistent.
 var originalNext=nextPlay,originalOpen=openP;
 openP=function(i){
 if(st._coveragePrepared!==st.play){
@@ -93,37 +92,95 @@ if(st.play.r[i].c==='BLOCK')return 0;
 return originalOpen(i);
 };
 nextPlay=function(){st._coveragePrepared=null;originalNext()};
+function legacyAlign(){
+var look=looks[st.cvg]||looks['Cover 3'],sf=[],lb=[];
+look.s.forEach(function(d,i){sf.push({x:look.s.length===1?W/2:(i?W*.75:W*.25),y:LOSY-d*PX})});
+var count=Math.max(0,7-st.extra-st.play.r.length-sf.length);
+for(var i=0;i<count;i++)lb.push({x:W*(i+1)/(count+1),y:LOSY-look.lb*PX});
+return{cd:[],sf:sf,lb:lb};
+}
 align=function(inclBlitz){
-var look=looks[st.cvg]||looks['Cover 3'],cd=[],sf=[],lb=[],L=LOSY;
-var routes=st.play.r.map(function(r,i){return{x:r.x,i:i}}).sort(function(a,b){return a.x-b.x});
-function pos(x,depth){return{x:Math.max(18,Math.min(W-18,x)),y:L-depth*PX}}
-look.s.forEach(function(depth,i){sf.push(pos(look.s.length===1?W/2:(i?W*0.75:W*0.25),depth))});
-if(!inclBlitz){
-var remaining=Math.max(0,7-st.extra-st.play.r.length-sf.length);
-for(var u=0;u<remaining;u++)lb.push(pos(W*(u+1)/(remaining+1),look.lb));
-return{cd:cd,sf:sf,lb:lb};
+// Keep the existing post-snap renderer contract; this engine models pre-snap checks.
+if(!inclBlitz)return legacyAlign(false);
+var c=st.cvg,look=looks[c]||looks['Cover 3'],cd=[],sf=[],lb=[],all=[];
+var center=QBX,scaleX=(SR-SL)/(160/3),box=6*scaleX;
+var routes=st.play.r.map(function(r,i){return{x:r.x,y:r.y||0,i:i,back:(r.y||0)>20}});
+var wide=routes.filter(function(r){return !r.back});
+var left=wide.filter(function(r){return r.x<center}).sort(function(a,b){return a.x-b.x});
+var right=wide.filter(function(r){return r.x>=center}).sort(function(a,b){return b.x-a.x});
+var strong=right.length>=left.length?1:-1;
+var distance=Number.isFinite(G.ball)?Math.max(0,G.ball):75;
+var longSituation=G.toGo>=12&&G.clock<=30;
+function depth(d,role){
+if(role==='S'){
+if(distance<=10)d=Math.min(d,Math.max(6,distance*.65+3));
+else if(distance<=20)d=Math.min(d,11);
+else if(longSituation)d=Math.min(20,d+3);
+}else if(role==='CB'&&distance<=10)d=Math.min(d,4);
+else if(role==='CB'&&longSituation&&d>=6)d+=2;
+return Math.max(.75,Math.min(d,distance+7));
 }
-var outside=[routes[0],routes[routes.length-1]];
-var marks=look.man?routes:outside.filter(function(r,i,a){return r&&(i===0||r.i!==a[0].i)});
-marks.forEach(function(r){
-var isOutside=outside.some(function(o){return o&&o.i===r.i});
-var depth=isOutside?look.cb:look.slot;
-if(look.split&&r===outside[1])depth=2;
-var shade=(r.x<W/2?1:-1)*5;
-if(st.cvg==='Cover 2'||(look.split&&r===outside[1]))shade=-shade;
-cd.push(pos(r.x+shade,depth));
+function add(group,id,x,d,role,assignment){
+var originalX=x,originalD=depth(d,role),p;
+for(var t=0;t<100;t++){
+var step=t?Math.ceil(t/2)*24*(t%2?1:-1):0;
+p={id:id,x:Math.max(SL+14,Math.min(SR-14,originalX+step)),y:LOSY-originalD*PX,role:role,assignment:assignment};
+if(!all.some(function(q){return Math.hypot(p.x-q.x,p.y-q.y)<23}))break;
+if(t>0&&t%20===0)originalD=Math.min(distance+7,originalD+1);
+}
+group.push(p);all.push(p);return p;
+}
+function side(n){return n<0?left:right}
+function outside(n){return side(n)[0]}
+function slot(n){return side(n)[1]}
+function bunch(n){var a=side(n);return a.length>1&&Math.abs(a[0].x-a[a.length-1].x)<7*scaleX}
+function apex(n){var r=slot(n)||outside(n);return r?(center+n*box+r.x)/2:center+n*box}
+function safetyX(n){var r=slot(n)||outside(n);return Math.max(SL+8*scaleX,Math.min(SR-8*scaleX,r?r.x:center+n*10*scaleX))}
+// Consistent four-down front; technique widths follow the existing offensive line.
+[170,270,370,470].forEach(function(x,i){add(lb,'DL'+i,x,1,'DL','rush')});
+if(look.man){
+var outerIds=[outside(-1),outside(1)].filter(Boolean).map(function(r){return r.i});
+routes.forEach(function(r){
+var outer=outerIds.indexOf(r.i)>=0,n=r.x<center?-1:1;
+var d=r.back?5:outer?look.cb:look.slot;
+if(!r.back&&bunch(n))d=outer?5:7+(side(n).findIndex(function(q){return q.i===r.i})%2);
+// Inside leverage is the default man technique in this teaching package.
+var leverage=-n;
+add(cd,'M'+r.i,r.x+leverage*scaleX*.75,d,outer?'CB':'MAN','receiver '+r.i);
 });
-var underneath=7-st.extra-cd.length-sf.length;
-for(var k=0;k<underneath;k++)lb.push(pos(W*(k+1)/(underneath+1),look.lb));
-// Include the four actual linemen in the eleven-player pre-snap defense.
-[170,270,370,470].forEach(function(x){lb.push(pos(x,1))});
-for(var b=0;b<st.extra;b++)lb.push(pos(st.bx[b],2));
-if(st.cvg==='Simulated Blitz'){
-// Walk two underneath defenders up without adding actual rushers.
-for(var m=0;m<Math.min(2,underneath);m++)lb[m]=pos(m?390:250,2);
+}else{
+[-1,1].forEach(function(n){
+var r=outside(n),d=look.cb;
+if(c==='Cover 6')d=n===strong?7:2;
+if(bunch(n))d=Math.max(d,7);
+var cloud=c==='Cover 2'||(c==='Cover 6'&&n!==strong);
+add(cd,n<0?'CBL':'CBR',(r?r.x:center+n*10*scaleX)+(cloud?n:-n)*scaleX,d,'CB',cloud?'flat / reroute':'outside deep / match');
+});
 }
+if(look.s.length===1){
+add(sf,'FS',center+strong*(Math.max(left.length,right.length)>=3?2*scaleX:0),look.s[0],'S','middle third / post');
+}else if(look.s.length===2){
+[-1,1].forEach(function(n,i){
+var d=look.s[i],x=safetyX(n),assignment='deep half';
+if(c==='Cover 4'||c==='Cover 4 Palms')assignment='read #2 / quarters';
+if(c==='Cover 6'){d=n===strong?12:14;assignment=n===strong?'quarters / read #2':'deep half'}
+if(Math.max(left.length,right.length)>=3&&n!==strong&&(c==='Cover 4'||c==='Cover 4 Palms')){x=center+n*4*scaleX;assignment='trips poach check / read #3'}
+add(sf,n<0?'SL':'SR',x,d,'S',assignment);
+});
+}
+var extras=Math.max(0,Math.min(st.extra,7-cd.length-sf.length));
+var count=7-cd.length-sf.length-extras;
+var positions=count===4?[apex(-1),center-2*scaleX,center+2*scaleX,apex(1)]:count===3?[apex(-1),center+strong*scaleX,apex(1)]:count===2?[center-3*scaleX,center+3*scaleX]:[center];
+for(var k=0;k<count;k++){
+var x=positions[k]===undefined?center:positions[k];
+if(count===2&&slot(k?1:-1))x=apex(k?1:-1);
+if(count===3&&k===1&&Math.max(left.length,right.length)>=3)x=center+strong*4*scaleX;
+var mug=c==='Simulated Blitz'&&k<2;
+if(mug)x=center+(k?1:-1)*2.5*scaleX;
+add(lb,'U'+k,x,mug?2:look.lb,'LB',mug?'show pressure; simplified post-snap renderer':'hook / apex / back release');
+}
+for(var b=0;b<extras;b++)add(lb,'BL'+b,center+strong*(b?5:1.5)*scaleX,2,'BL','rush');
 return{cd:cd,sf:sf,lb:lb};
 };
-// Keep the training description honest: these are shells, not a full match engine.
-if(coach){var note=document.createElement('small');note.textContent='Defender depths use yards at the field scale. Alignments are representative coaching looks, not guaranteed coverage tells. Match coverages use a simplified probability model; post-snap route-matching rules are not simulated.';coach.parentNode.insertBefore(note,coach.nextSibling)}
+if(coach){var note=document.createElement('small');note.textContent='Formation-aware pre-snap teaching package: depths in yards, strength checks, bunch spacing and red-zone adjustments. Man uses a two-high man-under default. Coverage cannot be identified with certainty from alignment. Post-snap movement, match/banjo switches and simulated-pressure exchanges remain simplified, not fully simulated.';coach.parentNode.insertBefore(note,coach.nextSibling)}
 })();
