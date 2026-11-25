@@ -63,31 +63,28 @@ body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:c
 <button id="tabSignin" class="active" onclick="showTab('signin')">Sign In</button>
 <button id="tabSignup" onclick="showTab('signup')">Create Account</button>
 </div>
-<form id="signinForm" onsubmit="return handleSignin(event)">
+<form id="signinForm">
 <div class="field"><label for="signinEmail">Player/Coach email</label><input type="email" id="signinEmail" placeholder="you@team.com" required></div>
 <div class="field"><label for="signinPassword">Password</label><input type="password" id="signinPassword" placeholder="••••••••" required></div>
 <div class="remember"><input type="checkbox" id="rememberEmail"><label for="rememberEmail" style="margin:0;text-transform:none;letter-spacing:0;font-weight:600">Remember email</label></div>
 <button class="btn primary" type="submit">Sign In</button>
-<div class="error" id="signinError">Invalid email or password.</div>
+<div class="error" id="signinError"></div>
 <div class="links"><button type="button" class="link-btn" onclick="showTab('reset')">Forgot password?</button></div>
 </form>
-<form id="signupForm" class="hidden" onsubmit="return handleSignup(event)">
+<form id="signupForm" class="hidden">
 <div class="field"><label for="signupName">Player/Coach name</label><input type="text" id="signupName" placeholder="Player/Coach Name" required></div>
 <div class="field"><label for="signupEmail">Player/Coach email</label><input type="email" id="signupEmail" placeholder="you@team.com" required></div>
 <div class="field"><label for="signupPassword">Password</label><input type="password" id="signupPassword" placeholder="Create a password" minlength="6" required></div>
 <button class="btn primary" type="submit">Create Account</button>
-<div class="error" id="signupError">Could not create account. Try again.</div>
+<div class="error" id="signupError"></div>
 </form>
-<form id="resetForm" class="hidden" onsubmit="return handleReset(event)">
+<form id="resetForm" class="hidden">
 <h2 class="reset-title">Reset password</h2>
-<p class="reset-help">Enter your account email and the name you used when you created your account, then choose a new password.</p>
+<p class="reset-help">Enter your account email and we will send you a link to choose a new password.</p>
 <div class="field"><label for="resetEmail">Player/Coach email</label><input type="email" id="resetEmail" placeholder="you@team.com" required></div>
-<div class="field"><label for="resetName">Player/Coach name</label><input type="text" id="resetName" placeholder="Name used at sign-up" required></div>
-<div class="field"><label for="resetPassword">New password</label><input type="password" id="resetPassword" placeholder="New password" minlength="6" required></div>
-<div class="field"><label for="resetConfirm">Confirm new password</label><input type="password" id="resetConfirm" placeholder="Repeat new password" minlength="6" required></div>
-<button class="btn primary" type="submit">Reset Password</button>
+<button class="btn primary" type="submit">Send Reset Link</button>
 <div class="error" id="resetError"></div>
-<div class="success" id="resetSuccess">Password updated. Taking you back to sign in…</div>
+<div class="success" id="resetSuccess">If an account exists for that email, a reset link is on its way.</div>
 <div class="links"><button type="button" class="link-btn" onclick="showTab('signin')">Back to sign in</button></div>
 </form>
 <div class="divider">or</div>
@@ -95,7 +92,7 @@ body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:c
 <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
 Continue with Google
 </button>
-<div class="error" id="googleError">Google sign-in is unavailable. Try again.</div>
+<div class="error" id="googleError"></div>
 <div class="note">By signing in you agree to the QB Sense VR terms.</div>
 </div>
 </div>
@@ -109,67 +106,8 @@ function showTab(tab){
  document.getElementById('resetError').style.display='none';
  document.getElementById('resetSuccess').style.display='none';
 }
-function handleSignin(e){
- e.preventDefault();
- const email=document.getElementById('signinEmail').value.trim();
- const password=document.getElementById('signinPassword').value;
- const remember=document.getElementById('rememberEmail').checked;
- const users=JSON.parse(localStorage.getItem('qbsense_users')||'{}');
- if(users[email] && users[email].password===password){
-   if(remember){localStorage.setItem('qbsense_remember_email',email)}else{localStorage.removeItem('qbsense_remember_email')}
-   localStorage.setItem('qbsense_user',email);
-   window.location.href='index.html';
-   return false;
- }
- document.getElementById('signinError').style.display='block';
- return false;
-}
-function handleSignup(e){
- e.preventDefault();
- const name=document.getElementById('signupName').value.trim();
- const email=document.getElementById('signupEmail').value.trim();
- const password=document.getElementById('signupPassword').value;
- const users=JSON.parse(localStorage.getItem('qbsense_users')||'{}');
- if(users[email]){document.getElementById('signupError').textContent='An account with this email already exists.';document.getElementById('signupError').style.display='block';return false;}
- users[email]={name:name,password:password,createdAt:new Date().toISOString()};
- localStorage.setItem('qbsense_users',JSON.stringify(users));
- localStorage.setItem('qbsense_user',email);
- window.location.href='index.html';
- return false;
-}
-function handleReset(e){
- e.preventDefault();
- const email=document.getElementById('resetEmail').value.trim();
- const name=document.getElementById('resetName').value.trim().toLowerCase();
- const password=document.getElementById('resetPassword').value;
- const confirmPassword=document.getElementById('resetConfirm').value;
- const error=document.getElementById('resetError');
- const success=document.getElementById('resetSuccess');
- error.style.display='none';
- success.style.display='none';
- if(password!==confirmPassword){
-   error.textContent='Passwords do not match.';
-   error.style.display='block';
-   return false;
- }
- const users=JSON.parse(localStorage.getItem('qbsense_users')||'{}');
- const user=Object.prototype.hasOwnProperty.call(users,email) ? users[email] : null;
- if(!user || String(user.name||'').trim().toLowerCase()!==name){
-   error.textContent='We could not verify that email and name on this device.';
-   error.style.display='block';
-   return false;
- }
- user.password=password;
- localStorage.setItem('qbsense_users',JSON.stringify(users));
- document.getElementById('resetForm').reset();
- success.style.display='block';
- setTimeout(function(){
-   showTab('signin');
-   document.getElementById('signinEmail').value=email;
-   document.getElementById('signinPassword').focus();
- },1500);
- return false;
-}
+// Remove accounts (with plain-text passwords) saved by the old local sign-in.
+try{localStorage.removeItem('qbsense_users')}catch(error){}
 (function(){
  const saved=localStorage.getItem('qbsense_remember_email');
  if(saved){document.getElementById('signinEmail').value=saved;document.getElementById('rememberEmail').checked=true;}
@@ -177,7 +115,7 @@ function handleReset(e){
 </script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup } from 'https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDuvuM5uTaAY7tV3nazl7hZdCgC3GdxeC0',
@@ -192,25 +130,78 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
-const googleButton = document.getElementById('googleSignin');
-const googleError = document.getElementById('googleError');
+const $ = (id) => document.getElementById(id);
 
-googleButton.addEventListener('click', async () => {
-  googleError.style.display = 'none';
-  googleButton.disabled = true;
+const messages = {
+  'auth/invalid-credential': 'Invalid email or password.',
+  'auth/invalid-email': 'Enter a valid email address.',
+  'auth/email-already-in-use': 'An account with this email already exists.',
+  'auth/weak-password': 'Choose a stronger password (at least 6 characters).',
+  'auth/too-many-requests': 'Too many attempts. Wait a moment and try again.',
+  'auth/network-request-failed': 'Network error. Check your connection.',
+  'auth/popup-closed-by-user': 'Google sign-in was canceled.',
+  'auth/popup-blocked': 'Allow pop-ups for this site, then try again.'
+};
+
+function showError(id, error) {
+  $(id).textContent = messages[error.code] || `Something went wrong (${error.code || 'unknown error'}).`;
+  $(id).style.display = 'block';
+}
+
+function openApp(user) {
+  localStorage.setItem('qbsense_user', user.email || user.uid);
+  window.location.href = 'index.html';
+}
+
+// Runs one auth action at a time per button and shows any failure.
+async function run(button, errorId, action) {
+  $(errorId).style.display = 'none';
+  button.disabled = true;
   try {
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-    localStorage.setItem('qbsense_user', user.email || user.uid);
-    window.location.href = 'index.html';
+    await action();
   } catch (error) {
-    googleError.textContent = error.code === 'auth/popup-closed-by-user'
-      ? 'Google sign-in was canceled.'
-      : 'Google sign-in is unavailable. Try again.';
-    googleError.style.display = 'block';
+    showError(errorId, error);
   } finally {
-    googleButton.disabled = false;
+    button.disabled = false;
   }
+}
+
+$('signinForm').addEventListener('submit', (event) => {
+  event.preventDefault();
+  run(event.submitter, 'signinError', async () => {
+    const email = $('signinEmail').value.trim();
+    const { user } = await signInWithEmailAndPassword(auth, email, $('signinPassword').value);
+    if ($('rememberEmail').checked) localStorage.setItem('qbsense_remember_email', email);
+    else localStorage.removeItem('qbsense_remember_email');
+    openApp(user);
+  });
+});
+
+$('signupForm').addEventListener('submit', (event) => {
+  event.preventDefault();
+  run(event.submitter, 'signupError', async () => {
+    const { user } = await createUserWithEmailAndPassword(auth, $('signupEmail').value.trim(), $('signupPassword').value);
+    const name = $('signupName').value.trim();
+    // The account already exists at this point, so a failed name update must not block entry.
+    if (name) await updateProfile(user, { displayName: name }).catch(() => {});
+    openApp(user);
+  });
+});
+
+$('resetForm').addEventListener('submit', (event) => {
+  event.preventDefault();
+  $('resetSuccess').style.display = 'none';
+  run(event.submitter, 'resetError', async () => {
+    await sendPasswordResetEmail(auth, $('resetEmail').value.trim());
+    $('resetSuccess').style.display = 'block';
+  });
+});
+
+$('googleSignin').addEventListener('click', () => {
+  run($('googleSignin'), 'googleError', async () => {
+    const { user } = await signInWithPopup(auth, provider);
+    openApp(user);
+  });
 });
 </script>
 </body>
