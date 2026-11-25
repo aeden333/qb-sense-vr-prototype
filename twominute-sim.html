@@ -146,20 +146,25 @@ st.bx=[230,320,410].sort(function(){return Math.random()-0.5})
 }
 function align(inclBlitz){
 var L=LOSY,c=st.cvg,cd=[],sf=[],lb=[];
-var cbDepth={'Man':8,'Cover 0':5,'Cover 1':12,'Cover 2':18,'Cover 3':22,'Cover 4':22}[c];
-for(var j=0;j<st.play.r.length;j++){var R=st.play.r[j];cd.push({x:R.x,y:L-cbDepth})}
-var s;
-if(c==='Cover 0'){s=[]}
-else if(c==='Cover 1'){s=[[320,L-130]]}
-else if(c==='Cover 2'){s=[[160,L-130],[480,L-130]]}
-else if(c==='Man'){s=[[160,L-130],[480,L-130]]}
-else if(c==='Cover 3'){s=[[320,L-130]]}
-else{s=[[160,L-115],[480,L-115]]}
-s.forEach(function(q){sf.push({x:q[0],y:q[1]})});
-var lbDepth={'Man':30,'Cover 0':22,'Cover 1':30,'Cover 2':32,'Cover 3':32,'Cover 4':32}[c];
+var look={
+'Man':{cb:5,sf:[[160,L-135],[480,L-135]],lb:26},
+'Cover 0':{cb:4,sf:[],lb:18},
+'Cover 1':{cb:10,sf:[[320,L-140]],lb:28},
+'Cover 2':{cb:16,sf:[[150,L-125],[490,L-125]],lb:30},
+'Cover 3':{cb:20,sf:[[320,L-140]],lb:30},
+'Cover 4':{cb:18,sf:[[160,L-115],[480,L-115]],lb:32}
+}[c]||{cb:12,sf:[[320,L-130]],lb:30};
+for(var j=0;j<st.play.r.length;j++){
+var R=st.play.r[j];
+var outside=R.x<320?-8:8;
+cd.push({x:Math.max(30,Math.min(610,R.x+outside)),y:L-look.cb})
+}
+look.sf.forEach(function(q){sf.push({x:q[0],y:q[1]})});
 var total=inclBlitz?11:(11-st.extra);
 var lbCount=Math.max(0,total-cd.length-sf.length);
-for(var k=0;k<lbCount;k++){lb.push({x:100+k*80,y:L-lbDepth})}
+var spread=Math.max(70,Math.min(110,560/Math.max(1,lbCount)));
+var startX=320-(lbCount-1)*spread/2;
+for(var k=0;k<lbCount;k++){lb.push({x:startX+k*spread,y:L-look.lb})}
 return{cd:cd,sf:sf,lb:lb}
 }
 function dot(x,y,l){
