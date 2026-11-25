@@ -114,7 +114,7 @@ var PROB={'Man':{Q:0.3,M:0.3,D:0.25},'Cover 0':{Q:0.45,M:0.4,D:0.45},'Cover 1':{
 var ALLCOV=['Man','Cover 0','Cover 1','Cover 2','Cover 3','Cover 4'];
 var COVNOTE={'Man':'Man: crossing routes and quick throws beat it.','Cover 0':'Cover 0: no deep help. Get rid of it fast or hit the deep shot.','Cover 1':'Cover 1: man with a deep safety. Work the quick routes.','Cover 2':'Cover 2: the flats and sideline holes are soft.','Cover 3':'Cover 3: the short and medium routes are soft.','Cover 4':'Cover 4: quarters. Take what is underneath.'};
 var G={ball:75,down:1,toGo:10,clock:120,timeouts:3,running:false,plays:0,correct:0,times:[],sacks:0,ints:0,result:'',level:1,deficit:2,used:0,startClock:120,startTimeouts:3,att:0,comp:0,yds:0,td:0};
-var st={play:PLAYS[0],cvg:'Man',extra:0,cov:[],ans:0,dur:3000,t0:0,dec:0,y:null,bx:[230,320,410],pv:false};
+var st={play:pickPlay(),cvg:'Man',extra:0,cov:[],ans:0,dur:3000,t0:0,dec:0,y:null,bx:[230,320,410],pv:false};
 var phase='setup',players=[],player=null;
 function $(i){return document.getElementById(i)}
 function cl(p){return p<0?0:p>1?1:p}
