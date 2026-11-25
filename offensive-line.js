@@ -90,7 +90,19 @@ else st.extra=Math.min(st.extra,maxExtra);
 if(st.play.r[i].c==='BLOCK')return 0;
 return originalOpen(i);
 };
-nextPlay=function(){st._coveragePrepared=null;originalNext()};
+nextPlay=function(){
+st._coveragePrepared=null;originalNext();
+var r=st.play.r;
+if(Array.isArray(r)){
+if(r.length>5)r=r.slice(0,5);
+while(r.length<5){
+var x=90;
+if(r.some(function(q){return Math.abs(q.x-90)<60})){x=550;if(r.some(function(q){return Math.abs(q.x-550)<60}))x=300}
+r.push({n:'Checkdown',x:x,y:0,p:[[0,-25]],c:'Q',oob:false});
+}
+st.play.r=r;
+}
+};
 function legacyAlign(){
 var look=looks[st.cvg]||looks['Cover 3'],sf=[],lb=[];
 look.s.forEach(function(d,i){sf.push({x:look.s.length===1?W/2:(i?W*.75:W*.25),y:LOSY-d*PX})});
