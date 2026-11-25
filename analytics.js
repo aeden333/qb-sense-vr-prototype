@@ -46,3 +46,10 @@ script.onload=function(){if(start)start.disabled=disabled};
 script.onerror=function(){var note=document.createElement('p');note.setAttribute('role','alert');note.textContent='Saved-route replay could not load. Reload before starting the drill.';var setup=document.getElementById('setup');if(setup)setup.appendChild(note)};
 document.head.appendChild(script);
 })();
+/* Pocket-only optional control: existing buttons remain usable if loading fails. */
+(function(){
+if(!/pocket-pressure-3d\.html$/.test(location.pathname))return;
+var script=document.createElement('script');script.src='pocket-joystick.js';
+script.onerror=function(){var msg=document.getElementById('msg');if(msg)msg.textContent='Joystick could not load. Use the movement buttons or keyboard.'};
+document.head.appendChild(script);
+})();
