@@ -96,7 +96,7 @@ var look=looks[st.cvg]||looks['Cover 3'],sf=[],lb=[];
 look.s.forEach(function(d,i){sf.push({x:look.s.length===1?W/2:(i?W*.75:W*.25),y:LOSY-d*PX})});
 var count=Math.max(0,7-st.extra-st.play.r.length-sf.length);
 for(var i=0;i<count;i++)lb.push({x:W*(i+1)/(count+1),y:LOSY-look.lb*PX});
-return{cd:[],sf:sf,lb:lb};
+return{cd:[],sf:[],lb:[]};
 }
 align=function(inclBlitz){
 // Keep the existing post-snap renderer contract; this engine models pre-snap checks.
@@ -136,7 +136,8 @@ function bunch(n){var a=side(n);return a.length>1&&Math.abs(a[0].x-a[a.length-1]
 function apex(n){var r=slot(n)||outside(n);return r?(center+n*box+r.x)/2:center+n*box}
 function safetyX(n){var r=slot(n)||outside(n);return Math.max(SL+8*scaleX,Math.min(SR-8*scaleX,r?r.x:center+n*10*scaleX))}
 // Consistent four-down front; technique widths follow the existing offensive line.
-[170,270,370,470].forEach(function(x,i){add(lb,'DL'+i,x,1,'DL','rush')});
+var ppf=(SR-SL)/160,lt=QBX-9*ppf,lg=QBX-4*ppf,rg=QBX+4*ppf,rt=QBX+9*ppf;
+[lt-2.5*ppf,(lg+QBX)/2,(QBX+rg)/2,rt+2.5*ppf].forEach(function(x,i){add(lb,'DL'+i,x,1,'DL','rush')});
 if(look.man){
 var outerIds=[outside(-1),outside(1)].filter(Boolean).map(function(r){return r.i});
 routes.forEach(function(r){
@@ -183,4 +184,3 @@ return{cd:cd,sf:sf,lb:lb};
 };
 if(coach){var note=document.createElement('small');note.textContent='Formation-aware pre-snap teaching package: depths in yards, strength checks, bunch spacing and red-zone adjustments. Man uses a two-high man-under default. Coverage cannot be identified with certainty from alignment. Post-snap movement, match/banjo switches and simulated-pressure exchanges remain simplified, not fully simulated.';coach.parentNode.insertBefore(note,coach.nextSibling)}
 })();
-
