@@ -70,44 +70,45 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <script>
 var cv=document.getElementById('c'),g=cv.getContext('2d');
 var W=640,H=440,LOSY=250,PX=5,QBX=320,QBY=312,SL=6,SR=634;
-var PLAYS=[
-{name:'Four Verticals',r:[
-{n:'Seam',x:70,y:0,p:[[0,-150]],c:'D'},
-{n:'Seam',x:170,y:0,p:[[0,-150]],c:'D'},
-{n:'Seam',x:470,y:0,p:[[0,-150]],c:'D'},
-{n:'Seam',x:570,y:0,p:[[0,-150]],c:'D'}
-]},
-{name:'Mesh',r:[
-{n:'Drag',x:70,y:0,p:[[0,-25],[450,-30]],c:'Q'},
-{n:'Drag',x:570,y:0,p:[[0,-25],[-450,-30]],c:'Q'},
-{n:'Corner',x:470,y:0,p:[[0,-170],[60,-250]],c:'D'},
-{n:'Sit',x:250,y:0,p:[[0,-100],[0,-90]],c:'M'}
-]},
-{name:'Levels',r:[
-{n:'Dig',x:440,y:0,p:[[0,-120],[-110,-120]],c:'M'},
-{n:'Shallow In',x:370,y:0,p:[[0,-55],[-100,-55]],c:'Q'},
-{n:'Go',x:570,y:0,p:[[0,-250]],c:'D'},
-{n:'Out',x:70,y:0,p:[[0,-80],[-50,-80]],c:'Q',oob:true}
-]},
-{name:'Five Verticals',r:[
-{n:'Seam',x:70,y:0,p:[[0,-150]],c:'D'},
-{n:'Seam',x:170,y:0,p:[[0,-150]],c:'D'},
-{n:'Go',x:570,y:0,p:[[0,-250]],c:'D'},
-{n:'Go',x:470,y:0,p:[[0,-250]],c:'D'},
-{n:'Post',x:250,y:0,p:[[0,-170],[-110,-250]],c:'D'}
-]},
-{name:'Flood',r:[
-{n:'Clear',x:570,y:0,p:[[0,-250]],c:'D'},
-{n:'Sail',x:470,y:0,p:[[0,-120],[50,-140]],c:'M'},
-{n:'Flat',x:390,y:0,p:[[40,-30],[90,-40]],c:'Q'},
-{n:'Slant',x:70,y:0,p:[[0,-25],[60,-80]],c:'Q'},
-{n:'RB',x:310,y:62,p:[[0,-10],[80,-50]],c:'Q'}
-]}
+var FORMATIONS=[
+{name:'2x2',wr3:[{x:90},{x:190},{x:450}],wr4:[{x:90},{x:190},{x:450},{x:550}]},
+{name:'Trips Right',wr3:[{x:90},{x:410},{x:450}],wr4:[{x:90},{x:410},{x:450},{x:550}]},
+{name:'Trips Left',wr3:[{x:130},{x:190},{x:450}],wr4:[{x:130},{x:190},{x:450},{x:550}]},
+{name:'Bunch Right',wr3:[{x:400},{x:430},{x:550}],wr4:[{x:400},{x:430},{x:460},{x:550}]},
+{name:'Bunch Left',wr3:[{x:90},{x:180},{x:210}],wr4:[{x:90},{x:180},{x:210},{x:240}]},
+{name:'Empty',wr3:[{x:70},{x:170},{x:470}],wr4:[{x:70},{x:170},{x:300},{x:470}]}
+];
+
+var CONCEPTS=[
+{name:'Slants',wr3:[{n:'Slant',p:[[0,-25],[70,-80]],c:'Q'},{n:'Slant',p:[[0,-25],[-70,-80]],c:'Q'},{n:'Post',p:[[0,-170],[-110,-250]],c:'D'}],wr4:[{n:'Slant',p:[[0,-25],[70,-80]],c:'Q'},{n:'Slant',p:[[0,-25],[-70,-80]],c:'Q'},{n:'Post',p:[[0,-170],[-110,-250]],c:'D'},{n:'Seam',p:[[0,-150]],c:'D'}],rb:[{n:'Swing',p:[[0,-10],[80,-50]],c:'Q'},{n:'Flat',p:[[0,-20],[90,-40]],c:'Q'},{n:'Pass Pro',p:[[0,0]],c:'BLOCK'}]},
+{name:'Flood',wr3:[{n:'Clear',p:[[0,-250]],c:'D'},{n:'Sail',p:[[0,-120],[50,-140]],c:'M'},{n:'Slant',p:[[0,-25],[60,-80]],c:'Q'}],wr4:[{n:'Clear',p:[[0,-250]],c:'D'},{n:'Sail',p:[[0,-120],[50,-140]],c:'M'},{n:'Slant',p:[[0,-25],[60,-80]],c:'Q'},{n:'Corner',p:[[0,-170],[60,-250]],c:'D'}],rb:[{n:'Flat',p:[[0,-20],[90,-40]],c:'Q'},{n:'Wheel',p:[[0,-20],[60,-60],[80,-160]],c:'M'},{n:'Pass Pro',p:[[0,0]],c:'BLOCK'}]},
+{name:'Levels',wr3:[{n:'Dig',p:[[0,-120],[-110,-120]],c:'M'},{n:'Shallow',p:[[0,-55],[-100,-55]],c:'Q'},{n:'Go',p:[[0,-250]],c:'D'}],wr4:[{n:'Dig',p:[[0,-120],[-110,-120]],c:'M'},{n:'Shallow',p:[[0,-55],[-100,-55]],c:'Q'},{n:'Go',p:[[0,-250]],c:'D'},{n:'Out',p:[[0,-80],[-50,-80]],c:'Q',oob:true}],rb:[{n:'Angle',p:[[0,-30],[50,-60],[80,-30]],c:'Q'},{n:'Swing',p:[[0,-10],[80,-50]],c:'Q'},{n:'Pass Pro',p:[[0,0]],c:'BLOCK'}]},
+{name:'Four Verticals',wr3:[{n:'Seam',p:[[0,-150]],c:'D'},{n:'Seam',p:[[0,-150]],c:'D'},{n:'Post',p:[[0,-170],[-110,-250]],c:'D'}],wr4:[{n:'Seam',p:[[0,-150]],c:'D'},{n:'Seam',p:[[0,-150]],c:'D'},{n:'Post',p:[[0,-170],[-110,-250]],c:'D'},{n:'Corner',p:[[0,-170],[60,-250]],c:'D'}],rb:[{n:'Wheel',p:[[0,-20],[60,-60],[80,-160]],c:'M'},{n:'Flat',p:[[0,-20],[90,-40]],c:'Q'},{n:'Pass Pro',p:[[0,0]],c:'BLOCK'}]},
+{name:'Mesh',wr3:[{n:'Drag',p:[[0,-25],[450,-30]],c:'Q'},{n:'Drag',p:[[0,-25],[-450,-30]],c:'Q'},{n:'Corner',p:[[0,-170],[60,-250]],c:'D'}],wr4:[{n:'Drag',p:[[0,-25],[450,-30]],c:'Q'},{n:'Drag',p:[[0,-25],[-450,-30]],c:'Q'},{n:'Corner',p:[[0,-170],[60,-250]],c:'D'},{n:'Sit',p:[[0,-100],[0,-90]],c:'M'}],rb:[{n:'Swing',p:[[0,-10],[80,-50]],c:'Q'},{n:'Angle',p:[[0,-30],[50,-60],[80,-30]],c:'Q'},{n:'Pass Pro',p:[[0,0]],c:'BLOCK'}]},
+{name:'Spacing',wr3:[{n:'Flat',p:[[40,-30],[90,-40]],c:'Q'},{n:'Shallow',p:[[0,-55],[-100,-55]],c:'Q'},{n:'Dig',p:[[0,-120],[-110,-120]],c:'M'}],wr4:[{n:'Flat',p:[[40,-30],[90,-40]],c:'Q'},{n:'Shallow',p:[[0,-55],[-100,-55]],c:'Q'},{n:'Dig',p:[[0,-120],[-110,-120]],c:'M'},{n:'Corner',p:[[0,-170],[60,-250]],c:'D'}],rb:[{n:'Flat',p:[[0,-20],[90,-40]],c:'Q'},{n:'Angle',p:[[0,-30],[50,-60],[80,-30]],c:'Q'},{n:'Pass Pro',p:[[0,0]],c:'BLOCK'}]},
+{name:'Smash',wr3:[{n:'Corner',p:[[0,-170],[60,-250]],c:'D'},{n:'Flat',p:[[40,-30],[90,-40]],c:'Q'},{n:'Post',p:[[0,-170],[-110,-250]],c:'D'}],wr4:[{n:'Corner',p:[[0,-170],[60,-250]],c:'D'},{n:'Flat',p:[[40,-30],[90,-40]],c:'Q'},{n:'Post',p:[[0,-170],[-110,-250]],c:'D'},{n:'Seam',p:[[0,-150]],c:'D'}],rb:[{n:'Flat',p:[[0,-20],[90,-40]],c:'Q'},{n:'Wheel',p:[[0,-20],[60,-60],[80,-160]],c:'M'},{n:'Pass Pro',p:[[0,0]],c:'BLOCK'}]},
+{name:'Dagger',wr3:[{n:'Seam',p:[[0,-150]],c:'D'},{n:'Dig',p:[[0,-120],[-110,-120]],c:'M'},{n:'Shallow',p:[[0,-55],[-100,-55]],c:'Q'}],wr4:[{n:'Seam',p:[[0,-150]],c:'D'},{n:'Dig',p:[[0,-120],[-110,-120]],c:'M'},{n:'Shallow',p:[[0,-55],[-100,-55]],c:'Q'},{n:'Out',p:[[0,-80],[-50,-80]],c:'Q',oob:true}],rb:[{n:'Swing',p:[[0,-10],[80,-50]],c:'Q'},{n:'Checkdown',p:[[0,-25]],c:'Q'},{n:'Pass Pro',p:[[0,0]],c:'BLOCK'}]},
+{name:'Curl-Flat',wr3:[{n:'Curl',p:[[0,-120],[0,-90]],c:'M'},{n:'Flat',p:[[40,-30],[90,-40]],c:'Q'},{n:'Post',p:[[0,-170],[-110,-250]],c:'D'}],wr4:[{n:'Curl',p:[[0,-120],[0,-90]],c:'M'},{n:'Flat',p:[[40,-30],[90,-40]],c:'Q'},{n:'Post',p:[[0,-170],[-110,-250]],c:'D'},{n:'Seam',p:[[0,-150]],c:'D'}],rb:[{n:'Swing',p:[[0,-10],[80,-50]],c:'Q'},{n:'Flat',p:[[0,-20],[90,-40]],c:'Q'},{n:'Pass Pro',p:[[0,0]],c:'BLOCK'}]},
+{name:'Stick',wr3:[{n:'Stick',p:[[0,-60],[0,-50]],c:'M'},{n:'Flat',p:[[40,-30],[90,-40]],c:'Q'},{n:'Corner',p:[[0,-170],[60,-250]],c:'D'}],wr4:[{n:'Stick',p:[[0,-60],[0,-50]],c:'M'},{n:'Flat',p:[[40,-30],[90,-40]],c:'Q'},{n:'Corner',p:[[0,-170],[60,-250]],c:'D'},{n:'Seam',p:[[0,-150]],c:'D'}],rb:[{n:'Swing',p:[[0,-10],[80,-50]],c:'Q'},{n:'Angle',p:[[0,-30],[50,-60],[80,-30]],c:'Q'},{n:'Pass Pro',p:[[0,0]],c:'BLOCK'}]},
+{name:'Y-Cross',wr3:[{n:'Cross',p:[[0,-25],[450,-30]],c:'Q'},{n:'Shallow',p:[[0,-55],[-100,-55]],c:'Q'},{n:'Post',p:[[0,-170],[-110,-250]],c:'D'}],wr4:[{n:'Cross',p:[[0,-25],[450,-30]],c:'Q'},{n:'Shallow',p:[[0,-55],[-100,-55]],c:'Q'},{n:'Post',p:[[0,-170],[-110,-250]],c:'D'},{n:'Corner',p:[[0,-170],[60,-250]],c:'D'}],rb:[{n:'Flat',p:[[0,-20],[90,-40]],c:'Q'},{n:'Wheel',p:[[0,-20],[60,-60],[80,-160]],c:'M'},{n:'Pass Pro',p:[[0,0]],c:'BLOCK'}]},
+{name:'China',wr3:[{n:'China',p:[[0,-25],[100,-55],[-150,-55]],c:'Q'},{n:'Shallow',p:[[0,-55],[-100,-55]],c:'Q'},{n:'Go',p:[[0,-250]],c:'D'}],wr4:[{n:'China',p:[[0,-25],[100,-55],[-150,-55]],c:'Q'},{n:'Shallow',p:[[0,-55],[-100,-55]],c:'Q'},{n:'Go',p:[[0,-250]],c:'D'},{n:'Out',p:[[0,-80],[-50,-80]],c:'Q',oob:true}],rb:[{n:'Swing',p:[[0,-10],[80,-50]],c:'Q'},{n:'Flat',p:[[0,-20],[90,-40]],c:'Q'},{n:'Pass Pro',p:[[0,0]],c:'BLOCK'}]},
+{name:'Shallow Cross',wr3:[{n:'Shallow',p:[[0,-55],[-100,-55]],c:'Q'},{n:'Dig',p:[[0,-120],[-110,-120]],c:'M'},{n:'Corner',p:[[0,-170],[60,-250]],c:'D'}],wr4:[{n:'Shallow',p:[[0,-55],[-100,-55]],c:'Q'},{n:'Dig',p:[[0,-120],[-110,-120]],c:'M'},{n:'Corner',p:[[0,-170],[60,-250]],c:'D'},{n:'Seam',p:[[0,-150]],c:'D'}],rb:[{n:'Angle',p:[[0,-30],[50,-60],[80,-30]],c:'Q'},{n:'Swing',p:[[0,-10],[80,-50]],c:'Q'},{n:'Pass Pro',p:[[0,0]],c:'BLOCK'}]}
 ];
 function pickPlay(){
-var np=getPlay();
-if(!np||!Array.isArray(np.r)||!np.r.length)np=PLAYS[Math.floor(Math.random()*PLAYS.length)];
-return np;
+var concept=CONCEPTS[Math.floor(Math.random()*CONCEPTS.length)];
+var use5=concept.wr4&&Math.random()<.5;
+var forms=FORMATIONS.filter(function(f){return (use5?f.wr4:f.wr3).length===(use5?4:3)});
+var form=forms[Math.floor(Math.random()*forms.length)];
+var side=Math.random()<.5?'Left':'Right',dir=side==='Left'?-1:1;
+var rb=concept.rb[Math.floor(Math.random()*concept.rb.length)];
+var wr=use5?concept.wr4:concept.wr3,slots=use5?form.wr4:form.wr3;
+var routes=[
+{n:wr[0].n,x:slots[0].x,y:0,p:wr[0].p,c:wr[0].c,oob:wr[0].oob},
+{n:wr[1].n,x:slots[1].x,y:0,p:wr[1].p,c:wr[1].c,oob:wr[1].oob},
+{n:rb.n,x:side==='Left'?310:330,y:62,p:rb.p.map(function(pt){return [pt[0]*dir,pt[1]]}),c:rb.c,oob:rb.oob}
+];
+for(var i=2;i<wr.length;i++)routes.push({n:wr[i].n,x:slots[i].x,y:0,p:wr[i].p,c:wr[i].c,oob:wr[i].oob});
+return {name:concept.name+' — '+form.name+' — RB '+side,r:routes};
 }
 var PROB={'Man':{Q:0.3,M:0.3,D:0.25},'Cover 0':{Q:0.45,M:0.4,D:0.45},'Cover 1':{Q:0.3,M:0.3,D:0.2},'Cover 2':{Q:0.55,M:0.35,D:0.35},'Cover 3':{Q:0.55,M:0.4,D:0.2},'Cover 4':{Q:0.5,M:0.35,D:0.15}};
 var ALLCOV=['Man','Cover 0','Cover 1','Cover 2','Cover 3','Cover 4'];
