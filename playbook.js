@@ -80,3 +80,24 @@ function getPlay(concept){
   }
   return pool[Math.floor(Math.random()*pool.length)];
 }
+
+/* Install after the Game Situations inline engine has defined nextPlay. */
+document.addEventListener('DOMContentLoaded',function(){
+  if(!document.getElementById('playbookSource')||typeof window.nextPlay!=='function'||!window.st)return;
+  var originalNextPlay=window.nextPlay;
+  window.nextPlay=function(){
+    var result=originalNextPlay.apply(this,arguments);
+    var source=document.getElementById('playbookSource');
+    if(source.value!=='auto')return result;
+    var play=window.st.play;
+    if(!play||!Array.isArray(play.r))return result;
+    play.r.forEach(function(route){
+      if(String(route.n).toLowerCase()!=='slant'||!Array.isArray(route.p))return;
+      var inward=route.x<320?1:-1;
+      route.p=route.p.map(function(point){
+        return [Math.abs(point[0])*inward,point[1]];
+      });
+    });
+    return result;
+  };
+});
