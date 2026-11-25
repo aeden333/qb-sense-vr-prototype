@@ -36,7 +36,7 @@ function loop(){drawOL();requestAnimationFrame(loop)}
 loop();
 })();
 (function(){
-if(!/twominute-sim\.html$/.test(location.pathname)||typeof nextPlay!=='function')return;
+if(!/(?:twominute-sim|game-scenarios)\.html$/.test(location.pathname)||typeof nextPlay!=='function')return;
 // Depths are representative pre-snap yards, converted with the field's PX scale.
 var looks={
 'Man':{cb:1,slot:4,s:[14,14],lb:5,man:true},
@@ -53,7 +53,7 @@ var looks={
 'Simulated Blitz':{cb:7,slot:5,s:[12,12],lb:5}
 };
 ALLCOV=Object.keys(looks);
-Object.assign(PROB,{
+if(/twominute-sim\.html$/.test(location.pathname))Object.assign(PROB,{
 'Cover 2 Man':{Q:0.30,M:0.28,D:0.18},
 'Cover 3 Match':{Q:0.48,M:0.32,D:0.18},
 'Cover 6':{Q:0.50,M:0.35,D:0.20},
@@ -89,6 +89,7 @@ if(st.cvg==='Fire Zone')st.extra=Math.min(1,maxExtra);
 else if(st.cvg==='Simulated Blitz')st.extra=0;
 else st.extra=Math.min(st.extra,maxExtra);
 }
+if(st.play.r[i].c==='BLOCK')return 0;
 return originalOpen(i);
 };
 nextPlay=function(){st._coveragePrepared=null;originalNext()};
