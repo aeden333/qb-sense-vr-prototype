@@ -147,8 +147,8 @@ function applyFormation(){
  drawPreview();
 }
 function routeData(side,route,custom){
- var x=side==='left'?70:side==='left-hash'?190:side==='middle-left'?220:side==='middle-right'?420:side==='right-hash'?450:side==='right'?570:side==='qb-left'?270:side==='qb-right'?370:320;
- var y=side==='behind-qb'?45:side==='qb-left'||side==='qb-right'?10:0;
+var x=side==='left'?70:side==='left-hash'?190:side==='middle-left'?220:side==='middle-right'?420:side==='right-hash'?450:side==='right'?570:side==='qb-left'?310:side==='qb-right'?330:320;
+ var y=side==='behind-qb'?45:side==='qb-left'||side==='qb-right'?15:0;
  if(side==='custom'&&custom){x=custom.x;y=custom.y}
  var r={n:route,x:x,y:y,p:[],c:'Q'};
  var leftSide=side==='left'||side==='left-hash'||side==='middle-left'||side==='qb-left'||(side==='custom'&&custom&&custom.x<320);
