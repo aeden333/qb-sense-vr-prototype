@@ -204,3 +204,11 @@ if(r.n==='Angle')r.p=[[0,-90],[-50,-120]];
 });
 });
 })();
+(function(){
+if(typeof CONCEPTS==='undefined')return;
+CONCEPTS.forEach(function(c){
+(c.rb||[]).forEach(function(r){
+if(r.n==='Wheel')r.p=[[0,-10],[120,-40],[140,-180]];
+});
+});
+})();
