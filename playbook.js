@@ -92,7 +92,14 @@ document.addEventListener('DOMContentLoaded',function(){
     var play=window.st.play;
     if(!play||!Array.isArray(play.r))return result;
     play.r.forEach(function(route){
-      if(String(route.n).toLowerCase()!=='slant'||!Array.isArray(route.p))return;
+      if(!Array.isArray(route.p))return;
+      var name=String(route.n).toLowerCase();
+      if(name==='out'){
+        var depth=-10*window.PX-route.y;
+        route.p=route.p.map(function(point){return [point[0],depth]});
+        return;
+      }
+      if(name!=='slant')return;
       var inward=route.x<320?1:-1;
       route.p=route.p.map(function(point){
         return [Math.abs(point[0])*inward,point[1]];
