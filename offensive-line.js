@@ -8,26 +8,29 @@ if(phase!=='pre'&&phase!=='read')return;
 var now=phase==='read'?Math.max(0,Date.now()-st.t0):0;
 var duration=Number.isFinite(st.press)&&st.press>0?st.press:3150;
 var progress=phase==='read'?Math.max(0,Math.min(1,now/duration)):0;
-var startY=LOSY+14,endY=QBY-34;
-var offsets=[-120,-60,0,60,120],labels=['LT','LG','C','RG','RT'];
-var blitzSide=phase==='read'&&st.extra>0?(st.bx&&st.bx[0]<QBX?-1:1):0;
-ctx.save();
-ctx.setLineDash([]);ctx.globalAlpha=1;
-ctx.strokeStyle='rgba(37,99,235,.45)';ctx.lineWidth=3;
-ctx.beginPath();ctx.arc(QBX,QBY-10,100,Math.PI*1.12,Math.PI*1.88);ctx.stroke();
+// Splits are edge-to-edge feet; a 2-foot stance width is a display assumption.
+var pxPerFoot=(SR-SL)/160,stanceFeet=2;
+var guardOffset=(stanceFeet+2)*pxPerFoot;
+var tackleOffset=guardOffset+(stanceFeet+3)*pxPerFoot;
+var offsets=[-tackleOffset,-guardOffset,0,guardOffset,tackleOffset];
+var labels=['LT','LG','C','RG','RT'],radius=stanceFeet*pxPerFoot/2;
+var startY=LOSY+radius+2,endY=QBY-34;
+ctx.save();ctx.setLineDash([]);ctx.globalAlpha=1;
+ctx.strokeStyle='rgba(37,99,235,.45)';ctx.lineWidth=2;
+ctx.beginPath();ctx.arc(QBX,QBY-10,tackleOffset+12,Math.PI*1.12,Math.PI*1.88);ctx.stroke();
 for(var i=0;i<5;i++){
-var x=QBX+offsets[i],y=startY+(endY-startY)*progress;
-var beaten=(blitzSide===1&&i>=3)||(blitzSide===-1&&i<=1);
-if(beaten){x+=blitzSide*progress*24;y+=progress*8}
-ctx.fillStyle=(phase==='read'&&progress>0.82)?'#B91C1C':'#2563EB';
-ctx.beginPath();ctx.arc(x,y,13,0,Math.PI*2);ctx.fill();
-ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
-ctx.fillStyle='#fff';ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-ctx.fillText(labels[i],x,y);
+var sign=i<2?-1:i>2?1:0;
+var stagger=i===2?0:(i===0||i===4?.65:.35)*PX;
+var x=QBX+offsets[i]+sign*progress*(i===0||i===4?1.5:.5)*pxPerFoot;
+var y=startY+stagger+(endY-startY-stagger)*progress;
+ctx.fillStyle='#2563EB';ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill();
+ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.stroke();
+ctx.font='bold 8px sans-serif';ctx.textAlign='center';ctx.textBaseline='top';
+ctx.lineWidth=3;ctx.strokeStyle='#0A1628';ctx.strokeText(labels[i],x,y+radius+3);
+ctx.fillStyle='#fff';ctx.fillText(labels[i],x,y+radius+3);
 }
 ctx.restore();
 }
-// Draw in the same frame, after the field clear. No second animation loop.
 var originalDraw=window.draw;
 window.draw=function(){var result=originalDraw.apply(this,arguments);drawOL();return result};
 })();
