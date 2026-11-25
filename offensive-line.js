@@ -183,5 +183,4 @@ return{cd:cd,sf:sf,lb:lb};
 };
 if(coach){var note=document.createElement('small');note.textContent='Formation-aware pre-snap teaching package: depths in yards, strength checks, bunch spacing and red-zone adjustments. Man uses a two-high man-under default. Coverage cannot be identified with certainty from alignment. Post-snap movement, match/banjo switches and simulated-pressure exchanges remain simplified, not fully simulated.';coach.parentNode.insertBefore(note,coach.nextSibling)}
 })();
-(function(){var s=document.createElement('script');s.src='alignment-engine.js';document.head.appendChild(s)})();
 
