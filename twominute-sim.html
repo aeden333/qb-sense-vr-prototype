@@ -421,7 +421,7 @@ $('ta').addEventListener('click',throwAway);
 $('again').addEventListener('click',function(){$('done').classList.add('hidden');$('setup').classList.remove('hidden');phase='setup'});
 document.addEventListener('keydown',function(e){
 var k=e.key;
-if(k>='1'&&k<='5'&&+k-1<st.play.r.length)throwTo(+k-1);
+if(k>='1'&&k<='6'&&+k-1<st.play.r.length)throwTo(+k-1);
 if(k==='t'||k==='T')throwAway();
 if(k==='m'||k==='M')useTimeout();
 if(k==='p'||k==='P')spike();
