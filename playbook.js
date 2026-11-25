@@ -114,6 +114,12 @@ document.addEventListener('DOMContentLoaded',function(){
   var canvas=document.getElementById('playPreview');
   if(!canvas||typeof window.routeData!=='function')return;
   var $=function(id){return document.getElementById(id)},paths=[null,null,null,null,null],drag=-1;
+  canvas.height=440;
+  var placement=document.createElement('section');
+  placement.innerHTML='<h3>Ball placement</h3><label for="playbookHash">Across the field</label><select id="playbookHash"><option value="left">Left hash</option><option value="middle" selected>Middle of the field</option><option value="right">Right hash</option></select><label for="playbookSpot">Field position</label><select id="playbookSpot"><option value="redzone">Red zone — opponent 20</option><option value="midfield" selected>Midfield — 50-yard line</option><option value="backedup">Backed up — own 10</option></select><p id="playbookPlacementNote" role="status"></p>';
+  canvas.insertAdjacentElement('beforebegin',placement);
+  function ball(){return $('playbookSpot').value==='redzone'?80:$('playbookSpot').value==='backedup'?10:50}
+  function qbX(){return $('playbookHash').value==='left'?190:$('playbookHash').value==='right'?450:320}
   var panel=document.createElement('section');
   panel.innerHTML='<h3>Draw and measure routes</h3><p>Select a receiver. In Draw mode, tap to add points or drag a breakpoint. Turn Draw mode off to move players. Distances are in yards; right is positive, left is negative.</p><label>Receiver</label><select id="routeEditorPlayer"></select><label><input id="routeEditorDraw" type="checkbox" style="width:auto"> Draw mode</label> <label><input id="routeEditorSnap" type="checkbox" checked style="width:auto"> Snap to 1 yard</label><div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button type="button" class="btn ghost" id="routeEditorPreset">Edit preset</button><button type="button" class="btn ghost" id="routeEditorClear">Clear route</button><button type="button" class="btn ghost" id="routeEditorUndo">Remove last point</button><button type="button" class="btn ghost" id="routeEditorReset">Restore preset</button></div><label>Route label</label><input id="routeEditorName" maxlength="40" placeholder="Optional custom label"><label>Depth scale (%)</label><input id="routeEditorDepth" type="number" min="1" max="500" value="100"><label>Width scale (%)</label><input id="routeEditorWidth" type="number" min="1" max="500" value="100"><button type="button" class="btn ghost" id="routeEditorScale">Apply scale</button><div id="routeEditorPoints"></div><p id="routeEditorStatus" role="status"></p>';
   canvas.insertAdjacentElement('afterend',panel);
@@ -137,13 +143,18 @@ document.addEventListener('DOMContentLoaded',function(){
     render();
   }
   function render(){
-    var g=canvas.getContext('2d'),n=Number($('receiverCount').value);
-    g.clearRect(0,0,640,360);g.fillStyle='#14532D';g.fillRect(0,0,640,360);
+    var g=canvas.getContext('2d'),n=Number($('receiverCount').value),b=ball(),goal=300-(100-b)*5,ownGoal=300+b*5;
+    g.clearRect(0,0,640,440);g.fillStyle='#14532D';g.fillRect(0,0,640,440);
+    g.fillStyle='#0A3620';g.fillRect(0,goal-50,640,50);g.fillRect(0,ownGoal,640,50);
     g.lineWidth=1;
-    for(var y=0;y<=350;y+=5){g.strokeStyle=y%25===0?'rgba(255,255,255,.35)':'rgba(255,255,255,.08)';g.beginPath();g.moveTo(0,y);g.lineTo(640,y);g.stroke()}
-    if($('routeEditorSnap').checked){g.strokeStyle='rgba(255,255,255,.08)';for(var x=0;x<=640;x+=5){g.beginPath();g.moveTo(x,0);g.lineTo(x,360);g.stroke()}}
+    for(var y=0;y<=440;y+=5){if(y<goal||y>ownGoal)continue;g.strokeStyle=(y-goal)%25===0?'rgba(255,255,255,.35)':'rgba(255,255,255,.08)';g.beginPath();g.moveTo(0,y);g.lineTo(640,y);g.stroke()}
+    if($('routeEditorSnap').checked){g.strokeStyle='rgba(255,255,255,.08)';for(var x=0;x<=640;x+=5){g.beginPath();g.moveTo(x,Math.max(0,goal-50));g.lineTo(x,Math.min(440,ownGoal+50));g.stroke()}}
     g.fillStyle='#fff';g.font='11px sans-serif';
-    for(var d=5;d<=60;d+=5)g.fillText(d+' yd',5,300-d*5-3);
+    for(var yard=5;yard<100;yard+=5){var yy=300+(b-yard)*5;if(yy<10||yy>430)continue;g.fillText(yard===50?'50':yard<50?'Own '+yard:'Opp '+(100-yard),5,yy-3)}
+    g.strokeStyle='rgba(255,255,255,.7)';g.setLineDash([4,6]);g.lineWidth=2;[190,450].forEach(function(h){g.beginPath();g.moveTo(h,Math.max(0,goal));g.lineTo(h,Math.min(440,ownGoal));g.stroke()});g.setLineDash([]);
+    function boundary(y,text){if(y<0||y>440)return;g.strokeStyle='#fff';g.lineWidth=3;g.beginPath();g.moveTo(0,y);g.lineTo(640,y);g.stroke();g.fillStyle='#fff';g.fillText(text,230,y-6)}
+    boundary(goal,'OPPONENT GOAL LINE');boundary(goal-50,'BACK OF END ZONE');boundary(ownGoal,'OWN GOAL LINE');boundary(ownGoal+50,'BACK OF OWN END ZONE');
+    g.strokeStyle='#fff';g.lineWidth=2;g.beginPath();g.moveTo(2,0);g.lineTo(2,440);g.moveTo(638,0);g.lineTo(638,440);g.stroke();
     g.strokeStyle='#60A5FA';g.lineWidth=2;g.beginPath();g.moveTo(0,300);g.lineTo(640,300);g.stroke();g.fillText('LOS',5,315);
     for(var i=0;i<n;i++){
       var r=base(i),sy=300-r.y,p=points(i);
@@ -151,9 +162,12 @@ document.addEventListener('DOMContentLoaded',function(){
       g.fillStyle='#FFD700';g.beginPath();g.arc(r.x,sy,8,0,Math.PI*2);g.fill();g.fillStyle='#fff';g.fillText(i===4?'RB 5':'WR '+(i+1),r.x-14,sy-12);
       if(i===selected())p.forEach(function(pt){g.fillStyle='#38BDF8';g.beginPath();g.arc(r.x+pt[0],sy+pt[1],5,0,Math.PI*2);g.fill()});
     }
-    g.fillStyle='#F59E0B';g.beginPath();g.arc(320,315,10,0,Math.PI*2);g.fill();g.fillStyle='#fff';g.fillText('QB',310,338);
+    g.fillStyle='#F59E0B';g.beginPath();g.arc(qbX(),315,10,0,Math.PI*2);g.fill();g.fillStyle='#fff';g.fillText('QB',qbX()-10,338);
+    g.fillStyle='#fff';g.beginPath();g.ellipse(qbX(),300,5,3,0,0,Math.PI*2);g.fill();
+    $('playbookPlacementNote').textContent='Ball: '+(b===50?'50-yard line':b===80?'opponent 20':'own 10')+' — '+$('playbookHash').selectedOptions[0].text+'. Hash selection moves the ball and QB; drag receivers to adjust their splits. Placement is saved as play metadata; drive setup is unchanged.';
   }
   window.drawPreview=render;
+  $('playbookHash').addEventListener('change',render);$('playbookSpot').addEventListener('change',render);
   $('routeEditorPlayer').addEventListener('change',refresh);
   $('routeEditorName').addEventListener('input',function(){labels[selected()]=this.value});
   $('routeEditorSnap').addEventListener('change',render);
@@ -172,7 +186,7 @@ document.addEventListener('DOMContentLoaded',function(){
     if(!input.hasAttribute('data-point')||!Number.isFinite(v))return;
     var p=edit(),r=base(selected());p[k][axis]=axis===0?v*5:r.y-v*5;refresh();
   });
-  function location(e){var rect=canvas.getBoundingClientRect();return {x:(e.clientX-rect.left)*640/rect.width,y:(e.clientY-rect.top)*360/rect.height}}
+  function location(e){var rect=canvas.getBoundingClientRect();return {x:(e.clientX-rect.left)*640/rect.width,y:(e.clientY-rect.top)*canvas.height/rect.height}}
   function store(k,pos){
     var r=base(selected()),sx=$('routeEditorSnap').checked?Math.round((pos.x-r.x)/5)*5:pos.x-r.x;
     var depth=300-pos.y;if($('routeEditorSnap').checked)depth=Math.round(depth/5)*5;
@@ -196,7 +210,7 @@ document.addEventListener('DOMContentLoaded',function(){
     if(!name||!concept){window.setConvert('Enter a play name and concept.',false);return}
     var routes=[],n=Number($('receiverCount').value);
     for(var i=0;i<n;i++){var r=base(i);if(!points(i).length){window.setConvert('Add at least one route point for receiver '+(i+1)+'.',false);return}r.p=points(i).map(function(pt){return pt.slice()});r.y=-r.y;if(labels[i].trim())r.n=labels[i].trim();routes.push(r)}
-    try{var team=getTeamPlaybook()||{name:'Team Playbook',plays:[]};team.plays.push({name:name,concept:concept,r:routes});saveTeamPlaybook(team);setTeamPlaybookActive(true);window.setConvert('Saved '+name+' with exact route distances.',true);window.update()}catch(error){window.setConvert('Could not save the play. Browser storage may be full or blocked.',false)}
+    try{var team=getTeamPlaybook()||{name:'Team Playbook',plays:[]};team.plays.push({name:name,concept:concept,r:routes,ballPlacement:{hash:$('playbookHash').value,spot:$('playbookSpot').value,yardLine:ball(),x:qbX()}});saveTeamPlaybook(team);setTeamPlaybookActive(true);window.setConvert('Saved '+name+' with route distances and ball placement.',true);window.update()}catch(error){window.setConvert('Could not save the play. Browser storage may be full or blocked.',false)}
   },true);
   rows();
 });
