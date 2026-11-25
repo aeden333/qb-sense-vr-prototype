@@ -126,3 +126,19 @@ g.restore();
 var coach=document.querySelector('#setup .coach');
 if(coach){var note=document.createElement('small');note.textContent='Pre-snap alignments use the red-zone field scale, receiver strength, slot/back positioning and compressed safety depths. Press Snap to start the read timer. The three-receiver drill and post-snap probability, spy and single-rusher models remain simplified; full match rules and pressure exchanges are not simulated.';coach.parentNode.insertBefore(note,coach.nextSibling)}
 })();
+/* Match the dashboard tabs on the standalone Playbook page only. */
+(function(){
+if(!/playbook\.html$/.test(location.pathname)||document.getElementById('playbookNav'))return;
+var main=document.querySelector('main');if(!main)return;
+var style=document.createElement('style');
+style.textContent='.qb-tabs-wrap{max-width:100%;overflow-x:auto;padding:4px 2px 8px;margin:0 0 16px;-webkit-overflow-scrolling:touch}.qb-tabs{display:flex;gap:8px;width:max-content}.qb-tabs a{display:inline-flex;align-items:center;min-height:44px;box-sizing:border-box;border:1px solid #E2E8F0;background:#fff;color:#0A1628;padding:10px 16px;border-radius:6px;font:800 12px system-ui,Arial,sans-serif;letter-spacing:.05em;text-transform:uppercase;text-decoration:none;white-space:nowrap}.qb-tabs a:hover{border-color:#14532D;color:#14532D}.qb-tabs a[aria-current="page"]{background:#14532D;color:#fff;border-color:#14532D}.qb-tabs a:focus-visible{outline:3px solid #F59E0B;outline-offset:2px}';
+document.head.appendChild(style);
+var wrap=document.createElement('div');wrap.className='qb-tabs-wrap';
+var nav=document.createElement('nav');nav.id='playbookNav';nav.className='qb-tabs';nav.setAttribute('aria-label','Main navigation');
+[['home','Home'],['drills','Drills'],['live','Live Training'],['coach','Coach Mode'],['players','Players'],['playbook','Playbook'],['results','Results'],['progress','Progress'],['pricing','Pricing']].forEach(function(tab){
+var link=document.createElement('a');link.textContent=tab[1];link.dataset.page=tab[0];link.href=tab[0]==='playbook'?'playbook.html':'index.html#'+tab[0];
+if(tab[0]==='playbook'){link.setAttribute('aria-current','page');link.addEventListener('click',function(e){e.preventDefault()})}
+nav.appendChild(link);
+});
+wrap.appendChild(nav);main.insertBefore(wrap,main.firstChild);
+})();
