@@ -1,6 +1,45 @@
+// Public Firebase web key, the same one the pages use.
+const FIREBASE_API_KEY = 'AIzaSyDuvuM5uTaAY7tV3nazl7hZdCgC3GdxeC0';
+const LIMIT = 10;
+const WINDOW_MS = 10 * 60 * 1000;
+// Kept in memory, so the limit is per server instance and resets on restart.
+const recent = new Map();
+
+async function verifyUser(request) {
+  const header = request.headers?.authorization || '';
+  if (!header.startsWith('Bearer ')) return null;
+  const result = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' + FIREBASE_API_KEY, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idToken: header.slice(7) })
+  });
+  if (!result.ok) return null;
+  const data = await result.json();
+  return data?.users?.[0]?.localId || null;
+}
+
+function overLimit(userId) {
+  const now = Date.now();
+  const times = (recent.get(userId) || []).filter((time) => now - time < WINDOW_MS);
+  if (times.length >= LIMIT) return true;
+  times.push(now);
+  recent.set(userId, times);
+  return false;
+}
+
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
     return response.status(405).json({ error: 'Method not allowed' });
+  }
+
+  let userId;
+  try {
+    userId = await verifyUser(request);
+  } catch (error) {
+    return response.status(503).json({ error: 'Could not check your sign-in. Try again.' });
+  }
+  if (!userId) {
+    return response.status(401).json({ error: 'Sign in to use AI conversion.' });
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
@@ -11,6 +50,12 @@ export default async function handler(request, response) {
   const { imageData, mimeType } = request.body || {};
   if (!imageData || !mimeType) {
     return response.status(400).json({ error: 'A PDF page image is required.' });
+  }
+  if (!['image/jpeg', 'image/png'].includes(mimeType) || typeof imageData !== 'string' || imageData.length > 4000000) {
+    return response.status(400).json({ error: 'The page image is too large or not supported.' });
+  }
+  if (overLimit(userId)) {
+    return response.status(429).json({ error: 'Too many conversions. Wait a few minutes and try again.' });
   }
 
   const prompt = `Analyze this American football playbook page. It may contain one play or multiple separate play diagrams.\n\nIdentify each separate play. Do not combine routes, receivers, or concepts from different diagrams.\n\nFor each play, identify every eligible offensive player with a drawn route: wide receivers, slot receivers, tight ends, running backs, and any other skill player. Include short routes, flat routes, checkdowns, and drags.\n\nFor each individual play, return between 2 and 5 receivers, based only on the routes clearly shown in that play. Do not invent routes.\n\nReturn only a JSON object with this exact shape:\n{\n  "plays": [\n    {\n      "name": "play name",\n      "concept": "offensive concept",\n      "receivers": [\n        {\n          "side": "left",\n          "route": "slant"\n        }\n      ]\n    }\n  ]\n}\n\nUse only these route values: slant, out, comeback, curl, flat, drag, dig, post, corner, seam, sit.\nUse only these side values: left, middle, right.\nDo not include markdown, explanations, or any text outside the JSON object.`;

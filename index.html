@@ -237,10 +237,10 @@ showLoginButton.addEventListener("click",showLoginTab);
 </div>
 </div>
 <div class="stats">
-<div class="stat-card"><div class="stat-top"><div><div class="label">QB Rating</div><div class="stat">87</div></div><div class="icon blue">QB</div></div><div class="bar"><span style="width:87%"></span></div></div>
-<div class="stat-card"><div class="stat-top"><div><div class="label">Decision Time</div><div class="stat">1.8s</div></div><div class="icon green">DT</div></div><div class="bar"><span style="width:72%"></span></div></div>
-<div class="stat-card"><div class="stat-top"><div><div class="label">Pressure Response</div><div class="stat">82%</div></div><div class="icon purple">PR</div></div><div class="bar"><span style="width:82%"></span></div></div>
-<div class="stat-card"><div class="stat-top"><div><div class="label">Reps This Week</div><div class="stat">46</div></div><div class="icon orange">REP</div></div><div class="bar"><span style="width:65%"></span></div></div>
+<div class="stat-card"><div class="stat-top"><div><div class="label">QB Rating</div><div class="stat">--</div></div><div class="icon blue">QB</div></div><div class="bar"><span style="width:0%"></span></div></div>
+<div class="stat-card"><div class="stat-top"><div><div class="label">Decision Time</div><div class="stat">--</div></div><div class="icon green">DT</div></div><div class="bar"><span style="width:0%"></span></div></div>
+<div class="stat-card"><div class="stat-top"><div><div class="label">Pressure Response</div><div class="stat">--</div></div><div class="icon purple">PR</div></div><div class="bar"><span style="width:0%"></span></div></div>
+<div class="stat-card"><div class="stat-top"><div><div class="label">Reps This Week</div><div class="stat">--</div></div><div class="icon orange">REP</div></div><div class="bar"><span style="width:0%"></span></div></div>
 </div>
 </section>
 
@@ -252,12 +252,14 @@ showLoginButton.addEventListener("click",showLoginTab);
 <div class="drill"><span class="drill-num">03</span><div style="flex:1"><b>Red-Zone Decisions</b><br><small>Make fast reads in tight spaces</small></div><a class="btn primary" href="redzone-sim.html" style="padding:10px 14px;text-decoration:none">Start drill</a><span class="tag">Game IQ</span></div>
 <div class="drill"><span class="drill-num">04</span><div style="flex:1"><b>Two-Minute Drill</b><br><small>Manage the clock under pressure</small></div><a class="btn primary" href="twominute-sim.html" style="padding:10px 14px;text-decoration:none">Start drill</a><span class="tag">Composure</span></div>
 <div class="drill"><span class="drill-num">05</span><div style="flex:1"><b>Game Situations</b><br><small>Practice real football moments and decision-making</small></div><a class="btn primary" href="game-scenarios.html" style="padding:10px 14px;text-decoration:none">Start drill</a><span class="tag">Game IQ</span></div>
+<div class="drill"><span class="drill-num">06</span><div style="flex:1"><b>Read &amp; Throw (3D)</b><br><small>Read the defense from the quarterback’s view and throw. Best with a keyboard.</small></div><a class="btn primary" href="read-throw.html" style="padding:10px 14px;text-decoration:none">Start drill</a><span class="tag">New</span></div>
 </div>
 </section>
 
 <section id="live" class="page">
 <div class="card">
 <h2>Live Training: Nickel Blitz</h2>
+<p><b>Preview:</b> this screen simulates the headset and haptic vest. No hardware is connected.</p>
 <p id="liveScenario">Pressure incoming from the left A-gap. Step up, reset, and throw to the open receiver.</p>
 <div id="livePlayInfo" class="card" style="box-shadow:none"><b>Coach playbook:</b> <span id="livePlayText">No play selected</span></div>
 <div class="label">Pocket pressure</div>
@@ -272,7 +274,7 @@ showLoginButton.addEventListener("click",showLoginTab);
 </div>
 <div class="card">
 <h2>Coach View</h2>
-<p>The coach can watch what the player sees through the VR headset and monitor the live training session.</p>
+<p>Coming soon: the coach will watch what the player sees in the VR headset and monitor the live session.</p>
 <div class="vr-view">
 <span class="vr-badge">VR Headset View</span>
 <div class="vr-overlay">
@@ -459,24 +461,24 @@ showLoginButton.addEventListener("click",showLoginTab);
 </section>
 
 <section id="results" class="page">
-<div class="card"><h2>Latest Rep</h2><p>AI feedback: You identified the blitz late and held the ball 0.4 seconds too long. Step toward the pressure and reset your feet before throwing.</p></div>
+<div class="card"><h2>Latest Rep</h2><p>No results yet. Complete a drill to see your latest rep.</p></div>
 <div class="stats">
-<div class="stat-card"><div class="label">Correct Read</div><div class="stat">Yes</div></div>
-<div class="stat-card"><div class="label">Decision Time</div><div class="stat">2.2s</div></div>
-<div class="stat-card"><div class="label">Throw Accuracy</div><div class="stat">78%</div></div>
-<div class="stat-card"><div class="label">Pocket Movement</div><div class="stat">Good</div></div>
+<div class="stat-card"><div class="label">Correct Read</div><div class="stat">--</div></div>
+<div class="stat-card"><div class="label">Decision Time</div><div class="stat">--</div></div>
+<div class="stat-card"><div class="label">Throw Accuracy</div><div class="stat">--</div></div>
+<div class="stat-card"><div class="label">Pocket Movement</div><div class="stat">--</div></div>
 </div>
 </section>
 
 <section id="progress" class="page">
-<div class="card"><h2>Progress</h2><p>Your decision time has improved by 18% over the last four weeks.</p></div>
+<div class="card"><h2>Progress</h2><p>No training data yet. Complete a drill to start tracking your progress.</p></div>
 <div class="card">
 <div class="label">Weekly reps</div>
-<div class="bar"><span style="width:55%"></span></div>
+<div class="bar"><span style="width:0%"></span></div>
 <div class="label">Pressure response</div>
-<div class="bar"><span style="width:82%"></span></div>
+<div class="bar"><span style="width:0%"></span></div>
 <div class="label">Accuracy under pressure</div>
-<div class="bar"><span style="width:74%"></span></div>
+<div class="bar"><span style="width:0%"></span></div>
 </div>
 </section>
 
@@ -487,7 +489,7 @@ Live Training, Coach Mode, and any Virtual Reality are currently unavailable and
 </div>
 <span class="badge">Pricing</span>
 <h2>Choose your training plan.</h2>
-<p>Flexible plans for individual quarterbacks, coaches, and full programs. Every plan includes VR training drills, progress tracking, and coach tools.</p>
+<p>Flexible plans for individual quarterbacks, coaches, and full programs. Training drills and progress tracking are available today. VR headset, haptic vest and live coaching are on our roadmap.</p>
 </div>
 
 <div class="pricing-grid">
@@ -496,7 +498,7 @@ Live Training, Coach Mode, and any Virtual Reality are currently unavailable and
 <div class="price-amount">$19<span>/mo</span></div>
 <div class="price-sub">Software only</div>
 <ul class="price-features">
-<li>✓ Core VR drills</li>
+<li>✓ Core training drills</li>
 <li>✓ Basic progress tracking</li>
 <li>✓ 1 player profile</li>
 <li>✓ Standard support</li>
@@ -513,10 +515,10 @@ Live Training, Coach Mode, and any Virtual Reality are currently unavailable and
 <div class="price-sub">Software only</div>
 <ul class="price-features">
 <li>✓ Everything in Starter</li>
-<li>✓ Live training &amp; coach mode</li>
+<li>◷ Live training &amp; coach mode (coming soon)</li>
 <li>✓ Advanced performance analytics</li>
 <li>✓ Up to 3 player profiles</li>
-<li>✓ Optional haptic vest</li>
+<li>◷ Optional haptic vest (coming soon)</li>
 </ul>
 <div class="price-total"><b>$88/month</b> without vest<br><b>$117/month</b> with vest<br><b>$978</b> first year without vest<br><b>$1,326</b> first year with vest</div>
 <button class="btn primary" style="width:100%;margin-top:auto;">Choose QB Pro</button>
@@ -529,9 +531,9 @@ Live Training, Coach Mode, and any Virtual Reality are currently unavailable and
 <ul class="price-features">
 <li>✓ Everything in QB Pro</li>
 <li>✓ Up to 20 quarterbacks</li>
-<li>✓ Coach dashboard</li>
+<li>◷ Coach dashboard (coming soon)</li>
 <li>✓ Playbook uploads</li>
-<li>✓ Optional haptic vests</li>
+<li>◷ Optional haptic vests (coming soon)</li>
 </ul>
 <div class="price-total"><b>$148/month</b> without vest<br><b>$177/month</b> with one vest<br><b>$1,578</b> first year without vest<br><b>$1,926</b> first year with one vest</div>
 <button class="btn primary" style="width:100%;margin-top:auto;">Choose Coach &amp; Team</button>
@@ -555,8 +557,8 @@ Live Training, Coach Mode, and any Virtual Reality are currently unavailable and
 <th>Tier</th>
 <th>Monthly software</th>
 <th>Annual software upfront</th>
-<th>VR headset rental</th>
-<th>Haptic vest</th>
+<th>VR headset rental (coming soon)</th>
+<th>Haptic vest (coming soon)</th>
 <th>Monthly plan: total per month</th>
 <th>Annual plan: total per month</th>
 <th>Annual plan: first-year total</th>
@@ -721,9 +723,9 @@ function updateCoachView(){
  document.getElementById('coachSelectedPlay').textContent=selectedPlayText;
 }
 function startRep(){
- document.getElementById('vestStatus').textContent='Connected';
+ document.getElementById('vestStatus').textContent='Simulated';
  document.getElementById('vestText').textContent='Rep active. Reading defense…';
- document.getElementById('coachHeadset').textContent='Connected';
+ document.getElementById('coachHeadset').textContent='Simulated';
  document.getElementById('coachRepStatus').textContent='Active';
  document.getElementById('coachPressureSide').textContent='None';
  document.getElementById('coachVest').textContent='Waiting';
@@ -756,7 +758,7 @@ function triggerPressure(){
   }
   if(level<=3){
     card.classList.add('pulse');
-    document.getElementById('vestText').textContent='Pressure detected from the '+side.toLowerCase()+' side. Haptic pulse sent.';
+    document.getElementById('vestText').textContent='Pressure detected from the '+side.toLowerCase()+' side. Haptic pulse simulated.';
     document.getElementById('pressureBar').style.width='92%';
     hapticPulse();
     speak('Pressure coming from the '+side.toLowerCase()+' side.');
@@ -1162,5 +1164,6 @@ document.getElementById("forgotPassword").addEventListener("click",async()=>{con
 onAuthStateChanged(auth,user=>{if(user){showApp(user);}else{showLogin();}});
 window.logoutQB=async function(){await signOut(auth);};
 </script>
+<script type="module" src="results-sync.js"></script>
 </body>
 </html>

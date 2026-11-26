@@ -32,7 +32,7 @@ if(offers){var label=document.createElement('p');label.textContent='Pricing info
 }
 total.textContent=selected.name+' — $'+selected.price+'/month, software only. No headset or vest included.';
 button.disabled=!selected.link;
-status.textContent=selected.link?'You will continue to Stripe to review and pay.':'Checkout is not connected yet. A Stripe Payment Link is required before payments can be accepted.';
+status.textContent=selected.link?'Test mode: you will see the Stripe test checkout. No real payment is taken.':'Checkout is not connected yet. A Stripe Payment Link is required before payments can be accepted.';
 }
 plan.addEventListener('change',update);
 button.addEventListener('click',function(){var selected=plans[plan.value];if(!selected||!selected.link)return;try{var url=new URL(selected.link);if(url.protocol==='https:'&&url.hostname==='buy.stripe.com')window.location.assign(url.href);}catch(error){status.textContent='The checkout link is invalid.';}});

@@ -340,9 +340,11 @@ $('aiConvert').addEventListener('click',async function(){
   var dataUrl=canvas.toDataURL('image/jpeg',0.85);
   var imageData=dataUrl.split(',')[1];
   setConvert('Asking Gemini to read the play…',true);
+  var token=window.qbGetIdToken?await window.qbGetIdToken():null;
+  if(!token){setConvert('Sign in again to use AI conversion.',false);return}
   var response=await fetch('/api/convert-play',{
    method:'POST',
-   headers:{'Content-Type':'application/json'},
+   headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
    body:JSON.stringify({imageData:imageData,mimeType:'image/jpeg'})
   });
   var responseText=await response.text();
@@ -388,5 +390,6 @@ getRecord().then(function(record){
 }).catch(function(){update()});
 </script>
 <script src="back-button.js"></script>
+<script type="module" src="auth-guard.js"></script>
 </body>
 </html>
