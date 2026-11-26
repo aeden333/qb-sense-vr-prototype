@@ -1,0 +1,1051 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Read &amp; Throw | QB Sense VR</title>
+<script src="analytics.js" defer></script>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#0a1628;font-family:system-ui,Arial,sans-serif}
+  canvas{display:block;touch-action:none;cursor:grab}
+  canvas:active{cursor:grabbing}
+  .panel{position:fixed;background:rgba(10,22,40,.85);color:#fff;border-radius:10px;padding:10px 12px;font-size:13px}
+  #bar{left:12px;right:12px;bottom:12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  #info{left:12px;top:12px;max-width:340px;line-height:1.45}
+  button{background:#1e293b;color:#fff;border:1px solid #475569;border-radius:6px;padding:8px 10px;font:inherit;font-weight:700;cursor:pointer}
+  button.on{background:#166534;border-color:#22c55e}
+  .setting{display:flex;align-items:center;gap:6px;margin-top:6px}
+  .setting input{width:110px}
+  #clock{right:12px;top:12px;font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+  #clock.late{background:#b91c1c}
+  #snap{background:#b45309;border-color:#f59e0b}
+  #back{color:#fff;font-weight:700;padding:8px 4px}
+  button:disabled{opacity:.4;cursor:default}
+  #cross{position:fixed;left:50%;top:50%;width:2px;height:34px;margin:-17px 0 0 -1px;background:#facc15;pointer-events:none}
+  #power{left:50%;transform:translateX(-50%);bottom:110px;width:220px;text-align:center;pointer-events:none}
+  #power div{height:10px;margin-top:4px;background:#334155;border-radius:5px;overflow:hidden}
+  #powerFill{display:block;height:100%;background:#f59e0b}
+  #result{left:50%;transform:translateX(-50%);top:70px;width:min(420px,86vw);text-align:center;z-index:2}
+  #resultTitle{font-size:20px}
+  #resultText{white-space:pre-line;margin:8px 0 10px;line-height:1.45}
+  #answer{margin-top:6px;color:#fde68a}
+  #error{left:12px;right:12px;top:40%;display:none;text-align:center}
+</style>
+</head>
+<body>
+<div id="info" class="panel">
+  <b id="title"></b>
+  <div>Drag the mouse (or use the ← → ↑ ↓ arrows) to look around.</div>
+  <div class="setting">Your height: <input id="height" type="range" min="160" max="205" value="185"> <span id="heightText">185 cm</span></div>
+  <div class="setting">Field of view: <input id="fov" type="range" min="40" max="75" value="55"> <span id="fovText">natural</span></div>
+  <div id="answer" hidden></div>
+</div>
+<div id="bar" class="panel">
+  <a id="back" href="index.html#drills">← Drills</a>
+  <button id="snap">Snap (Space)</button>
+  <button id="throw">Bullet pass (hold Space)</button>
+  <button id="lob">Lob pass (hold L)</button>
+  <button id="series">10-rep series</button>
+  <button id="slow">Slow motion (S)</button>
+  <button id="random">Random situation (R)</button>
+  <span id="situations"></span>
+  <button id="reveal">Show answer</button>
+  <button id="view">Top view (V)</button>
+  <button id="labels" class="on">Names (N)</button>
+</div>
+<div id="clock" class="panel" hidden></div>
+<div id="cross" hidden></div>
+<div id="power" class="panel" hidden>Power<div><span id="powerFill"></span></div></div>
+<div id="result" class="panel" hidden>
+  <b id="resultTitle"></b>
+  <div id="resultText"></div>
+  <button id="replay">Replay (Space)</button> <button id="next"></button>
+</div>
+<div id="error" class="panel">The 3D view could not load. Check your internet connection, then reload the page.</div>
+<script>
+  // Shown if the 3D library cannot be downloaded or WebGL is unavailable.
+  setTimeout(function(){ if(!window.qb) document.getElementById('error').style.display='block'; }, 8000);
+</script>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
+
+// Data is in yards: x = left (-) / right (+), d = distance past the line of scrimmage (- = offence side).
+const YD = 0.9144;
+const world = (x, d) => new THREE.Vector3(x * YD, 0, -d * YD);
+
+const OFFENCE = [
+  ['LT', -3.2, -0.6], ['LG', -1.6, -0.5], ['C', 0, -0.3], ['RG', 1.6, -0.5], ['RT', 3.2, -0.6],
+  ['TE', 4.9, -0.6], ['X', -19, -0.5], ['Slot', -11, -1.4], ['Z', 19, -1.4], ['RB', 1.8, -5], ['QB', 0, -5],
+];
+const FRONT = { DE1: [-4.6, 0.8], DT1: [-1.4, 0.8], DT2: [1.4, 0.8], DE2: [5.9, 0.8] };
+const SITUATIONS = [
+  { name: 'Cover 3, no blitz',
+    answer: 'Slant (X): the Nickel has the flat zone and widens toward the sideline.',
+    back: { CB1: [-19, 7], CB2: [19, 7], FS: [0, 13], SS: [7, 8], Nickel: [-10, 5], LB1: [-2.8, 4.5], LB2: [2.8, 4.5] } },
+  { name: 'Cover 1 (man), no blitz',
+    answer: 'Slant (X). Flat (Slot) is acceptable if he is open.',
+    back: { CB1: [-19, 4], CB2: [19, 4], FS: [0, 14], SS: [5.5, 6], Nickel: [-11, 4], LB1: [-2.8, 4.5], LB2: [2.8, 4.5] } },
+  { name: 'Cover 1, linebacker blitz from the left',
+    answer: 'Slant (X) into the space he leaves. Flat is acceptable. Clue: LB1 creeps toward the line.',
+    back: { CB1: [-19, 4], CB2: [19, 4], FS: [0, 14], SS: [5.5, 6], Nickel: [-11, 4], LB1: [-2.9, 2.8], LB2: [2.8, 4.5] } },
+  { name: 'Slot defender blitz, zone behind it',
+    answer: 'Slot right away. Slant is acceptable before 1.5 s. Clues: the Nickel walks in and the FS slides left.',
+    back: { CB1: [-19, 7], CB2: [19, 7], FS: [-6, 11], SS: [7, 8], Nickel: [-9, 2.8], LB1: [-2.8, 4.5], LB2: [2.8, 4.5] } },
+];
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+document.body.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x7fb2e5);
+scene.fog = new THREE.Fog(0x7fb2e5, 90, 220);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x335533, 1.6));
+const sun = new THREE.DirectionalLight(0xffffff, 1.4);
+sun.position.set(20, 40, 10);
+scene.add(sun);
+const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 400);
+
+function canvasTexture(width, height, draw) {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  draw(canvas.getContext('2d'), width, height);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return texture;
+}
+
+// Field: 53 1/3 yards wide, 120 long. The ball is on the offence's own 30-yard line.
+const WIDTH = 160 / 3, LOS_FROM_BACK = 40;
+const field = canvasTexture(1024, 2304, (c, w, h) => {
+  const px = w / WIDTH, py = h / 120;
+  for (let i = 0; i < 24; i++) {
+    c.fillStyle = i % 2 ? '#2f7d3a' : '#2a7234';
+    c.fillRect(0, i * 5 * py, w, 5 * py + 1);
+  }
+  c.fillStyle = '#14532d';
+  c.fillRect(0, 0, w, 10 * py);
+  c.fillRect(0, 110 * py, w, 10 * py);
+  c.fillStyle = '#fff';
+  for (let y = 10; y <= 110; y += 5) c.fillRect(0, y * py - 2, w, 4);
+  // College hash marks are 20 yards from each sideline.
+  for (let y = 11; y < 110; y++) for (const x of [0.5, 20, WIDTH - 20, WIDTH - 0.5]) c.fillRect(x * px - 8, y * py - 1, 16, 3);
+  c.font = 'bold 44px Arial';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  for (let y = 20; y <= 100; y += 10) {
+    const n = String(50 - Math.abs(60 - y));
+    for (const [x, turn] of [[8, Math.PI / 2], [WIDTH - 8, -Math.PI / 2]]) {
+      c.save(); c.translate(x * px, y * py); c.rotate(turn); c.fillText(n, 0, 0); c.restore();
+    }
+  }
+});
+function flat(width, length, material, x, d, y) {
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width * YD, length * YD), material);
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.copy(world(x, d)).setY(y);
+  scene.add(mesh);
+  return mesh;
+}
+flat(140, 190, new THREE.MeshLambertMaterial({ color: 0x24502c }), 0, 20, -0.05);
+// The back end line is 40 yards behind the ball.
+flat(WIDTH, 120, new THREE.MeshLambertMaterial({ map: field }), 0, 60 - LOS_FROM_BACK, 0);
+flat(WIDTH, 0.18, new THREE.MeshBasicMaterial({ color: 0x2563eb }), 0, 0, 0.015);
+flat(WIDTH, 0.18, new THREE.MeshBasicMaterial({ color: 0xfacc15 }), 0, 10, 0.015);
+
+const box = (w, h, d, color) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color }));
+// Stands on both sides and goal posts at each end line.
+for (const side of [-1, 1]) {
+  for (let row = 0; row < 8; row++) {
+    const stand = box(2, 1 + row * 1.1, 112, row % 2 ? 0x475569 : 0x64748b);
+    stand.position.set(side * (34 + row * 2) * YD, (1 + row * 1.1) / 2, -20 * YD);
+    scene.add(stand);
+  }
+}
+for (const d of [-LOS_FROM_BACK, 120 - LOS_FROM_BACK]) {
+  for (const [w, h, x, y] of [[0.2, 3, 0, 1.5], [5.7, 0.15, 0, 3], [0.15, 7, -2.8, 6.5], [0.15, 7, 2.8, 6.5]]) {
+    const post = box(w, h, 0.2, 0xfacc15);
+    post.position.copy(world(0, d)).add(new THREE.Vector3(x, y, 0));
+    scene.add(post);
+  }
+}
+
+function label(text, color) {
+  const map = canvasTexture(256, 96, (c, w, h) => {
+    c.fillStyle = color;
+    c.beginPath(); c.roundRect(8, 8, w - 16, h - 16, 24); c.fill();
+    c.fillStyle = '#fff';
+    c.font = 'bold 48px Arial';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText(text, w / 2, h / 2 + 2);
+  });
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map, depthTest: false }));
+  sprite.scale.set(1.1, 0.41, 1);
+  sprite.position.y = 2.35;
+  return sprite;
+}
+
+const SKIN = new THREE.MeshLambertMaterial({ color: 0xb98563 });
+// Football stances for a player of about 1.88 m, in metres. The body faces -z (negative z is forward).
+// Pairs are [left, right]; each point is [x, y, z].
+const mirror = ([x, y, z]) => [[-x, y, z], [x, y, z]];
+const STANCES = {
+  // Defensive line and tight end: three-point stance, right hand on the ground.
+  threePoint: { feet: [[-0.26, 0.07, 0.12], [0.26, 0.07, 0.38]], knees: [[-0.27, 0.46, -0.14], [0.26, 0.4, 0.06]],
+    hip: [0, 0.78, 0.18], chest: [0, 0.82, -0.32], head: [0, 0.96, -0.55],
+    elbows: [[-0.36, 0.62, -0.3], [0.24, 0.45, -0.44]], hands: [[-0.27, 0.52, -0.1], [0.16, 0.06, -0.52]] },
+  // Offensive line in shotgun pass protection: low two-point stance.
+  protect: { feet: mirror([0.32, 0.07, 0.08]), knees: mirror([0.34, 0.45, -0.16]),
+    hip: [0, 0.76, 0.14], chest: [0, 1.18, -0.1], head: [0, 1.38, -0.2],
+    elbows: mirror([0.38, 0.92, -0.18]), hands: mirror([0.24, 0.84, -0.42]) },
+  // Linebackers: knees bent, chest forward, hands ready.
+  linebacker: { feet: mirror([0.28, 0.07, 0]), knees: mirror([0.28, 0.5, -0.14]),
+    hip: [0, 0.9, 0.08], chest: [0, 1.35, -0.1], head: [0, 1.58, -0.18],
+    elbows: mirror([0.37, 1.07, -0.1]), hands: mirror([0.27, 0.9, -0.34]) },
+  // Defensive backs and receivers: light bend, one foot in front.
+  ready: { feet: [[-0.2, 0.07, -0.2], [0.2, 0.07, 0.25]], knees: [[-0.2, 0.52, -0.18], [0.2, 0.51, 0.08]],
+    hip: [0, 0.95, 0.04], chest: [0, 1.43, -0.08], head: [0, 1.67, -0.13],
+    elbows: mirror([0.35, 1.15, -0.02]), hands: mirror([0.29, 0.96, -0.2]) },
+};
+function stanceFor(name) {
+  if (['DE', 'DT', 'TE'].includes(name)) return STANCES.threePoint;
+  if (['LT', 'LG', 'C', 'RG', 'RT'].includes(name)) return STANCES.protect;
+  if (name === 'LB') return STANCES.linebacker;
+  return STANCES.ready;
+}
+
+const UP = new THREE.Vector3(0, 1, 0);
+const material = (color, shine = 8) => new THREE.MeshPhongMaterial({ color, shininess: shine, specular: 0x222222 });
+const KIT = {
+  offence: { jersey: material(0x1746a8), pants: material(0xd9dee6, 30), helmet: material(0x143a8c, 90), trim: material(0xffffff, 40), number: '#ffffff' },
+  defence: { jersey: material(0xb91c1c), pants: material(0x232b36, 30), helmet: material(0x991b1b, 90), trim: material(0xf1f5f9, 40), number: '#ffffff' },
+};
+const SKINS = [0xc68e6a, 0x9a6444, 0x6f442d, 0xe0ac86].map((color) => material(color));
+const DARK = material(0x14161a, 20), MASK = material(0xaab2bd, 90), SOCK = material(0xf4f4f5);
+const NUMBERS = { LT: 74, LG: 66, C: 55, RG: 63, RT: 78, TE: 87, X: 11, Slot: 3, Z: 80, RB: 22, QB: 12,
+  DE1: 91, DT1: 95, DT2: 99, DE2: 94, CB1: 21, CB2: 24, FS: 32, SS: 36, Nickel: 29, LB1: 52, LB2: 54 };
+
+const vector = (p) => new THREE.Vector3(...p);
+const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+function add(group, geometry, mat, position) {
+  const mesh = new THREE.Mesh(geometry, mat);
+  if (position) mesh.position.set(...position);
+  group.add(mesh);
+  return mesh;
+}
+const ball = (group, at, radius, mat, scale = [1, 1, 1]) => {
+  const mesh = add(group, new THREE.SphereGeometry(radius, 18, 14), mat, at);
+  mesh.scale.set(...scale);
+  return mesh;
+};
+// A muscle-like segment: thicker at one end, with rounded joints.
+function limb(group, from, to, r1, r2, mat) {
+  const a = vector(from), b = vector(to);
+  const mesh = add(group, new THREE.CylinderGeometry(r2, r1, a.distanceTo(b), 14, 1, true), mat);
+  mesh.position.copy(a).add(b).multiplyScalar(0.5);
+  mesh.quaternion.setFromUnitVectors(UP, b.sub(a).normalize());
+  ball(group, from, r1, mat);
+  ball(group, to, r2, mat);
+  return mesh;
+}
+
+// Waist to shoulders: wider than deep, with a number on the chest and the back.
+function torso(body, hip, chest, kit, number) {
+  const direction = vector(chest).sub(vector(hip));
+  const length = direction.length();
+  const part = new THREE.Group();
+  part.position.copy(vector(hip));
+  part.quaternion.setFromUnitVectors(UP, direction.normalize());
+  const profile = [[0.001, 0], [0.15, 0.02], [0.135, 0.2], [0.17, 0.55], [0.215, 0.85], [0.18, 1.02], [0.001, 1.08]]
+    .map(([r, t]) => new THREE.Vector2(r, t * length));
+  add(part, new THREE.LatheGeometry(profile, 24), kit.jersey).scale.set(1.2, 1, 0.8);
+  add(part, new THREE.CylinderGeometry(0.153, 0.153, 0.06, 20), DARK, [0, 0.05 * length, 0]).scale.set(1.2, 1, 0.8);
+  const map = canvasTexture(128, 128, (c) => {
+    c.fillStyle = kit.number;
+    c.font = 'bold 96px Arial';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText(number, 64, 70);
+  });
+  const print = new THREE.MeshBasicMaterial({ map, transparent: true });
+  for (const side of [-1, 1]) {
+    const plate = add(part, new THREE.PlaneGeometry(0.27, 0.27), print, [0, 0.68 * length, side * 0.178]);
+    if (side < 0) plate.rotation.y = Math.PI;
+  }
+  body.add(part);
+}
+
+function helmet(body, head, kit, skin) {
+  const part = new THREE.Group();
+  part.position.set(...head);
+  ball(part, [0, 0, 0], 0.145, kit.helmet, [0.95, 1, 1.08]);
+  // Face opening, then the cage in front of it.
+  ball(part, [0, -0.025, -0.095], 0.082, skin, [1, 1.05, 0.8]);
+  for (const x of [-0.03, 0.03]) ball(part, [x, -0.005, -0.163], 0.011, DARK);
+  for (const [y, radius] of [[-0.035, 0.158], [-0.08, 0.152], [-0.12, 0.13]]) {
+    const bar = add(part, new THREE.TorusGeometry(radius, 0.007, 6, 24, Math.PI * 0.62), MASK, [0, y, -0.018]);
+    bar.rotation.set(-Math.PI / 2, 0, Math.PI * 0.19);
+  }
+  limb(part, [0, -0.035, -0.176], [0, -0.12, -0.148], 0.007, 0.007, MASK);
+  for (const side of [-1, 1]) ball(part, [side * 0.135, -0.025, 0], 0.028, DARK, [0.4, 1, 1]);
+  // Centre stripe from forehead to neck.
+  const stripe = add(part, new THREE.TorusGeometry(0.146, 0.012, 6, 30, Math.PI * 0.95), kit.trim);
+  stripe.rotation.y = -Math.PI / 2;
+  stripe.scale.x = 1.08;
+  body.add(part);
+}
+
+const shadowMap = canvasTexture(128, 128, (c) => {
+  const fade = c.createRadialGradient(64, 64, 4, 64, 64, 62);
+  fade.addColorStop(0, 'rgba(0,0,0,.5)');
+  fade.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = fade;
+  c.fillRect(0, 0, 128, 128);
+});
+const shadowMaterial = new THREE.MeshBasicMaterial({ map: shadowMap, transparent: true, depthWrite: false });
+
+function player(name, offence, id = name) {
+  const kit = offence ? KIT.offence : KIT.defence;
+  const pose = stanceFor(name);
+  const number = NUMBERS[id] ?? 40;
+  const skin = SKINS[number % SKINS.length];
+  // Linemen are bigger than backs and receivers.
+  const bulk = ['LT', 'LG', 'C', 'RG', 'RT', 'DE', 'DT'].includes(name) ? 1.18 : ['TE', 'LB'].includes(name) ? 1.07 : 0.95;
+  const group = new THREE.Group();
+  const body = new THREE.Group();
+  const { hip, chest, head } = pose;
+  for (const [i, side] of [[0, -1], [1, 1]]) {
+    const hipJoint = [side * 0.12 * bulk, hip[1], hip[2]];
+    const knee = pose.knees[i], foot = pose.feet[i];
+    const ankle = [foot[0], foot[1] + 0.04, foot[2]];
+    // Thigh and pants down to just below the knee, then sock and cleat.
+    limb(body, hipJoint, knee, 0.118 * bulk, 0.072 * bulk, kit.pants);
+    const cuff = mix(knee, ankle, 0.18);
+    limb(body, knee, cuff, 0.07 * bulk, 0.066 * bulk, kit.pants);
+    const calf = mix(knee, ankle, 0.42);
+    limb(body, cuff, calf, 0.06 * bulk, 0.078 * bulk, SOCK);
+    limb(body, calf, ankle, 0.078 * bulk, 0.044, SOCK);
+    limb(body, [foot[0], 0.06, foot[2] + 0.05], [foot[0], 0.045, foot[2] - 0.15], 0.06, 0.042, DARK);
+
+    const shoulder = [side * 0.25 * bulk, chest[1], chest[2]];
+    const elbow = pose.elbows[i], hand = pose.hands[i];
+    const sleeve = mix(shoulder, elbow, 0.4);
+    limb(body, shoulder, sleeve, 0.1 * bulk, 0.082 * bulk, kit.jersey);
+    limb(body, sleeve, elbow, 0.076 * bulk, 0.05 * bulk, skin);
+    const wrist = mix(elbow, hand, 0.88);
+    limb(body, elbow, mix(elbow, wrist, 0.35), 0.052 * bulk, 0.06 * bulk, skin);
+    limb(body, mix(elbow, wrist, 0.35), wrist, 0.06 * bulk, 0.033, skin);
+    limb(body, wrist, hand, 0.04, 0.045, DARK);
+    // Shoulder pad cap.
+    ball(body, [side * 0.22 * bulk, chest[1] + 0.025, chest[2]], 0.13 * bulk, kit.jersey, [1.15, 0.8, 1]);
+  }
+  ball(body, hip, 0.15 * bulk, kit.pants, [1.2, 0.95, 0.95]);
+  const trunk = new THREE.Group();
+  torso(trunk, hip, chest, kit, number);
+  trunk.children[0].scale.set(bulk, 1, bulk);
+  body.add(trunk);
+  limb(body, [-0.19 * bulk, chest[1], chest[2]], [0.19 * bulk, chest[1], chest[2]], 0.125 * bulk, 0.125 * bulk, kit.jersey);
+  limb(body, mix(chest, head, 0.2), mix(chest, head, 0.75), 0.075 * bulk, 0.065, skin);
+  helmet(body, head, kit, skin);
+  // The offence faces downfield, the defence faces the offence.
+  body.rotation.y = offence ? 0 : Math.PI;
+  group.add(body);
+  const shadow = add(group, new THREE.PlaneGeometry(1.3, 1.3), shadowMaterial, [0, 0.025, 0]);
+  shadow.rotation.x = -Math.PI / 2;
+  const tag = label(name, offence ? '#1e3a8a' : '#7f1d1d');
+  tag.position.y = head[1] + 0.55;
+  group.add(tag);
+  group.userData = { name, tag, blocker: ['LT', 'LG', 'C', 'RG', 'RT', 'DE', 'DT'].includes(name) };
+  scene.add(group);
+  return group;
+}
+
+const offence = OFFENCE.filter(([name]) => name !== 'QB').map(([name, x, d]) => {
+  const p = player(name, true);
+  p.position.copy(world(x, d));
+  return p;
+});
+const defenceNames = [...Object.keys(FRONT), ...Object.keys(SITUATIONS[0].back)];
+const defence = Object.fromEntries(defenceNames.map((name) => [name, player(name.replace(/\d$/, ''), false, name)]));
+// The quarterback is the camera; his body only appears in the top view.
+const quarterback = player('QB', true);
+quarterback.position.copy(world(0, -5));
+
+// Eyes are about 12 cm below the top of the head; a shotgun stance loses about 5 cm more.
+const eyeHeight = () => ($('height').value - 17) / 100;
+let current = 0, topView = false, showLabels = true, yaw = 0, pitch = -0.08;
+const $ = (id) => document.getElementById(id);
+
+function setSituation(index) {
+  resetPlay();
+  current = index;
+  const situation = SITUATIONS[index];
+  const spots = { ...FRONT, ...situation.back };
+  for (const name of defenceNames) {
+    const [x, d] = spots[name];
+    // Small random shifts so a defence never looks exactly the same twice.
+    const shift = () => (name in FRONT ? 0 : Math.random() - 0.5) * 0.6;
+    defence[name].position.copy(world(x + shift(), d + shift()));
+  }
+  $('answer').hidden = true;
+  $('answer').textContent = `${situation.name}. ${situation.answer}`;
+  $('reveal').classList.remove('on');
+  refresh();
+}
+
+let hideNumber = true;
+function refresh() {
+  $('title').textContent = hideNumber ? 'Read the defense' : `Situation ${current + 1}`;
+  [...$('situations').children].forEach((b, i) => b.classList.toggle('on', !hideNumber && i === current));
+  $('view').classList.toggle('on', topView);
+  $('labels').classList.toggle('on', showLabels);
+  quarterback.visible = topView;
+  for (const p of [...offence, ...Object.values(defence), quarterback]) {
+    // Line names would hide the secondary, so they only show in the top view.
+    p.userData.tag.visible = showLabels && (topView || !(p.userData.blocker || p.userData.name === 'RB'));
+    p.userData.tag.scale.set(...(topView ? [1.7, 0.64, 1] : [1.1, 0.41, 1]));
+  }
+  if (topView) {
+    // Pull back far enough to fit both wide receivers, whatever the window shape.
+    const half = Math.tan(THREE.MathUtils.degToRad(25));
+    const height = Math.max(23 * YD / (half * camera.aspect), 17 * YD / half);
+    camera.fov = 50;
+    camera.up.set(0, 0, -1);
+    camera.position.copy(world(0, 4)).setY(height);
+    camera.lookAt(world(0, 4));
+    scene.fog.near = height + 40;
+    scene.fog.far = height + 200;
+  } else {
+    camera.fov = Number($('fov').value);
+    camera.up.set(0, 1, 0);
+    camera.position.copy(world(0, -5)).setY(eyeHeight());
+    camera.rotation.set(pitch, yaw, 0, 'YXZ');
+    scene.fog.near = 90;
+    scene.fog.far = 220;
+  }
+  camera.updateProjectionMatrix();
+  renderer.render(scene, camera);
+}
+
+function look(dYaw, dPitch) {
+  yaw = THREE.MathUtils.clamp(yaw + dYaw, -1.7, 1.7);
+  pitch = THREE.MathUtils.clamp(pitch + dPitch, -0.6, 0.35);
+  refresh();
+}
+const randomSituation = () => { hideNumber = true; yaw = 0; pitch = -0.08; setSituation(Math.floor(Math.random() * SITUATIONS.length)); };
+const toggleView = () => { topView = !topView; refresh(); };
+const toggleLabels = () => { showLabels = !showLabels; refresh(); };
+
+SITUATIONS.forEach((_, i) => {
+  const b = document.createElement('button');
+  b.textContent = String(i + 1);
+  b.title = 'Choose situation ' + (i + 1);
+  b.onclick = () => { hideNumber = false; setSituation(i); };
+  $('situations').append(b, ' ');
+});
+$('height').oninput = () => { $('heightText').textContent = $('height').value + ' cm'; refresh(); };
+$('fov').oninput = () => {
+  const fov = Number($('fov').value);
+  $('fovText').textContent = fov < 50 ? 'zoomed' : fov > 62 ? 'wide' : 'natural';
+  refresh();
+};
+$('random').onclick = randomSituation;
+$('view').onclick = toggleView;
+$('labels').onclick = toggleLabels;
+$('reveal').onclick = () => { $('answer').hidden = !$('answer').hidden; $('reveal').classList.toggle('on', !$('answer').hidden); };
+
+let drag = null;
+renderer.domElement.addEventListener('pointerdown', (e) => { drag = [e.clientX, e.clientY]; renderer.domElement.setPointerCapture(e.pointerId); });
+renderer.domElement.addEventListener('pointerup', () => { drag = null; });
+renderer.domElement.addEventListener('pointercancel', () => { drag = null; });
+renderer.domElement.addEventListener('pointermove', (e) => {
+  if (!drag || topView) return;
+  look((e.clientX - drag[0]) * 0.004, (e.clientY - drag[1]) * 0.003);
+  drag = [e.clientX, e.clientY];
+});
+addEventListener('keydown', (e) => {
+  const turns = { ArrowLeft: [0.12, 0], ArrowRight: [-0.12, 0], ArrowUp: [0, 0.06], ArrowDown: [0, -0.06] };
+  if (e.target.tagName === 'INPUT') return;
+  if (turns[e.key]) { e.preventDefault(); if (!topView) look(...turns[e.key]); }
+  else if (e.key.toLowerCase() === 'r') randomSituation();
+  else if (e.key.toLowerCase() === 'v') toggleView();
+  else if (e.key.toLowerCase() === 'n') toggleLabels();
+});
+function resize() {
+  renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth / innerHeight;
+  refresh();
+}
+addEventListener('resize', resize);
+
+// ---------------------------------------------------------------- The play
+const DURATION = 8, STEP = 1 / 60;
+// Seconds until the sack. Each new rep draws a time in the range; a replay keeps it.
+const SACK_RANGE = { blitz: [2.0, 2.5], noBlitz: [2.8, 3.8] };
+
+// Receiver routes, in yards. The first point is the line-up spot.
+const ROUTES = {
+  X: [[-19, -0.5], [-19, 3], [-11, 10], [-7, 13.5], [-2, 17]],      // slant
+  Slot: [[-11, -1.4], [-13, 0.8], [-18, 2.5], [-24, 3], [-25.5, 3]], // flat
+  Z: [[19, -1.4], [19, 8], [19, 13], [18, 11]],                      // comeback
+  TE: [[4.9, -0.6], [5.5, 3], [5.5, 6], [5.5, 6.2]],                 // hitch
+};
+const SPEED = { X: 7.6, Slot: 7.2, Z: 7.6, TE: 5.8 };
+
+// Where a runner is after "distance" yards along a route.
+function along(points, distance) {
+  for (let i = 1; i < points.length; i++) {
+    const [ax, ad] = points[i - 1], [bx, bd] = points[i];
+    const length = Math.hypot(bx - ax, bd - ad);
+    if (distance <= length) return [ax + (bx - ax) * distance / length, ad + (bd - ad) * distance / length];
+    distance -= length;
+  }
+  return points[points.length - 1];
+}
+// Distance covered after t seconds, accelerating from a standstill over about 0.7 s.
+const covered = (speed, t) => speed * (t - 0.45 * (1 - Math.exp(-t / 0.45)));
+
+// Each defender: man (follow a receiver), zone (drop to a spot) or rush (reach the quarterback).
+const man = (target, delay = 0.25, speed = 7.3, inside = 1) => ({ type: 'man', target, delay, speed, inside });
+const zone = (x, d, speed = 5.5, delay = 0.15) => ({ type: 'zone', x, d, speed, delay });
+function assignments(index) {
+  if (index === 0) {
+    return { CB1: zone(-19, 17), CB2: zone(19, 17), FS: zone(0, 19), SS: zone(10, 9), LB1: zone(-4, 9), LB2: zone(4, 9),
+      // Cover 3: the Nickel always has the flat zone.
+      Nickel: zone(-18, 4, 6.4, 0.3) };
+  }
+  if (index === 1) {
+    return { CB1: man('X', 0.42, 7, -0.8), CB2: man('Z'), Nickel: man('Slot', 0.25), SS: man('TE'), FS: zone(0, 18),
+      LB1: zone(-2.5, 7), LB2: zone(2.5, 8) };
+  }
+  if (index === 2) {
+    return { CB1: man('X', 0.45, 7, -0.8), CB2: man('Z'), Nickel: man('Slot', 0.25), SS: man('TE'), FS: zone(0, 18),
+      LB1: { type: 'rush', via: [-2.4, -0.5] }, LB2: zone(2.5, 7) };
+  }
+  return { CB1: zone(-20, 16), CB2: zone(19, 16), FS: zone(-11, 7, 5.5, 0.35), SS: zone(0, 18), LB1: zone(-5, 8), LB2: zone(3, 8),
+    Nickel: { type: 'rush', via: [-6, -1.5] } };
+}
+
+const QB_SPOT = [0, -5];
+// Linemen retreat to a pocket; each rusher up front pushes against one of them.
+const BLOCKS = { LT: [-3.6, -2.4], LG: [-1.7, -1.6], C: [0, -1.3], RG: [1.7, -1.6], RT: [3.6, -2.4], RB: [2.2, -4.2] };
+const MATCHUP = { DE1: 'LT', DT1: 'LG', DT2: 'RG', DE2: 'RT' };
+
+const ease = (t) => t * t * (3 - 2 * t);
+const lerp2 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+const yards = (group) => [group.position.x / YD, -group.position.z / YD];
+function towards(from, to, step) {
+  const length = Math.hypot(to[0] - from[0], to[1] - from[1]);
+  return length <= step ? to.slice() : lerp2(from, to, step / length);
+}
+
+const offenceByName = Object.fromEntries(offence.map((p) => [p.userData.name, p]));
+const everyone = { ...offenceByName, ...defence };
+
+// The whole play is computed at the snap, so that replays and slow motion are identical.
+function simulate(index, draw = Math.random()) {
+  const start = Object.fromEntries(Object.entries(everyone).map(([id, p]) => [id, yards(p)]));
+  const plan = assignments(index);
+  const blitz = Object.values(plan).some((a) => a.type === 'rush');
+  const [low, high] = blitz ? SACK_RANGE.blitz : SACK_RANGE.noBlitz;
+  // Rounded to a tenth, the precision shown on the clock.
+  const sack = Math.round((low + draw * (high - low)) * 10) / 10;
+  const frames = [{ ...start }];
+  for (let t = STEP; t <= DURATION + 1e-6; t += STEP) {
+    const previous = frames[frames.length - 1];
+    const now = {};
+    for (const id of Object.keys(ROUTES)) {
+      // Routes start from the real line-up spot.
+      const route = [start[id], ...ROUTES[id].slice(1)];
+      now[id] = along(route, covered(SPEED[id], t));
+    }
+    for (const [id, spot] of Object.entries(BLOCKS)) now[id] = lerp2(start[id], spot, ease(Math.min(1, t / 1.1)));
+    for (const [id, blocker] of Object.entries(MATCHUP)) {
+      const face = [now[blocker][0] * 1.04, now[blocker][1] + 0.95];
+      now[id] = lerp2(start[id], face, ease(Math.min(1, t / 0.8)));
+      // Without a blitz, the left end finally beats his tackle.
+      if (!blitz && id === 'DE1' && t > 1.5) {
+        const u = Math.min(1, (t - 1.5) / (sack - 1.5));
+        now[id] = u < 0.5 ? lerp2(face, [-4.8, -4], u * 2) : lerp2([-4.8, -4], [-0.9, -4.8], u * 2 - 1);
+      }
+    }
+    for (const [id, job] of Object.entries(plan)) {
+      if (job.type === 'rush') {
+        const u = Math.min(1, Math.pow(t / sack, 1.25));
+        const end = [QB_SPOT[0] - 0.8, QB_SPOT[1] + 0.5];
+        now[id] = u < 0.55 ? lerp2(start[id], job.via, u / 0.55) : lerp2(job.via, end, (u - 0.55) / 0.45);
+      } else if (job.type === 'zone') {
+        now[id] = t < job.delay ? previous[id] : towards(previous[id], [job.x, job.d], job.speed * STEP * Math.min(1, (t - job.delay) / 0.5 + 0.2));
+      } else {
+        // Man coverage reacts to where the receiver was a moment ago, from the inside and slightly deeper.
+        const seen = frames[Math.max(0, frames.length - Math.round(job.delay / STEP))][job.target] || start[job.target];
+        const side = seen[0] < 0 ? 1 : -1;
+        const aim = [seen[0] + side * job.inside, seen[1] + Math.max(0.6, 3 - t * 1.8)];
+        now[id] = towards(previous[id], aim, job.speed * STEP * Math.min(1, t / 0.6 + 0.25));
+      }
+    }
+    frames.push(now);
+  }
+  return { frames, sack, blitz };
+}
+
+// A second body with moving legs and arms, shown while a player runs.
+function runner(id, group) {
+  const isOffence = id in offenceByName;
+  const kit = isOffence ? KIT.offence : KIT.defence;
+  const number = NUMBERS[id] ?? 40;
+  const skin = SKINS[number % SKINS.length];
+  const bulk = ['LT', 'LG', 'C', 'RG', 'RT', 'DE1', 'DT1', 'DT2', 'DE2'].includes(id) ? 1.18 : ['TE', 'LB1', 'LB2'].includes(id) ? 1.07 : 0.95;
+  const body = new THREE.Group();
+  const low = ['LT', 'LG', 'C', 'RG', 'RT', 'DE1', 'DT1', 'DT2', 'DE2'].includes(id);
+  const hip = low ? [0, 0.78, 0.08] : [0, 0.96, 0];
+  const chest = low ? [0, 1.2, -0.2] : [0, 1.45, -0.12];
+  const head = low ? [0, 1.4, -0.34] : [0, 1.69, -0.18];
+  const legs = [], arms = [];
+  for (const side of [-1, 1]) {
+    const leg = new THREE.Group();
+    leg.position.set(side * (low ? 0.2 : 0.13) * bulk, hip[1], hip[2]);
+    limb(leg, [0, 0, 0], [0, -0.44, 0], 0.115 * bulk, 0.07 * bulk, kit.pants);
+    const knee = new THREE.Group();
+    knee.position.set(0, -0.44, 0);
+    limb(knee, [0, 0, 0], [0, -0.14, 0], 0.068 * bulk, 0.062 * bulk, kit.pants);
+    limb(knee, [0, -0.14, 0], [0, -0.44, 0], 0.07 * bulk, 0.042, SOCK);
+    limb(knee, [0, -0.45, 0.04], [0, -0.465, -0.14], 0.055, 0.04, DARK);
+    leg.add(knee);
+    body.add(leg);
+    legs.push({ leg, knee, side });
+    const arm = new THREE.Group();
+    arm.position.set(side * 0.29 * bulk, chest[1] - 0.02, chest[2]);
+    limb(arm, [0, 0, 0], [0, -0.14, 0], 0.095 * bulk, 0.075 * bulk, kit.jersey);
+    limb(arm, [0, -0.14, 0], [0, -0.31, 0], 0.07 * bulk, 0.048, skin);
+    limb(arm, [0, -0.31, 0], [0, -0.38, -0.27], 0.052, 0.033, skin);
+    limb(arm, [0, -0.38, -0.27], [0, -0.39, -0.34], 0.04, 0.045, DARK);
+    ball(arm, [0, 0.02, 0], 0.13 * bulk, kit.jersey, [1.15, 0.8, 1]);
+    body.add(arm);
+    arms.push({ arm, side });
+  }
+  ball(body, hip, 0.15 * bulk, kit.pants, [1.2, 0.95, 0.95]);
+  const trunk = new THREE.Group();
+  torso(trunk, hip, chest, kit, number);
+  trunk.children[0].scale.set(bulk, 1, bulk);
+  body.add(trunk);
+  limb(body, [-0.2 * bulk, chest[1], chest[2]], [0.2 * bulk, chest[1], chest[2]], 0.125 * bulk, 0.125 * bulk, kit.jersey);
+  limb(body, mix(chest, head, 0.2), mix(chest, head, 0.75), 0.075 * bulk, 0.065, skin);
+  helmet(body, head, kit, skin);
+  body.visible = false;
+  group.add(body);
+  const stance = group.children[0];
+  return { body, stance, legs, arms, low, home: stance.rotation.y };
+}
+const runners = Object.fromEntries(Object.entries(everyone).map(([id, p]) => [id, runner(id, p)]));
+
+const football = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 12), material(0x7c3f1d, 20));
+football.scale.set(1, 1, 1.65);
+scene.add(football);
+const BALL_START = world(0, 0.05).setY(0.1), BALL_HELD = world(0.15, -4.55).setY(1.15);
+
+// ---------------------------------------------------------------- Throwing
+const GRAVITY = 9.81, RELEASE = { x: 0.3, d: -4.8, y: 1.95 }, CATCH_HEIGHT = 1.3;
+const MIN_YARDS = 5, MAX_YARDS = 45, CHARGE_SECONDS = 1.5, SERIES_LENGTH = 10;
+const ELIGIBLE = ['X', 'Slot', 'Z', 'TE', 'RB'];
+const FRONT_FOUR = Object.keys(FRONT);
+
+// A throw that comes down at catch height "distance" yards away, in the direction of "heading".
+// A bullet pass is fast and flat; a lob leaves at a high angle.
+function trajectory(type, heading, distance) {
+  const range = distance * YD, rise = CATCH_HEIGHT - RELEASE.y;
+  let speed, angle;
+  if (type === 'lob') {
+    angle = 38 * Math.PI / 180;
+    speed = Math.sqrt(GRAVITY * range * range / (2 * Math.cos(angle) ** 2 * (range * Math.tan(angle) - rise)));
+  } else {
+    speed = 22;
+    let root;
+    while ((root = speed ** 4 - GRAVITY * (GRAVITY * range * range + 2 * rise * speed * speed)) < 0) speed += 0.5;
+    angle = Math.atan((speed * speed - Math.sqrt(root)) / (GRAVITY * range));
+  }
+  const dir = [-Math.sin(heading), Math.cos(heading)];
+  const flat = speed * Math.cos(angle), up = speed * Math.sin(angle);
+  return {
+    type, flight: range / flat, target: [RELEASE.x + dir[0] * distance, RELEASE.d + dir[1] * distance],
+    at: (s) => ({ x: RELEASE.x + dir[0] * flat * s / YD, d: RELEASE.d + dir[1] * flat * s / YD,
+      y: RELEASE.y + up * s - GRAVITY * s * s / 2, traveled: flat * s / YD }),
+  };
+}
+
+const frameAt = (t) => play.frames[Math.max(0, Math.min(play.frames.length - 1, Math.round(t / STEP)))];
+const gap = (spot, point) => Math.hypot(spot[0] - point[0], spot[1] - point[1]);
+
+// A defender intercepts when the ball is coming right at him; a glancing touch only deflects it.
+function square(path, release, from, id) {
+  if (FRONT_FOUR.includes(id)) return false;
+  for (let s = from; s < from + 0.15; s += STEP / 2) {
+    const ball = path.at(s);
+    if (ball.y > 0.5 && ball.y < 2.3 && gap(frameAt(release + s)[id], [ball.x, ball.d]) < 0.35) return true;
+  }
+  return false;
+}
+
+// Follows the ball until somebody touches it or it hits the ground.
+function resolve(path, release) {
+  let result = null;
+  for (let s = 0; !result; s += STEP / 2) {
+    const ball = path.at(s), frame = frameAt(release + s), point = [ball.x, ball.d];
+    if (ball.y <= 0.12 || Math.abs(ball.x) > WIDTH / 2) result = { outcome: 'incomplete', at: s };
+    else if (ball.y < 2.5 && ball.traveled > 2) {
+      let best = null;
+      for (const [id, spot] of Object.entries(frame)) {
+        const defender = id in defence, receiver = ELIGIBLE.includes(id);
+        if (!defender && !receiver) continue;
+        // Reach in yards. Linemen are busy blocking, so they rarely touch the ball.
+        const reach = receiver ? 1.5 : FRONT_FOUR.includes(id) ? 0.45 : 0.8;
+        const ratio = gap(spot, point) / reach;
+        if (ratio <= 1 && ball.y > (receiver ? 0.45 : 0.3) && (!receiver || ball.traveled > 3) && (!best || ratio < best.ratio)) best = { id, ratio, defender };
+      }
+      if (best) result = { outcome: !best.defender ? 'complete' : square(path, release, s, best.id) ? 'intercepted' : 'deflected', by: best.id, at: s };
+    }
+  }
+  // Which receiver was it meant for, and how accurate was the throw? Both are judged where the
+  // ball was aimed to arrive, even if it was touched earlier.
+  const arrival = frameAt(release + path.flight);
+  let target = result.by && ELIGIBLE.includes(result.by) ? result.by : null;
+  if (!target) target = ELIGIBLE.reduce((a, b) => (gap(arrival[b], path.target) < gap(arrival[a], path.target) ? b : a));
+  const miss = gap(arrival[target], path.target);
+  if (miss > 7 && target !== result.by) target = null;
+  const openness = target ? Math.min(...Object.keys(defence).map((k) => gap(arrival[k], arrival[target]))) : 0;
+  return { ...result, release, path, target, miss, openness };
+}
+
+// The read agreed at step 0, per situation.
+const READS = [
+  { best: 'X' },
+  { best: 'X', ok: 'Slot', allowed: (t) => t.openness >= 2 },
+  { best: 'X', ok: 'Slot' },
+  { best: 'Slot', ok: 'X', allowed: (t) => t.release < 1.5 },
+];
+function decision(index, thrown) {
+  if (!thrown) return 'sack';
+  const read = READS[index];
+  if (thrown.target === read.best) return 'good';
+  if (thrown.target === read.ok && (!read.allowed || read.allowed(thrown))) return 'acceptable';
+  return 'bad';
+}
+
+const marker = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.8, 32), new THREE.MeshBasicMaterial({ color: 0xfacc15, depthTest: false, transparent: true, side: THREE.DoubleSide }));
+marker.rotation.x = -Math.PI / 2;
+marker.renderOrder = 10;
+// A vertical post so the landing spot can be seen from far away.
+const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 2.4, 8), marker.material);
+post.rotation.x = Math.PI / 2;
+post.position.z = 1.2;
+post.renderOrder = 10;
+marker.add(post);
+marker.visible = false;
+scene.add(marker);
+
+// ---------------------------------------------------------------- Playing a rep
+// phase: ready (before the snap), live (can still throw), watch (ball gone, sack or replay), over.
+let phase = 'ready', play = null, time = 0, playing = false, slow = false, last = 0, startSpots = null;
+let charge = null, series = null, recorded = false;
+
+function resetPlay() {
+  playing = false;
+  play = null;
+  time = 0;
+  phase = 'ready';
+  charge = null;
+  recorded = false;
+  if (typeof runners === 'undefined') return;
+  for (const [id, r] of Object.entries(runners)) {
+    r.body.visible = false;
+    r.stance.visible = true;
+    if (startSpots) everyone[id].position.copy(startSpots[id]);
+  }
+  startSpots = null;
+  football.position.copy(BALL_START);
+  marker.visible = false;
+  for (const id of ['clock', 'result', 'power', 'cross']) $(id).hidden = true;
+  controls();
+}
+
+function controls() {
+  $('throw').disabled = $('lob').disabled = phase !== 'live';
+  $('snap').textContent = phase === 'over' ? 'Replay (Space)' : 'Snap (Space)';
+  $('snap').disabled = phase === 'live' || phase === 'watch';
+  $('reveal').disabled = Boolean(series) && phase !== 'over';
+  $('series').textContent = series ? `Rep ${Math.min(series.reps.length + (recorded ? 0 : 1), SERIES_LENGTH)} / ${SERIES_LENGTH}` : '10-rep series';
+  $('series').classList.toggle('on', Boolean(series));
+}
+
+function placeBall() {
+  const thrown = play.throw;
+  if (!thrown || time < thrown.release) {
+    football.position.lerpVectors(BALL_START, BALL_HELD, Math.min(1, time / 0.35));
+    football.rotation.set(0, 0, 0);
+    return;
+  }
+  const s = time - thrown.release;
+  if (s >= thrown.at && thrown.by && thrown.outcome !== 'deflected') {
+    // Caught or intercepted: the player carries it.
+    football.position.copy(world(...frameAt(time)[thrown.by])).setY(1.2);
+    return;
+  }
+  const now = thrown.path.at(Math.min(s, thrown.at));
+  const next = thrown.path.at(Math.min(s, thrown.at) + 0.02);
+  const fall = s > thrown.at ? (s - thrown.at) * 4 : 0;
+  football.position.copy(world(now.x, now.d)).setY(Math.max(0.1, now.y - fall));
+  football.lookAt(world(next.x, next.d).setY(next.y));
+}
+
+// Places every player and the ball for time t.
+function show(t) {
+  time = Math.max(0, Math.min(DURATION, t));
+  const index = Math.min(play.frames.length - 1, Math.round(time / STEP));
+  const frame = play.frames[index], before = play.frames[Math.max(0, index - 6)];
+  for (const [id, spot] of Object.entries(frame)) {
+    const group = everyone[id], r = runners[id];
+    group.position.copy(world(...spot));
+    const dx = spot[0] - before[id][0], dd = spot[1] - before[id][1];
+    const speed = Math.hypot(dx, dd) / Math.max(STEP, Math.min(6, index) * STEP);
+    const moved = index > 0;
+    r.stance.visible = !moved;
+    r.body.visible = moved;
+    if (!moved) continue;
+    // Linemen keep facing each other; others look where they run, or at the quarterback when slow or backpedalling.
+    const toQB = Math.atan2(-(QB_SPOT[0] - spot[0]), QB_SPOT[1] - spot[1]);
+    const heading = Math.atan2(-dx, dd);
+    const lineman = id in MATCHUP || (id in BLOCKS && id !== 'RB');
+    const backpedal = !(id in offenceByName) && dd > 0 && Math.abs(dx) < dd * 1.5;
+    r.body.rotation.y = lineman || id === 'RB' ? r.home : speed < 1.5 || backpedal ? toQB : heading;
+    let distance = 0;
+    for (let i = 1; i <= index; i += 3) {
+      const a = play.frames[Math.max(0, i - 3)][id], b = play.frames[i][id];
+      distance += Math.hypot(b[0] - a[0], b[1] - a[1]);
+    }
+    const swing = Math.min(0.85, speed * 0.13), phaseOfRun = distance * 2.2;
+    for (const { leg, knee, side } of r.legs) {
+      leg.rotation.x = Math.sin(phaseOfRun) * swing * side * (r.low ? 0.4 : 1) + (r.low ? 0.6 : 0.12);
+      knee.rotation.x = -((r.low ? 1.15 : 0.25) + Math.max(0, Math.cos(phaseOfRun) * side) * swing * (r.low ? 0.5 : 1.4));
+    }
+    for (const { arm, side } of r.arms) arm.rotation.x = -Math.sin(phaseOfRun) * swing * side + (lineman ? 1.1 : 0.15);
+  }
+  placeBall();
+  const sacked = !play.throw && time >= play.sack;
+  $('clock').hidden = false;
+  $('clock').classList.toggle('late', sacked);
+  const shown = play.throw ? Math.min(time, play.throw.release) : Math.min(time, play.sack);
+  $('clock').textContent = (sacked ? 'Sack! ' : play.throw && time >= play.throw.release ? 'Thrown at ' : '') + `${shown.toFixed(1)} s`;
+  updateAim();
+  refresh();
+}
+
+// The landing spot while the throw is being charged.
+function aimedDistance() {
+  const held = (performance.now() - charge.since) / 1000;
+  return Math.min(MAX_YARDS, MIN_YARDS + (MAX_YARDS - MIN_YARDS) * held / CHARGE_SECONDS);
+}
+function updateAim() {
+  $('cross').hidden = phase !== 'live' || topView;
+  marker.visible = Boolean(charge);
+  $('power').hidden = !charge;
+  if (!charge) return;
+  const distance = aimedDistance();
+  marker.position.copy(world(...trajectory(charge.type, yaw, distance).target)).setY(0.06);
+  $('powerFill').style.width = `${(distance - MIN_YARDS) / (MAX_YARDS - MIN_YARDS) * 100}%`;
+}
+
+function startCharge(type) {
+  if (phase !== 'live' || charge || time < 0.35) return;
+  charge = { type, since: performance.now() };
+}
+function releaseThrow(type, distance) {
+  if (phase !== 'live') return;
+  if (distance === undefined) {
+    if (!charge || charge.type !== type) return;
+    distance = aimedDistance();
+  }
+  charge = null;
+  play.throw = resolve(trajectory(type, yaw, distance), time);
+  play.end = Math.min(DURATION, time + play.throw.at + 0.9);
+  phase = 'watch';
+  updateAim();
+  controls();
+}
+
+const NAMES = { X: 'X (slant)', Slot: 'Slot (flat)', Z: 'Z', TE: 'Tight end', RB: 'Running back' };
+const TITLES = { good: '✅ Good read', acceptable: '🟡 Acceptable read', bad: '❌ Bad read', sack: '❌ Sack' };
+const number = (v) => v.toFixed(1);
+
+function finish() {
+  playing = false;
+  phase = 'over';
+  const thrown = play.throw, grade = decision(current, thrown);
+  const lines = [];
+  if (thrown) {
+    lines.push(`Pass ${thrown.outcome}${thrown.by && thrown.outcome !== 'complete' ? ' by ' + thrown.by.replace(/\d$/, '') : ''}.`);
+    lines.push(`Target: ${thrown.target ? NAMES[thrown.target] : 'nobody'}. Thrown after ${number(thrown.release)} s.`);
+    if (thrown.target) lines.push(`Accuracy: ${number(thrown.miss)} yd from the receiver. Closest defender: ${number(thrown.openness)} yd.`);
+  } else {
+    lines.push(`The pressure arrived after ${number(play.sack)} s.`);
+  }
+  if (!recorded) {
+    recorded = true;
+    if (series) {
+      series.reps.push({ situation: current + 1, blitz: play.blitz, grade, outcome: thrown ? thrown.outcome : 'sack', release: thrown ? thrown.release : null });
+    }
+  }
+  const done = series && series.reps.length >= SERIES_LENGTH;
+  $('resultTitle').textContent = TITLES[grade];
+  $('resultText').textContent = lines.join('\n') + `\n\n${SITUATIONS[current].name}. ${SITUATIONS[current].answer}`;
+  $('next').textContent = done ? 'See summary (Enter)' : series ? 'Next (Enter)' : 'Try again (Enter)';
+  $('result').hidden = false;
+  $('next').hidden = false;
+  $('replay').hidden = false;
+  updateAim();
+  controls();
+}
+
+function summary() {
+  const reps = series.reps;
+  const good = (list) => list.filter((r) => r.grade === 'good' || r.grade === 'acceptable').length;
+  const thrown = reps.filter((r) => r.release !== null);
+  const average = thrown.length ? thrown.reduce((sum, r) => sum + r.release, 0) / thrown.length : null;
+  const withBlitz = reps.filter((r) => r.blitz), without = reps.filter((r) => !r.blitz);
+  const count = (outcome) => reps.filter((r) => r.outcome === outcome).length;
+  const result = { date: new Date().toISOString(), total: reps.length, goodReads: good(reps), completions: count('complete'),
+    interceptions: count('intercepted'), sacks: count('sack'), averageRelease: average, reps };
+  let saved = true;
+  try {
+    const record = { email: localStorage.getItem('qbsense_user') || 'guest', date: result.date, level: 1,
+      accuracy: Math.round(result.goodReads / result.total * 100), correct: result.goodReads, total: result.total,
+      avgTime: average === null ? null : Number(average.toFixed(2)),
+      pressureAtt: withBlitz.length, pressureComp: good(withBlitz), concept: 'Slant-Flat', coverage: 'Mixed',
+      completions: result.completions, interceptions: result.interceptions, sacks: result.sacks };
+    const all = JSON.parse(localStorage.getItem('qbsense_readthrow_results') || '[]');
+    localStorage.setItem('qbsense_readthrow_results', JSON.stringify([...all, record]));
+  } catch (error) {
+    saved = false;
+  }
+  $('resultTitle').textContent = 'Series summary';
+  $('resultText').textContent = [
+    `Good decisions: ${result.goodReads} / ${reps.length}`,
+    `Completions: ${result.completions} / ${reps.length}`,
+    `Interceptions: ${result.interceptions}   Sacks: ${result.sacks}`,
+    `Average time to throw: ${average === null ? '--' : number(average) + ' s'}`,
+    saved ? 'Saved to your Results and Progress.' : 'This series could not be saved.',
+    `With blitz: ${good(withBlitz)} / ${withBlitz.length}   Without blitz: ${good(without)} / ${without.length}`,
+  ].join('\n');
+  series = null;
+  // Copy the new series to the player's account; it stays in the browser if this fails.
+  if (saved && window.qbSyncResults) window.qbSyncResults();
+  $('next').textContent = 'Finish (Enter)';
+  $('replay').hidden = true;
+  $('result').hidden = false;
+  controls();
+}
+
+function tick(now) {
+  if (!playing) return;
+  show(time + Math.min(0.1, (now - last) / 1000) * (slow ? 0.35 : 1));
+  last = now;
+  if (phase === 'live' && time >= play.sack) {
+    charge = null;
+    phase = 'watch';
+    play.end = play.sack + 0.4;
+    updateAim();
+    controls();
+  }
+  if (time >= play.end) finish();
+  else requestAnimationFrame(tick);
+}
+
+function run(nextPhase) {
+  phase = nextPhase;
+  $('result').hidden = true;
+  show(0);
+  playing = true;
+  last = performance.now();
+  controls();
+  requestAnimationFrame(tick);
+}
+// Starts a rep, or replays the finished one.
+function snap() {
+  if (phase === 'ready') {
+    startSpots = Object.fromEntries(Object.entries(everyone).map(([id, p]) => [id, p.position.clone()]));
+    play = simulate(current);
+    play.end = DURATION;
+    document.activeElement.blur();
+    run('live');
+  } else if (phase === 'over') run('watch');
+}
+
+function newRep() {
+  yaw = 0;
+  pitch = -0.08;
+  hideNumber = true;
+  setSituation(Math.floor(Math.random() * SITUATIONS.length));
+}
+function next() {
+  if (phase !== 'over') return;
+  if (series && series.reps.length >= SERIES_LENGTH) { summary(); return; }
+  if (series) newRep();
+  else if ($('resultTitle').textContent === 'Series summary') newRep();
+  else setSituation(current);
+}
+function abortSeries() {
+  series = null;
+  controls();
+}
+
+$('snap').onclick = snap;
+$('slow').onclick = () => { slow = !slow; $('slow').classList.toggle('on', slow); };
+$('replay').onclick = snap;
+$('next').onclick = next;
+$('series').onclick = () => {
+  if (series) return;
+  series = { reps: [] };
+  newRep();
+};
+// Picking a situation by hand leaves the series.
+for (const id of ['random', 'situations']) $(id).addEventListener('click', abortSeries);
+for (const [id, type] of [['throw', 'bullet'], ['lob', 'lob']]) {
+  $(id).addEventListener('pointerdown', (e) => { e.preventDefault(); startCharge(type); });
+  addEventListener('pointerup', () => releaseThrow(type));
+}
+addEventListener('pointercancel', () => { charge = null; });
+addEventListener('blur', () => { charge = null; });
+addEventListener('keydown', (e) => {
+  if (e.code === 'Space' || e.code === 'KeyL') {
+    e.preventDefault();
+    if (e.repeat) return;
+    if (phase === 'live') startCharge(e.code === 'Space' ? 'bullet' : 'lob');
+    else if (e.code === 'Space') snap();
+  } else if (e.key === 'Enter' && phase === 'over') { e.preventDefault(); next(); }
+  else if (e.key.toLowerCase() === 's') $('slow').click();
+  else if (e.key.toLowerCase() === 'r') abortSeries();
+});
+addEventListener('keyup', (e) => {
+  // Space would also press whichever button has the focus.
+  if (e.code === 'Space') { e.preventDefault(); releaseThrow('bullet'); }
+  else if (e.code === 'KeyL') releaseThrow('lob');
+});
+
+randomSituation();
+resize();
+// Used by automated checks.
+window.qb = { offence, defence, setSituation, snap, simulate, assignments, SACK_RANGE,
+  seek: (t) => { playing = false; show(t); },
+  // Throws at a chosen moment, direction and distance, then jumps to the result.
+  testThrow: (index, type, release, heading, distance) => {
+    setSituation(index); snap(); playing = false; show(release); yaw = heading; releaseThrow(type, distance);
+    const thrown = play.throw; show(play.end); finish();
+    return { outcome: thrown.outcome, by: thrown.by, target: thrown.target, miss: +thrown.miss.toFixed(1), title: $('resultTitle').textContent };
+  },
+  frames: (index) => simulate(index, 0.5).frames, trajectory, count: offence.length + 1 + Object.keys(defence).length };
+</script>
+<script type="module" src="auth-guard.js"></script>
+<script type="module" src="results-sync.js"></script>
+</body>
+</html>

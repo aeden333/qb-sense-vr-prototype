@@ -1,5 +1,5 @@
 (function(){
-var KEYS=[['qbsense_progression_results','Progression Reads'],['qbsense_blitz_results','Blitz Recognition'],['qbsense_redzone_results','Red-Zone Decisions'],['qbsense_twominute_results','Two-Minute Drill'],['qbsense_game_results','Game Situations']];
+var KEYS=[['qbsense_readthrow_results','Read & Throw'],['qbsense_progression_results','Progression Reads'],['qbsense_blitz_results','Blitz Recognition'],['qbsense_redzone_results','Red-Zone Decisions'],['qbsense_twominute_results','Two-Minute Drill'],['qbsense_game_results','Game Situations']];
 function load(){
   var me=localStorage.getItem('qbsense_user')||'guest',all=[];
   KEYS.forEach(function(k){

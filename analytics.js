@@ -26,7 +26,7 @@
     if (link) {
       var url = new URL(link.href, location.href);
       var drill = url.pathname.split('/').pop();
-      if (url.origin === location.origin && /^(blitz-sim|pocket-pressure-3d|redzone-sim|twominute-sim|twominute-fix|game-scenarios|progression-sim)\.html$/.test(drill)) event('drill_open', {drill_name: drill.replace('.html', '')});
+      if (url.origin === location.origin && /^(blitz-sim|pocket-pressure-3d|redzone-sim|twominute-sim|twominute-fix|game-scenarios|progression-sim|read-throw)\.html$/.test(drill)) event('drill_open', {drill_name: drill.replace('.html', '')});
     }
     var checkout = e.target.closest('#checkoutButton');
     if (checkout && !checkout.disabled) {

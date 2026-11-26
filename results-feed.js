@@ -1,7 +1,7 @@
 (function(){
 function latest(){
   var me=localStorage.getItem('qbsense_user')||'guest',all=[];
-  [['qbsense_progression_results','Progression Reads'],['qbsense_blitz_results','Blitz Recognition'],['qbsense_game_results','Game Situations']].forEach(function(k){
+  [['qbsense_readthrow_results','Read & Throw'],['qbsense_progression_results','Progression Reads'],['qbsense_blitz_results','Blitz Recognition'],['qbsense_game_results','Game Situations']].forEach(function(k){
     try{
       JSON.parse(localStorage.getItem(k[0])||'[]').forEach(function(r){
         if((r.email||'guest')===me){r.drill=k[1];all.push(r)}
