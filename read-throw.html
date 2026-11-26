@@ -529,13 +529,41 @@ function assignments(index) {
 }
 
 const QB_SPOT = [0, -5];
-// Linemen retreat to a pocket; each rusher up front pushes against one of them.
-const BLOCKS = { LT: [-3.6, -2.4], LG: [-1.7, -1.6], C: [0, -1.3], RG: [1.7, -1.6], RT: [3.6, -2.4], RB: [2.2, -4.2] };
+// Pass protection forms a cup: the tackles drop deeper and wider than the guards and centre.
+const BLOCKS = { LT: [-4.2, -3.3], LG: [-1.9, -2], C: [0, -1.5], RG: [1.9, -2], RT: [4.2, -3.3], RB: [2.4, -4.3] };
 const MATCHUP = { DE1: 'LT', DT1: 'LG', DT2: 'RG', DE2: 'RT' };
 
 const ease = (t) => t * t * (3 - 2 * t);
 const lerp2 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
 const yards = (group) => [group.position.x / YD, -group.position.z / YD];
+// A curved path from a to b that passes through "via" half way.
+function curve(a, via, b, u) {
+  const c = [2 * via[0] - (a[0] + b[0]) / 2, 2 * via[1] - (a[1] + b[1]) / 2], v = 1 - u;
+  return [v * v * a[0] + 2 * v * u * c[0] + u * u * b[0], v * v * a[1] + 2 * v * u * c[1] + u * u * b[1]];
+}
+// The point "distance" yards from a blocker, on the far side from the quarterback, turned by "angle".
+function opposite(blocker, distance, angle = 0) {
+  const heading = Math.atan2(blocker[0] - QB_SPOT[0], blocker[1] - QB_SPOT[1]) + angle;
+  return [blocker[0] + Math.sin(heading) * distance, blocker[1] + Math.cos(heading) * distance];
+}
+const FRONT_NAMES = new Set(['LT', 'LG', 'C', 'RG', 'RT', 'DE1', 'DT1', 'DT2', 'DE2']);
+// Players cannot run through each other: overlapping pairs are pushed apart.
+function separate(now) {
+  const ids = Object.keys(now);
+  for (let pass = 0; pass < 2; pass++) {
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = i + 1; j < ids.length; j++) {
+        const a = now[ids[i]], b = now[ids[j]];
+        const room = FRONT_NAMES.has(ids[i]) && FRONT_NAMES.has(ids[j]) ? 0.8 : 0.65;
+        const dx = b[0] - a[0], dd = b[1] - a[1], apart = Math.hypot(dx, dd);
+        if (apart >= room) continue;
+        const push = (room - apart) / 2, ux = apart ? dx / apart : 1, ud = apart ? dd / apart : 0;
+        now[ids[i]] = [a[0] - ux * push, a[1] - ud * push];
+        now[ids[j]] = [b[0] + ux * push, b[1] + ud * push];
+      }
+    }
+  }
+}
 function towards(from, to, step) {
   const length = Math.hypot(to[0] - from[0], to[1] - from[1]);
   return length <= step ? to.slice() : lerp2(from, to, step / length);
@@ -553,6 +581,10 @@ function simulate(index, draw = Math.random()) {
   // Rounded to a tenth, the precision shown on the clock.
   const sack = Math.round((low + draw * (high - low)) * 10) / 10;
   const frames = [{ ...start }];
+  // Numbers between 0 and 1 that differ from rep to rep but stay the same on a replay.
+  const vary = (k) => { const n = Math.sin((draw + 0.137) * 1000 + k * 12.9898) * 43758.5453; return n - Math.floor(n); };
+  // Without a blitz, one of the two ends finally beats his tackle.
+  const winner = blitz ? null : vary(1) < 0.5 ? 'DE1' : 'DE2';
   for (let t = STEP; t <= DURATION + 1e-6; t += STEP) {
     const previous = frames[frames.length - 1];
     const now = {};
@@ -561,21 +593,37 @@ function simulate(index, draw = Math.random()) {
       const route = [start[id], ...ROUTES[id].slice(1)];
       now[id] = along(route, covered(SPEED[id], t));
     }
-    for (const [id, spot] of Object.entries(BLOCKS)) now[id] = lerp2(start[id], spot, ease(Math.min(1, t / 1.1)));
-    for (const [id, blocker] of Object.entries(MATCHUP)) {
-      const face = [now[blocker][0] * 1.04, now[blocker][1] + 0.95];
-      now[id] = lerp2(start[id], face, ease(Math.min(1, t / 0.8)));
-      // Without a blitz, the left end finally beats his tackle.
-      if (!blitz && id === 'DE1' && t > 1.5) {
-        const u = Math.min(1, (t - 1.5) / (sack - 1.5));
-        now[id] = u < 0.5 ? lerp2(face, [-4.8, -4], u * 2) : lerp2([-4.8, -4], [-0.9, -4.8], u * 2 - 1);
+    Object.entries(BLOCKS).forEach(([id, spot], k) => {
+      const set = [spot[0] + (vary(k + 2) - 0.5) * 0.8, spot[1] + (vary(k + 12) - 0.5) * 0.7];
+      const driven = Math.max(0, t - 1.1) * (0.1 + vary(k + 22) * 0.4);
+      const sway = Math.sin(t * (2 + vary(k + 32) * 2) + vary(k + 42) * 6) * 0.3 * Math.min(1, t);
+      const to = [set[0] + sway, set[1] - (id === 'RB' ? 0 : driven)];
+      now[id] = lerp2(start[id], to, ease(Math.min(1, t / 1.1)));
+    });
+    Object.entries(MATCHUP).forEach(([id, blocker], k) => {
+      const edge = id.startsWith('DE'), outside = id === 'DE1' ? -1 : 1;
+      // Ends work around the outside shoulder; tackles push and twist.
+      const angle = edge ? outside * Math.min(0.9, t * 0.35) : Math.sin(t * 2.6 + vary(k + 52) * 6) * 0.35;
+      const engaged = opposite(now[blocker], 1.1, angle);
+      // The right end ducks under the tight end, who is releasing across his path.
+      const u0 = ease(Math.min(1, t / 0.7));
+      now[id] = id === 'DE2' ? curve(start[id], [start[id][0] - 0.3, -1.5], engaged, u0) : lerp2(start[id], engaged, u0);
+      if (id === winner) {
+        const from = Math.max(1.2, sack - 1.5);
+        if (t > from) {
+          const end = [QB_SPOT[0] + outside * 0.85, QB_SPOT[1] - 0.15];
+          const u = Math.min(1, (t - from) / (sack - from));
+          now[id] = curve(opposite(now[blocker], 1.1, outside * Math.min(0.9, from * 0.35)), [outside * 4.6, -6], end, u);
+          // The beaten tackle turns and chases from the inside.
+          now[blocker] = lerp2(now[blocker], now[id], 0.3 * Math.min(1, u * 2));
+        }
       }
-    }
+    });
     for (const [id, job] of Object.entries(plan)) {
       if (job.type === 'rush') {
         const u = Math.min(1, Math.pow(t / sack, 1.25));
-        const end = [QB_SPOT[0] - 0.8, QB_SPOT[1] + 0.5];
-        now[id] = u < 0.55 ? lerp2(start[id], job.via, u / 0.55) : lerp2(job.via, end, (u - 0.55) / 0.45);
+        const end = [QB_SPOT[0] - 0.8, QB_SPOT[1] + 0.4];
+        now[id] = curve(start[id], job.via, end, u);
       } else if (job.type === 'zone') {
         now[id] = t < job.delay ? previous[id] : towards(previous[id], [job.x, job.d], job.speed * STEP * Math.min(1, (t - job.delay) / 0.5 + 0.2));
       } else {
@@ -586,6 +634,7 @@ function simulate(index, draw = Math.random()) {
         now[id] = towards(previous[id], aim, job.speed * STEP * Math.min(1, t / 0.6 + 0.25));
       }
     }
+    separate(now);
     frames.push(now);
   }
   return { frames, sack, blitz };
@@ -620,11 +669,15 @@ function runner(id, group) {
     arm.position.set(side * 0.29 * bulk, chest[1] - 0.02, chest[2]);
     limb(arm, [0, 0, 0], [0, -0.14, 0], 0.095 * bulk, 0.075 * bulk, kit.jersey);
     limb(arm, [0, -0.14, 0], [0, -0.31, 0], 0.07 * bulk, 0.048, skin);
-    limb(arm, [0, -0.31, 0], [0, -0.38, -0.27], 0.052, 0.033, skin);
-    limb(arm, [0, -0.38, -0.27], [0, -0.39, -0.34], 0.04, 0.045, DARK);
+    const elbow = new THREE.Group();
+    elbow.position.set(0, -0.31, 0);
+    limb(elbow, [0, 0, 0], [0, -0.28, 0], 0.052, 0.033, skin);
+    limb(elbow, [0, -0.28, 0], [0, -0.36, 0], 0.04, 0.045, DARK);
+    elbow.rotation.x = 1.25;
+    arm.add(elbow);
     ball(arm, [0, 0.02, 0], 0.13 * bulk, kit.jersey, [1.15, 0.8, 1]);
     body.add(arm);
-    arms.push({ arm, side });
+    arms.push({ arm, elbow, side });
   }
   ball(body, hip, 0.15 * bulk, kit.pants, [1.2, 0.95, 0.95]);
   const trunk = new THREE.Group();
@@ -635,6 +688,8 @@ function runner(id, group) {
   limb(body, mix(chest, head, 0.2), mix(chest, head, 0.75), 0.075 * bulk, 0.065, skin);
   helmet(body, head, kit, skin);
   body.visible = false;
+  // Turn first, then lean.
+  body.rotation.order = 'YXZ';
   group.add(body);
   const stance = group.children[0];
   return { body, stance, legs, arms, low, home: stance.rotation.y };
@@ -688,20 +743,84 @@ function square(path, release, from, id) {
   return false;
 }
 
+// How far a player can be from the ball at its arrival and still do something about it.
+const STRETCH = 2.2, LUNGE = 3.8;
+
+// Once the ball is in the air, nearby players leave their path to go and get it. This rewrites
+// their positions from the release onward and records who jumps, dives or falls.
+function react(path, release) {
+  const actions = {};
+  const first = Math.round(release / STEP), arrive = Math.round((release + path.flight) / STEP);
+  for (const id of Object.keys(play.frames[0])) {
+    const isReceiver = ELIGIBLE.includes(id), isDefender = id in defence && !FRONT_FOUR.includes(id);
+    if (!isReceiver && !isDefender) continue;
+    const planned = play.frames[Math.min(play.frames.length - 1, arrive)][id];
+    // Too far away to have any chance.
+    if (gap(planned, path.target) > 7) continue;
+    const delay = Math.round((isReceiver ? 0.2 : 0.35) / STEP);
+    const top = isReceiver ? 8 : 7.6, grip = 20;
+    let at = play.frames[Math.min(play.frames.length - 1, first)][id];
+    const before = play.frames[Math.max(0, first - 6)][id];
+    let speed = [(at[0] - before[0]) / (6 * STEP), (at[1] - before[1]) / (6 * STEP)];
+    for (let k = first + 1; k <= Math.min(arrive, play.frames.length - 1); k++) {
+      if (k - first <= delay) { at = play.frames[k][id]; continue; }
+      // Steer toward the spot where the ball comes down, keeping some momentum.
+      const left = Math.max(0.15, (arrive - k) * STEP);
+      let want = [(path.target[0] - at[0]) / left, (path.target[1] - at[1]) / left];
+      const wanted = Math.hypot(...want);
+      if (wanted > top) want = [want[0] * top / wanted, want[1] * top / wanted];
+      const change = [want[0] - speed[0], want[1] - speed[1]], amount = Math.hypot(...change);
+      const limit = Math.min(1, grip * STEP / (amount || 1));
+      speed = [speed[0] + change[0] * limit, speed[1] + change[1] * limit];
+      at = [at[0] + speed[0] * STEP, at[1] + speed[1] * STEP];
+      play.frames[k][id] = at;
+    }
+    const miss = gap(at, path.target);
+    const action = { arrive: arrive * STEP, toward: path.target.slice() };
+    if (miss <= 0.8) action.kind = 'reach';
+    else if (miss <= STRETCH) action.kind = 'dive';
+    else if (miss <= LUNGE) action.kind = 'fall';
+    else continue;
+    actions[id] = action;
+    // After the ball arrives: a diving player slides to a stop, the others slow down.
+    const slide = action.kind === 'reach' ? null : towards(at, path.target, 1.2);
+    for (let k = arrive + 1; k < play.frames.length; k++) {
+      const t = (k - arrive) * STEP;
+      if (slide) play.frames[k][id] = lerp2(at, slide, ease(Math.min(1, t / 0.35)));
+      else {
+        const glide = 0.35 * (1 - Math.exp(-t / 0.35));
+        play.frames[k][id] = [at[0] + speed[0] * glide, at[1] + speed[1] * glide];
+      }
+    }
+  }
+  return actions;
+}
+
 // Follows the ball until somebody touches it or it hits the ground.
 function resolve(path, release) {
+  // Accuracy and the read are judged on where everybody was heading when the ball left.
+  const planned = { ...frameAt(release + path.flight) };
+  const actions = react(path, release);
   let result = null;
   for (let s = 0; !result; s += STEP / 2) {
     const ball = path.at(s), frame = frameAt(release + s), point = [ball.x, ball.d];
     if (ball.y <= 0.12 || Math.abs(ball.x) > WIDTH / 2) result = { outcome: 'incomplete', at: s };
-    else if (ball.y < 2.5 && ball.traveled > 2) {
+    else if (ball.y < 3.2 && ball.traveled > 2) {
       let best = null;
       for (const [id, spot] of Object.entries(frame)) {
         const defender = id in defence, receiver = ELIGIBLE.includes(id);
         if (!defender && !receiver) continue;
         // Reach in yards. Linemen are busy blocking, so they rarely touch the ball.
-        const reach = receiver ? 1.5 : FRONT_FOUR.includes(id) ? 0.45 : 0.8;
+        const action = actions[id];
+        // Fingertips go further for a player who is diving at the right moment.
+        const diving = action && action.kind === 'dive' && release + s > action.arrive - 0.15;
+        const reach = (receiver ? 1.3 : FRONT_FOUR.includes(id) ? 0.45 : 0.8) + (diving ? 1 : 0);
         const ratio = gap(spot, point) / reach;
+        // Above head height only a jump gets there.
+        const high = ball.y > 2.3;
+        if (high && FRONT_FOUR.includes(id)) continue;
+        // A player who is going to fall short cannot make the catch.
+        if (action && action.kind === 'fall' && release + s > action.arrive - 0.15) continue;
         if (ratio <= 1 && ball.y > (receiver ? 0.45 : 0.3) && (!receiver || ball.traveled > 3) && (!best || ratio < best.ratio)) best = { id, ratio, defender };
       }
       if (best) result = { outcome: !best.defender ? 'complete' : square(path, release, s, best.id) ? 'intercepted' : 'deflected', by: best.id, at: s };
@@ -709,13 +828,17 @@ function resolve(path, release) {
   }
   // Which receiver was it meant for, and how accurate was the throw? Both are judged where the
   // ball was aimed to arrive, even if it was touched earlier.
-  const arrival = frameAt(release + path.flight);
+  const arrival = planned;
   let target = result.by && ELIGIBLE.includes(result.by) ? result.by : null;
   if (!target) target = ELIGIBLE.reduce((a, b) => (gap(arrival[b], path.target) < gap(arrival[a], path.target) ? b : a));
   const miss = gap(arrival[target], path.target);
   if (miss > 7 && target !== result.by) target = null;
   const openness = target ? Math.min(...Object.keys(defence).map((k) => gap(arrival[k], arrival[target]))) : 0;
-  return { ...result, release, path, target, miss, openness };
+  // Whoever touched the ball above his head had to jump for it.
+  if (result.by && path.at(result.at).y > 2.3) actions[result.by] = { kind: 'jump', arrive: release + result.at, toward: path.target.slice() };
+  else if (result.by && !actions[result.by]) actions[result.by] = { kind: 'reach', arrive: release + result.at, toward: path.target.slice() };
+  const caught = result.by && result.outcome !== 'deflected';
+  return { ...result, release, path, target, miss, openness, actions, caught };
 }
 
 // The read agreed at step 0, per situation.
@@ -789,7 +912,9 @@ function placeBall() {
   const s = time - thrown.release;
   if (s >= thrown.at && thrown.by && thrown.outcome !== 'deflected') {
     // Caught or intercepted: the player carries it.
-    football.position.copy(world(...frameAt(time)[thrown.by])).setY(1.2);
+    const holder = thrown.actions[thrown.by];
+    const onGround = holder && holder.kind === 'dive' ? ease(Math.min(1, Math.max(0, (time - holder.arrive) / 0.3))) : 0;
+    football.position.copy(world(...frameAt(time)[thrown.by])).setY(1.2 - 0.9 * onGround);
     return;
   }
   const now = thrown.path.at(Math.min(s, thrown.at));
@@ -797,6 +922,51 @@ function placeBall() {
   const fall = s > thrown.at ? (s - thrown.at) * 4 : 0;
   football.position.copy(world(now.x, now.d)).setY(Math.max(0.1, now.y - fall));
   football.lookAt(world(next.x, next.d).setY(next.y));
+}
+
+// Overrides the running pose around the moment the ball arrives.
+function reactionPose(r, action, id, spot) {
+  const since = time - action.arrive;
+  // Hands come up as the ball gets close.
+  if (since < -0.5) return;
+  const rise = ease(Math.min(1, (since + 0.5) / 0.35));
+  const reachUp = (angle, spread, bend) => {
+    for (const { arm, elbow, side } of r.arms) {
+      arm.rotation.x += (angle - arm.rotation.x) * rise;
+      arm.rotation.z = side * spread;
+      elbow.rotation.x += (bend - elbow.rotation.x) * rise;
+    }
+  };
+  const aim = Math.atan2(-(action.toward[0] - spot[0]), action.toward[1] - spot[1]);
+  if (action.kind === 'reach') {
+    reachUp(1.7, 0.05, 0.6);
+    return;
+  }
+  if (action.kind === 'jump') {
+    const u = (since + 0.3) / 0.6;
+    if (u > 0 && u < 1) {
+      const height = Math.sin(Math.PI * u);
+      r.body.position.y = 0.75 * height;
+      for (const { knee } of r.legs) knee.rotation.x = -0.4 - 0.7 * height;
+    }
+    reachUp(2.9, 0.12, 0.2);
+    return;
+  }
+  // Dive (a catch attempt at full stretch) and fall (a lunge that comes up short).
+  const u = Math.max(0, Math.min(1, (since + 0.2) / 0.45));
+  if (u === 0) return reachUp(2.2, 0.15, 0.4);
+  const down = ease(u);
+  if (Math.hypot(action.toward[0] - spot[0], action.toward[1] - spot[1]) > 0.3 && since < 0.1) r.body.rotation.y = aim;
+  r.body.rotation.x = -1.45 * down;
+  r.body.position.y = 0.45 * Math.sin(Math.PI * u) + 0.22 * down;
+  // A player who misses lands off balance, on one side.
+  if (action.kind === 'fall') r.body.rotation.z = 0.45 * down;
+  for (const { leg, knee, side } of r.legs) {
+    leg.rotation.x = (side > 0 ? 0.35 : -0.1) * down;
+    leg.rotation.z = side * 0.12;
+    knee.rotation.x = -(side > 0 ? 0.9 : 0.25) * down;
+  }
+  reachUp(action.kind === 'dive' ? 3 : 2.4, action.kind === 'dive' ? 0.1 : 0.7, 0.15);
 }
 
 // Places every player and the ball for time t.
@@ -813,23 +983,54 @@ function show(t) {
     r.stance.visible = !moved;
     r.body.visible = moved;
     if (!moved) continue;
+    r.body.position.set(0, 0, 0);
+    r.body.rotation.z = 0;
     // Linemen keep facing each other; others look where they run, or at the quarterback when slow or backpedalling.
     const toQB = Math.atan2(-(QB_SPOT[0] - spot[0]), QB_SPOT[1] - spot[1]);
     const heading = Math.atan2(-dx, dd);
     const lineman = id in MATCHUP || (id in BLOCKS && id !== 'RB');
     const backpedal = !(id in offenceByName) && dd > 0 && Math.abs(dx) < dd * 1.5;
-    r.body.rotation.y = lineman || id === 'RB' ? r.home : speed < 1.5 || backpedal ? toQB : heading;
+    // A lineman is engaged while he has an opponent within reach.
+    let partner = null;
+    if (lineman) {
+      let nearest = 1.6;
+      for (const other of id in MATCHUP ? Object.keys(BLOCKS) : Object.keys(MATCHUP)) {
+        const away = gap(spot, frame[other]);
+        if (away < nearest) { nearest = away; partner = other; }
+      }
+    }
+    if (partner) r.body.rotation.y = Math.atan2(-(frame[partner][0] - spot[0]), frame[partner][1] - spot[1]);
+    else if (id === 'RB' || (lineman && speed < 1.5)) r.body.rotation.y = r.home;
+    else r.body.rotation.y = speed < 1.5 || backpedal ? toQB : heading;
     let distance = 0;
     for (let i = 1; i <= index; i += 3) {
       const a = play.frames[Math.max(0, i - 3)][id], b = play.frames[i][id];
       distance += Math.hypot(b[0] - a[0], b[1] - a[1]);
     }
-    const swing = Math.min(0.85, speed * 0.13), phaseOfRun = distance * 2.2;
+    // Engaged players churn their feet even when they barely move.
+    const swing = partner ? 0.35 : Math.min(0.85, speed * 0.13);
+    const phaseOfRun = partner ? time * 11 + (id in MATCHUP ? 1.5 : 0) : distance * 2.2;
+    r.body.rotation.x = partner ? (id in MATCHUP ? -0.1 : -0.03) : -Math.min(0.22, speed * 0.028);
     for (const { leg, knee, side } of r.legs) {
+      leg.rotation.z = side * (partner ? 0.16 : 0);
       leg.rotation.x = Math.sin(phaseOfRun) * swing * side * (r.low ? 0.4 : 1) + (r.low ? 0.6 : 0.12);
       knee.rotation.x = -((r.low ? 1.15 : 0.25) + Math.max(0, Math.cos(phaseOfRun) * side) * swing * (r.low ? 0.5 : 1.4));
     }
-    for (const { arm, side } of r.arms) arm.rotation.x = -Math.sin(phaseOfRun) * swing * side + (lineman ? 1.1 : 0.15);
+    for (const { arm, elbow, side } of r.arms) {
+      if (partner) {
+        // Hands on the opponent's chest, pumping a little.
+        const punch = Math.sin(time * 7 + side) * 0.12;
+        arm.rotation.x = 1.3 + punch;
+        arm.rotation.z = -side * 0.12;
+        elbow.rotation.x = 0.3 - punch;
+      } else {
+        arm.rotation.x = -Math.sin(phaseOfRun) * swing * side * 1.1 + 0.15;
+        arm.rotation.z = side * 0.08;
+        elbow.rotation.x = 1.25;
+      }
+    }
+    const action = play.throw && play.throw.actions[id];
+    if (action) reactionPose(r, action, id, spot);
   }
   placeBall();
   const sacked = !play.throw && time >= play.sack;
@@ -868,7 +1069,7 @@ function releaseThrow(type, distance) {
   }
   charge = null;
   play.throw = resolve(trajectory(type, yaw, distance), time);
-  play.end = Math.min(DURATION, time + play.throw.at + 0.9);
+  play.end = Math.min(DURATION, time + play.throw.at + 1.5);
   phase = 'watch';
   updateAim();
   controls();
@@ -1043,7 +1244,8 @@ window.qb = { offence, defence, setSituation, snap, simulate, assignments, SACK_
     const thrown = play.throw; show(play.end); finish();
     return { outcome: thrown.outcome, by: thrown.by, target: thrown.target, miss: +thrown.miss.toFixed(1), title: $('resultTitle').textContent };
   },
-  frames: (index) => simulate(index, 0.5).frames, trajectory, count: offence.length + 1 + Object.keys(defence).length };
+  frames: (index) => simulate(index, 0.5).frames, trajectory,
+  actions: () => (play && play.throw ? Object.fromEntries(Object.entries(play.throw.actions).map(([id, a]) => [id, a.kind])) : {}), count: offence.length + 1 + Object.keys(defence).length };
 </script>
 <script type="module" src="auth-guard.js"></script>
 <script type="module" src="results-sync.js"></script>
