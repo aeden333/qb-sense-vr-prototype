@@ -1257,7 +1257,10 @@ function placeBall() {
   if (s >= thrown.at && thrown.by && thrown.outcome !== 'deflected') {
     // Caught or intercepted: the player carries it.
     const holder = thrown.actions[thrown.by];
-    const onGround = holder && holder.kind === 'dive' ? ease(Math.min(1, Math.max(0, (time - holder.arrive) / 0.3))) : 0;
+    const dived = holder && holder.kind === 'dive' && !(holder.getUp && time - holder.arrive > GET_UP) ? ease(Math.min(1, Math.max(0, (time - holder.arrive) / 0.3))) : 0;
+    // A tackled ball carrier takes the ball to the ground with him.
+    const tackled = thrown.tackle ? ease(Math.min(1, Math.max(0, (time - thrown.tackle.at) / 0.4))) : 0;
+    const onGround = Math.max(dived, tackled);
     football.position.copy(world(...frameAt(time)[thrown.by])).setY(1.2 - 0.9 * onGround);
     return;
   }
@@ -1283,10 +1286,13 @@ function reactionPose(r, action, id, spot) {
   };
   const aim = Math.atan2(-(action.toward[0] - spot[0]), action.toward[1] - spot[1]);
   if (action.kind === 'reach') {
+    // Hands come back down once the ball is secured, so a runner after the catch looks like one.
+    if (since > 0.6) return;
     reachUp(1.7, 0.05, 0.6);
     return;
   }
   if (action.kind === 'jump') {
+    if (since > 0.9) return;
     const u = (since + 0.3) / 0.6;
     if (u > 0 && u < 1) {
       const height = Math.sin(Math.PI * u);
@@ -1296,6 +1302,8 @@ function reactionPose(r, action, id, spot) {
     reachUp(2.9, 0.12, 0.2);
     return;
   }
+  // A ball carrier who dived for the catch is back on his feet and running.
+  if (action.getUp && since > GET_UP) return;
   // Dive (a catch attempt at full stretch) and fall (a lunge that comes up short).
   const u = Math.max(0, Math.min(1, (since + 0.2) / 0.45));
   if (u === 0) return reachUp(2.2, 0.15, 0.4);
@@ -1315,7 +1323,8 @@ function reactionPose(r, action, id, spot) {
 
 // Places every player and the ball for time t.
 function show(t) {
-  time = Math.max(0, Math.min(DURATION, t));
+  // A run after the catch can make the play longer than the usual eight seconds.
+  time = Math.max(0, Math.min(play.duration || DURATION, t));
   const index = Math.min(play.frames.length - 1, Math.round(time / STEP));
   const frame = play.frames[index], before = play.frames[Math.max(0, index - 6)];
   for (const [id, spot] of Object.entries(frame)) {
@@ -1375,6 +1384,11 @@ function show(t) {
     }
     const action = play.throw && play.throw.actions[id];
     if (action) reactionPose(r, action, id, spot);
+    // The tackle: the ball carrier goes down and the tackler dives into him.
+    const tackle = play.throw && play.throw.tackle;
+    if (tackle && (id === tackle.carrier || id === tackle.by)) {
+      reactionPose(r, { kind: id === tackle.carrier ? 'fall' : 'dive', arrive: tackle.at, toward: tackle.spot }, id, spot);
+    }
   }
   placeBall();
   const sacked = !play.throw && time >= play.sack;
@@ -1414,7 +1428,7 @@ function releaseThrow(type, distance, heading = yaw) {
   charge = null;
   play.throw = resolve(trajectory(type, heading, distance), time);
   play.end = Math.min(DURATION, time + play.throw.at + 1.5);
-  if (DRIVE && play.throw.outcome === 'complete') runAfterCatch(play.throw);
+  if (play.throw.outcome === 'complete') runToTackle(play.throw);
   phase = 'watch';
   updateAim();
   controls();
@@ -1426,32 +1440,97 @@ function throwAway() {
   if (play.throw) play.throw.away = true;
 }
 
-// Drive mode: after the catch the receiver runs until the nearest defender could reach him,
-// or steps out of bounds near the sideline. Rewrites his path so the run shows in 3D.
-const RUN_SPEED = 7;
-function runAfterCatch(thrown) {
-  const ball = sit.field.ball, first = Math.min(play.frames.length - 1, Math.round((thrown.release + thrown.at) / STEP));
-  const spot = play.frames[first][thrown.by];
-  const space = Math.min(...Object.keys(defence).map((k) => gap(play.frames[first][k], spot)));
-  const nearSideline = Math.abs(spot[0]) >= 22;
-  let yac = Math.max(0, Math.min(30, space * 1.2 - 0.5));
-  if (nearSideline) yac = Math.min(yac, 3);
-  // A catch in the end zone, or a run that reaches it, is a touchdown.
-  const td = spot[1] >= ball || spot[1] + yac >= ball;
-  if (td) yac = Math.max(0, ball - spot[1]);
-  const room = Math.max(0, (DURATION - thrown.release - thrown.at - 1) * RUN_SPEED);
-  yac = Math.min(yac, room);
-  const out = nearSideline && !td, side = spot[0] < 0 ? -1 : 1;
-  const dir = out ? [side * 0.6, 0.8] : [0, 1];
-  for (let k = first + 1; k < play.frames.length; k++) {
-    const s = Math.min(yac, RUN_SPEED * (k - first) * STEP);
-    play.frames[k][thrown.by] = [spot[0] + dir[0] * s, spot[1] + dir[1] * s];
-  }
-  thrown.gain = td ? ball : Math.round(spot[1] + yac * dir[1]);
+// After the catch the ball carrier keeps running until he is tackled, steps out of bounds or
+// scores. He heads for the goal line, cutting away from the nearest tacklers and away from the
+// sideline; every defender chases him on an angle (aiming where he is going, not where he is),
+// linemen more slowly. The first defender to reach him makes the tackle. The run is written into
+// the play's frames, so it shows in 3D, in slow motion and in replays.
+const CARRIER_SPEED = 7.4, TACKLE_REACH = 1.0, PURSUIT_DELAY = 0.25, MAX_PLAY = 30, GET_UP = 0.85;
+const pursuitSpeed = (id) => (FRONT_FOUR.includes(id) ? 5.6 : /^LB/.test(id) ? 6.9 : 7.5);
+function runToTackle(thrown) {
+  const goal = sit.field ? sit.field.ball : 100 - (LOS_FROM_BACK - 10);
+  const frames = play.frames, catchAt = thrown.release + thrown.at;
+  const first = Math.min(frames.length - 1, Math.round(catchAt / STEP));
+  const carrier = thrown.by, chasers = Object.keys(defence);
+  const spot = frames[first][carrier];
   thrown.caughtAt = spot[1];
-  thrown.td = td;
-  thrown.oob = out;
-  play.end = Math.min(DURATION, thrown.release + thrown.at + yac / RUN_SPEED + 1);
+  let end = null;
+  // A catch in the end zone is a touchdown. After a diving catch he gets back up and runs, unless
+  // a defender touches him while he is down (down by contact).
+  if (spot[1] >= goal) end = { kind: 'td', k: first };
+  const dived = thrown.actions[carrier] && thrown.actions[carrier].kind === 'dive';
+  if (dived) thrown.actions[carrier].getUp = true;
+  const getUp = dived ? GET_UP : 0;
+  const before = frames[Math.max(0, first - 6)][carrier];
+  let vel = [(spot[0] - before[0]) / (6 * STEP), (spot[1] - before[1]) / (6 * STEP)];
+  const chaseVel = Object.fromEntries(chasers.map((id) => [id, [0, 0]]));
+  let k = first;
+  while (!end && (k - first) * STEP < MAX_PLAY) {
+    k++;
+    // Past the planned frames, everybody else holds where they were.
+    if (k >= frames.length) frames.push({ ...frames[k - 1] });
+    const prev = frames[k - 1], now = frames[k], at = prev[carrier];
+    const t = (k - first) * STEP;
+    // The carrier: towards the goal line, pushed away from close defenders and the sideline.
+    let want = [0, 1];
+    if (t < getUp) { want = [0, 0]; vel = [0, 0]; }
+    for (const id of chasers) {
+      const away = [at[0] - prev[id][0], at[1] - prev[id][1]], dist = Math.hypot(...away) || 0.01;
+      if (dist < 8 && prev[id][1] > at[1] - 3) { const push = 5 / (dist * dist); want[0] += away[0] / dist * push; want[1] += Math.max(0, away[1] / dist) * push * 0.3; }
+    }
+    if (Math.abs(at[0]) > 21) want[0] -= Math.sign(at[0]) * (Math.abs(at[0]) - 21) * 0.4;
+    if (t < getUp) now[carrier] = at;
+    else {
+      const len = Math.hypot(...want) || 1;
+      want = [want[0] / len * CARRIER_SPEED, want[1] / len * CARRIER_SPEED];
+      const turn = Math.min(1, STEP * 5);
+      vel = [vel[0] + (want[0] - vel[0]) * turn, vel[1] + (want[1] - vel[1]) * turn];
+      now[carrier] = [at[0] + vel[0] * STEP, at[1] + vel[1] * STEP];
+    }
+    // The defenders: after a moment to react, run to cut him off.
+    for (const id of chasers) {
+      const from = prev[id];
+      if (t < PURSUIT_DELAY) { now[id] = from; continue; }
+      const speed = pursuitSpeed(id), dist = gap(from, now[carrier]);
+      const lead = Math.min(1.2, dist / speed);
+      const aim = [now[carrier][0] + vel[0] * lead, now[carrier][1] + vel[1] * lead];
+      const l = gap(from, aim) || 1, target = [(aim[0] - from[0]) / l * speed, (aim[1] - from[1]) / l * speed];
+      const cv = chaseVel[id], grip = Math.min(1, STEP * 4);
+      cv[0] += (target[0] - cv[0]) * grip; cv[1] += (target[1] - cv[1]) * grip;
+      now[id] = [from[0] + cv[0] * STEP, from[1] + cv[1] * STEP];
+    }
+    // How the run ends.
+    if (now[carrier][1] >= goal) end = { kind: 'td', k };
+    else if (Math.abs(now[carrier][0]) >= WIDTH / 2 - 0.5) end = { kind: 'out', k };
+    else {
+      let best = null;
+      for (const id of chasers) { const d = gap(now[id], now[carrier]); if (d <= TACKLE_REACH && (!best || d < best.d)) best = { id, d }; }
+      if (best) end = { kind: 'tackle', k, by: best.id };
+    }
+  }
+  if (!end) end = { kind: 'down', k };
+  // After the whistle: the carrier is brought down a step forward, the tackler with him, the rest ease up.
+  const stop = frames[end.k][carrier], whistle = end.k * STEP;
+  const fallTo = end.kind === 'tackle' ? [stop[0], stop[1] + 0.6] : stop;
+  const settle = Math.round(1.2 / STEP);
+  for (let j = 1; j <= settle; j++) {
+    const kk = end.k + j;
+    if (kk >= frames.length) frames.push({ ...frames[kk - 1] });
+    const u = ease(Math.min(1, j * STEP / 0.35));
+    frames[kk][carrier] = lerp2(stop, fallTo, u);
+    for (const id of chasers) {
+      const from = frames[kk - 1][id], cv = chaseVel[id], slow = Math.max(0, 1 - j * STEP / 0.6);
+      frames[kk][id] = id === end.by ? lerp2(frames[end.k][id], [fallTo[0], fallTo[1] - 0.4], u) : [from[0] + cv[0] * STEP * slow, from[1] + cv[1] * STEP * slow];
+    }
+  }
+  frames.length = Math.min(frames.length, end.k + settle + 1);
+  if (end.kind === 'tackle') thrown.tackle = { by: end.by, carrier, at: whistle, spot: fallTo };
+  thrown.td = end.kind === 'td';
+  thrown.oob = end.kind === 'out';
+  thrown.tackledBy = end.by ? end.by.replace(/\d$/, '') : '';
+  thrown.gain = thrown.td ? goal : Math.round(fallTo[1]);
+  play.duration = whistle + 1.2;
+  play.end = play.duration;
 }
 
 const TITLES = { good: '✅ Good read', acceptable: '🟡 Acceptable read', nocatch: '🟡 Right idea, but no catch', bad: '❌ Bad read', sack: '❌ Sack',
@@ -1521,7 +1600,7 @@ function finish() {
       if (thrown.target) lines.push(`Accuracy: ${number(thrown.miss)} yd from the receiver. Closest defender: ${number(thrown.openness)} yd.`);
     }
     if (thrown.gain !== undefined) {
-      lines.push(thrown.td ? 'Touchdown!' : `Gain of ${thrown.gain} yd: caught ${Math.round(thrown.caughtAt)} yd past the line${thrown.oob ? ', then out of bounds' : ''}.`);
+      lines.push(thrown.td ? 'Touchdown!' : `Gain of ${thrown.gain} yd: caught ${Math.round(thrown.caughtAt)} yd past the line, ${thrown.oob ? 'then ran out of bounds' : thrown.tackledBy ? `then tackled by the ${thrown.tackledBy}` : 'then down'}.`);
     }
   } else {
     lines.push(`The pressure arrived after ${number(play.sack)} s.`);
