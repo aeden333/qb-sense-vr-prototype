@@ -556,10 +556,11 @@ const SACK_RANGE = { blitz: [2.0, 2.5], noBlitz: [2.8, 3.8] };
 const ROUTES = {
   X: [[-19, -0.5], [-19, 2.5], [-1, 20.5]],                         // slant: 3 steps, then 45° inside
   Slot: [[-11, -1.4], [-13, 0.8], [-18, 2.5], [-24, 3], [-25.5, 3]], // flat
-  Z: [[19, -1.4], [19, 8], [19, 13], [18, 11]],                      // comeback
+  Z: [[19, -1.4], [19, 13], [21.5, 10.5]],                          // comeback
   TE: [[4.9, -0.6], [5.5, 3], [5.5, 6], [5.5, 6.2]],                 // hitch
 };
-const SPEED = { X: 7.6, Slot: 7.2, Z: 7.6, TE: 5.8, RB: 7.0 };
+// Top speeds in yards per second while running a route (about 16 mph for the receivers).
+const SPEED = { X: 8.0, Slot: 7.7, Z: 8.0, TE: 6.9, RB: 7.4 };
 
 // Where a runner is after "distance" yards along a route.
 function along(points, distance) {
@@ -571,8 +572,38 @@ function along(points, distance) {
   }
   return points[points.length - 1];
 }
-// Distance covered after t seconds, accelerating from a standstill over about 0.7 s.
-const covered = (speed, t) => speed * (t - 0.45 * (1 - Math.exp(-t / 0.45)));
+// How a receiver runs his route, like a real one: he accelerates off the line, slows down to plant
+// for each cut (the sharper the cut, the slower: a slant barely slows, an out or a dig sinks his hips,
+// a curl or comeback stops and comes back), re-accelerates out of the break, and settles to a stop at
+// the top of a hitch, curl, stick or sit. Returns the distance run along the route at every frame.
+const ACCELERATE = 0.45, DECELERATE = 8;
+function cornerSpeed(a, b, c, top) {
+  const u = [b[0] - a[0], b[1] - a[1]], w = [c[0] - b[0], c[1] - b[1]];
+  const cos = (u[0] * w[0] + u[1] * w[1]) / (Math.hypot(...u) * Math.hypot(...w) || 1);
+  const turn = Math.acos(THREE.MathUtils.clamp(cos, -1, 1));
+  return top * Math.pow(Math.cos(turn / 2), 1.6);
+}
+function routeRun(route, top, delay = 0) {
+  const marks = [];
+  let total = 0;
+  for (let i = 1; i < route.length; i++) {
+    total += Math.hypot(route[i][0] - route[i - 1][0], route[i][1] - route[i - 1][1]);
+    marks.push([total, i < route.length - 1 ? cornerSpeed(route[i - 1], route[i], route[i + 1], top) : 0]);
+  }
+  const run = [0];
+  let d = 0, v = 0;
+  for (let k = 1; k * STEP <= DURATION + 1e-6; k++) {
+    if (k * STEP > delay) {
+      // Never so fast that he could not slow down in time for the next cut.
+      let cap = top;
+      for (const [at, limit] of marks) if (at > d) cap = Math.min(cap, Math.sqrt(limit * limit + 2 * DECELERATE * (at - d)));
+      v = Math.min(cap, v + (top - v) * STEP / ACCELERATE);
+      d = Math.min(total, d + v * STEP);
+    }
+    run.push(d);
+  }
+  return run;
+}
 
 // Each defender: man (follow a receiver), zone (drop to a spot) or rush (reach the quarterback).
 const man = (target, delay = 0.25, speed = 7.3, inside = 1) => ({ type: 'man', target, delay, speed, inside });
@@ -603,14 +634,16 @@ const ROUTE_SHAPES = {
   // Three hard steps up the field, then a straight 45-degree break toward the middle.
   slant: [[0, 2.5], [18, 20.5]],
   flat: [[-2, 0.8], [-7, 2.5], [-13, 3], [-14.5, 3]],
-  comeback: [[0, 8], [0, 13], [1, 11]],
+  // Push vertical to 13 yards, stop, and come back toward the sideline.
+  comeback: [[0, 13], [-2.5, 10.5]],
   hitch: [[-0.6, 3], [-0.6, 6], [-0.6, 6.2]],
   go: [[-0.5, 6], [-1, 40]],
   seam: [[0.5, 6], [1, 40]],
   post: [[0, 12], [6, 18], [12, 35]],
   corner: [[0, 11], [-6, 17], [-9, 24]],
-  dig: [[0, 12], [2, 13], [14, 13], [24, 13]],
-  out: [[0, 10], [-1, 10.5], [-9, 10.5]],
+  // One hard plant at the top of the stem, then flat across.
+  dig: [[0, 12], [24, 12.5]],
+  out: [[0, 10], [-9, 9.6]],
   curl: [[0, 12], [1.5, 10.5]],
   sit: [[0, 9], [0.5, 8.5]],
   stick: [[0, 5.5], [1, 5]],
@@ -723,8 +756,10 @@ function makePlay(conceptName, coverageName, options = {}) {
     routes[id] = shapeRoute(id, name).map(([x, d]) => [x, Math.min(d, depthLimit)]);
     routeNames[id] = name;
   }
+  // On a checkdown or angle the back first checks for blitzers, then releases.
+  const delays = { RB: { checkdown: 0.8, angle: 0.35 }[routeNames.RB] || 0 };
   const play = { classic: null, concept: conceptName, coverage: coverageName, name: `${conceptName} vs ${coverageName}`,
-    back: cover.back, routes, speed: SPEED, routeNames, order: concept.order.filter((id) => routes[id]), plan: () => cover.plan('RB' in routes),
+    back: cover.back, routes, speed: SPEED, delays, routeNames, order: concept.order.filter((id) => routes[id]), plan: () => cover.plan('RB' in routes),
     field, depthLimit, sackBonus: options.sackBonus || 0, note: cover.note };
   play.best = bestRead(play);
   play.answer = `${play.name}. Best read: ${receiverName(play, play.best.id)}, about ${play.best.top.toFixed(1)} yd from the nearest defender when thrown at ${play.best.when.toFixed(1)} s. ${cover.note}`;
@@ -888,7 +923,7 @@ const everyone = { ...offenceByName, ...defence };
 // trailed all the way. An underneath defender sits just inside and under the nearest receiver in
 // his area. With nobody in his area he keeps shuffling and adjusting around his spot instead of
 // freezing. When a receiver leaves the area, the defender lets him go and returns to his zone.
-function zoneAim(id, job, previous, setup, t) {
+function zoneAim(id, job, previous, older, setup, t) {
   const deep = job.d >= 15;
   const half = deep ? (Math.abs(job.x) < 4 ? 11 : 10) : 7;
   let threat = null;
@@ -898,13 +933,15 @@ function zoneAim(id, job, previous, setup, t) {
     if (deep ? r[1] < job.d - 10 : r[1] < job.d - 7 || r[1] > job.d + 6) continue;
     // Deep: the deepest receiver is the threat. Underneath: the closest one.
     const score = deep ? r[1] : -gap(r, [job.x, job.d]);
-    if (!threat || score > threat.score) threat = { r, score };
+    if (!threat || score > threat.score) threat = { r, score, id: rid };
   }
   if (threat) {
     const [rx, rd] = threat.r, inside = rx < 0 ? 1 : -1;
+    // The defender matches the receiver's speed as well as his spot.
+    const was = older[threat.id] || threat.r, lead = [(rx - was[0]) / (6 * STEP), (rd - was[1]) / (6 * STEP)];
     // Deep: stay inside and over the top, keeping a bigger cushion while he is still far below.
-    if (deep) return { at: [rx + inside * 0.8, Math.max(rd + 2.5, Math.min(job.d, rd + 6))], speed: Math.max(job.speed, 7.3) };
-    return { at: [rx + inside * 1.0, rd - 1.2], speed: Math.max(job.speed, 6.6) };
+    if (deep) return { at: [rx + inside * 0.8, Math.max(rd + 2.5, Math.min(job.d, rd + 6))], speed: Math.max(job.speed, 7.6), lead };
+    return { at: [rx + inside * 1.0, rd - 1.2], speed: Math.max(job.speed, 6.8), lead };
   }
   // Nobody to cover: keep moving around the landmark, reading the quarterback.
   const seed = [...id].reduce((s, c) => s + c.charCodeAt(0), 0);
@@ -927,17 +964,47 @@ function simulate(which = sit, draw = Math.random(), lineUp = null) {
   const vary = (k) => { const n = Math.sin((draw + 0.137) * 1000 + k * 12.9898) * 43758.5453; return n - Math.floor(n); };
   // Without a blitz, one of the two ends finally beats his tackle.
   const winner = blitz ? null : vary(1) < 0.5 ? 'DE1' : 'DE2';
+  // Each receiver's run along his route, with real acceleration and cuts. Routes start from the
+  // real line-up spot; the original routes list that spot first.
+  const runs = Object.fromEntries(Object.entries(setup.routes).map(([id, points]) => {
+    const route = [start[id], ...(setup.classic !== null ? points.slice(1) : points)];
+    return [id, { route, run: routeRun(route, setup.speed[id], (setup.delays || {})[id] || 0) }];
+  }));
+  // Defenders in space have momentum: they speed up, slow down and change direction at a limited
+  // rate, so a sharp cut by a receiver gains him a step, just like on a real field.
+  const velocity = {};
+  const steer = (id, from, aim, top, lead = [0, 0], grip = 11) => {
+    const v = velocity[id] || [0, 0];
+    const dx = aim[0] - from[0], dd = aim[1] - from[1], far = Math.hypot(dx, dd);
+    // Ease off on arrival, so he settles on his spot instead of overshooting it.
+    const closing = Math.min(top, Math.sqrt(2 * grip * 0.6 * far));
+    let goal = far > 1e-6 ? [lead[0] + dx / far * closing, lead[1] + dd / far * closing] : lead.slice();
+    const size = Math.hypot(...goal);
+    if (size > top) goal = [goal[0] * top / size, goal[1] * top / size];
+    const cx = goal[0] - v[0], cd = goal[1] - v[1], change = Math.hypot(cx, cd), room = grip * STEP;
+    const k = change > room ? room / change : 1;
+    velocity[id] = [v[0] + cx * k, v[1] + cd * k];
+    return [from[0] + velocity[id][0] * STEP, from[1] + velocity[id][1] * STEP];
+  };
+  // A running back who stays in to block picks up the first blitzer to get near the quarterback.
+  const rushers = Object.entries(plan).filter(([, job]) => job.type === 'rush').map(([id]) => id);
+  const pickup = !('RB' in setup.routes) && rushers.length
+    ? rushers.reduce((a, b) => (gap(curve(start[a], plan[a].via, QB_SPOT, 0.5), BLOCKS.RB) < gap(curve(start[b], plan[b].via, QB_SPOT, 0.5), BLOCKS.RB) ? a : b))
+    : null;
   for (let t = STEP; t <= DURATION + 1e-6; t += STEP) {
-    const previous = frames[frames.length - 1];
+    const previous = frames[frames.length - 1], older = frames[Math.max(0, frames.length - 6)];
     const now = {};
-    for (const [id, points] of Object.entries(setup.routes)) {
-      // Routes start from the real line-up spot. The original routes list that spot first.
-      const route = [start[id], ...(setup.classic !== null ? points.slice(1) : points)];
-      now[id] = along(route, covered(setup.speed[id], t));
-    }
+    for (const [id, { route, run }] of Object.entries(runs)) now[id] = along(route, run[frames.length] ?? run[run.length - 1]);
     Object.entries(BLOCKS).forEach(([id, spot], k) => {
       // A running back with a route does not stay in to block.
       if (id in setup.routes) return;
+      if (id === 'RB' && pickup && t > 0.35) {
+        // Step up and meet the blitzer between him and the quarterback.
+        const rusher = previous[pickup], toward = [QB_SPOT[0] - rusher[0], QB_SPOT[1] - rusher[1]], len = Math.hypot(...toward) || 1;
+        const meet = [rusher[0] + toward[0] / len * 0.9, rusher[1] + toward[1] / len * 0.9];
+        now[id] = steer(id, previous[id], meet, 6.5);
+        return;
+      }
       const set = [spot[0] + (vary(k + 2) - 0.5) * 0.8, spot[1] + (vary(k + 12) - 0.5) * 0.7];
       const driven = Math.max(0, t - 1.1) * (0.1 + vary(k + 22) * 0.4);
       const sway = Math.sin(t * (2 + vary(k + 32) * 2) + vary(k + 42) * 6) * 0.3 * Math.min(1, t);
@@ -969,15 +1036,19 @@ function simulate(which = sit, draw = Math.random(), lineUp = null) {
         const end = [QB_SPOT[0] - 0.8, QB_SPOT[1] + 0.4];
         now[id] = curve(start[id], job.via, end, u);
       } else if (job.type === 'zone') {
-        // The four original situations keep their hand-tuned zone drops, so their answers stay right.
-        const aim = setup.classic !== null ? { at: [job.x, job.d], speed: job.speed } : zoneAim(id, job, previous, setup, t);
-        now[id] = t < job.delay ? previous[id] : towards(previous[id], [aim.at[0], Math.min(aim.at[1], deepest)], aim.speed * STEP * Math.min(1, (t - job.delay) / 0.5 + 0.2));
+        // The four original situations keep their hand-tuned zone landmarks, so their answers stay right.
+        const aim = setup.classic !== null ? { at: [job.x, job.d], speed: job.speed } : zoneAim(id, job, previous, older, setup, t);
+        now[id] = t < job.delay ? previous[id] : steer(id, previous[id], [aim.at[0], Math.min(aim.at[1], deepest)], aim.speed, aim.lead);
       } else {
-        // Man coverage reacts to where the receiver was a moment ago, from the inside and slightly deeper.
-        const seen = frames[Math.max(0, frames.length - Math.round(job.delay / STEP))][job.target] || start[job.target];
+        // Man coverage reacts to where the receiver was a moment ago (he has to see the cut before he
+        // can turn), from the inside and slightly deeper, and matches his speed.
+        const back = Math.round(job.delay / STEP);
+        const seen = frames[Math.max(0, frames.length - back)][job.target] || start[job.target];
+        const seenBefore = frames[Math.max(0, frames.length - back - 6)][job.target] || seen;
+        const lead = [(seen[0] - seenBefore[0]) / (6 * STEP), (seen[1] - seenBefore[1]) / (6 * STEP)];
         const side = seen[0] < 0 ? 1 : -1;
         const aim = [seen[0] + side * job.inside, seen[1] + Math.max(0.6, 3 - t * 1.8)];
-        now[id] = towards(previous[id], aim, job.speed * STEP * Math.min(1, t / 0.6 + 0.25));
+        now[id] = steer(id, previous[id], aim, job.speed * 1.04, lead, 12);
       }
     }
     separate(now);
@@ -1101,9 +1172,11 @@ function react(path, release) {
     const isReceiver = ELIGIBLE.includes(id), isDefender = id in defence && !FRONT_FOUR.includes(id);
     if (!isReceiver && !isDefender) continue;
     const planned = play.frames[Math.min(play.frames.length - 1, arrive)][id];
-    // Too far away to have any chance.
-    if (gap(planned, path.target) > 7) continue;
-    const delay = Math.round((isReceiver ? 0.2 : 0.35) / STEP);
+    // Receivers far from the ball keep running their routes. Every defender within 25 yards breaks
+    // on the ball, the far ones a little later, since they have to find it first.
+    const far = gap(planned, path.target) > 7;
+    if (far && (isReceiver || gap(planned, path.target) > 25)) continue;
+    const delay = Math.round((isReceiver ? 0.2 : far ? 0.5 : 0.35) / STEP);
     const top = isReceiver ? 8 : 7.6, grip = 20;
     let at = play.frames[Math.min(play.frames.length - 1, first)][id];
     const before = play.frames[Math.max(0, first - 6)][id];
@@ -1376,7 +1449,9 @@ function show(t) {
     const toQB = Math.atan2(-(QB_SPOT[0] - spot[0]), QB_SPOT[1] - spot[1]);
     const heading = Math.atan2(-dx, dd);
     const lineman = id in MATCHUP || (id in BLOCKS && id !== 'RB');
-    const backpedal = !(id in offenceByName) && dd > 0 && Math.abs(dx) < dd * 1.5;
+    // Defenders keep their eyes on the quarterback while they backpedal or shuffle, but turn and run
+    // once they are moving fast (a deep defender carrying a go route opens his hips and sprints).
+    const backpedal = !(id in offenceByName) && ((dd > 0 && Math.abs(dx) < dd * 1.5 && speed < 5.5) || speed < 3.2);
     // A lineman is engaged while he has an opponent within reach.
     let partner = null;
     if (lineman) {
