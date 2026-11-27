@@ -879,6 +879,35 @@ function towards(from, to, step) {
 const offenceByName = Object.fromEntries(offence.map((p) => [p.userData.name, p]));
 const everyone = { ...offenceByName, ...defence };
 
+// Zone coverage that plays like real life: a defender drops toward his landmark, and once a
+// receiver runs into his area he carries him. A deep defender (landmark 15+ yards) stays on top of
+// the deepest receiver in his third, half or quarter, however far he runs, so a go route is
+// trailed all the way. An underneath defender sits just inside and under the nearest receiver in
+// his area. With nobody in his area he keeps shuffling and adjusting around his spot instead of
+// freezing. When a receiver leaves the area, the defender lets him go and returns to his zone.
+function zoneAim(id, job, previous, setup, t) {
+  const deep = job.d >= 15;
+  const half = deep ? (Math.abs(job.x) < 4 ? 11 : 10) : 7;
+  let threat = null;
+  for (const rid of Object.keys(setup.routes)) {
+    const r = previous[rid];
+    if (!r || Math.abs(r[0] - job.x) > half) continue;
+    if (deep ? r[1] < job.d - 10 : r[1] < job.d - 7 || r[1] > job.d + 6) continue;
+    // Deep: the deepest receiver is the threat. Underneath: the closest one.
+    const score = deep ? r[1] : -gap(r, [job.x, job.d]);
+    if (!threat || score > threat.score) threat = { r, score };
+  }
+  if (threat) {
+    const [rx, rd] = threat.r, inside = rx < 0 ? 1 : -1;
+    // Deep: stay inside and over the top, keeping a bigger cushion while he is still far below.
+    if (deep) return { at: [rx + inside * 0.8, Math.max(rd + 2.5, Math.min(job.d, rd + 6))], speed: Math.max(job.speed, 7.3) };
+    return { at: [rx + inside * 1.0, rd - 1.2], speed: Math.max(job.speed, 6.6) };
+  }
+  // Nobody to cover: keep moving around the landmark, reading the quarterback.
+  const seed = [...id].reduce((s, c) => s + c.charCodeAt(0), 0);
+  return { at: [job.x + Math.sin(t * 1.4 + seed) * 0.9, job.d + Math.sin(t * 0.9 + seed * 2) * 0.5], speed: job.speed };
+}
+
 // The whole play is computed at the snap, so that replays and slow motion are identical.
 function simulate(which = sit, draw = Math.random(), lineUp = null) {
   // A number means one of the four original situations (kept for the automated checks).
@@ -937,7 +966,9 @@ function simulate(which = sit, draw = Math.random(), lineUp = null) {
         const end = [QB_SPOT[0] - 0.8, QB_SPOT[1] + 0.4];
         now[id] = curve(start[id], job.via, end, u);
       } else if (job.type === 'zone') {
-        now[id] = t < job.delay ? previous[id] : towards(previous[id], [job.x, Math.min(job.d, deepest)], job.speed * STEP * Math.min(1, (t - job.delay) / 0.5 + 0.2));
+        // The four original situations keep their hand-tuned zone drops, so their answers stay right.
+        const aim = setup.classic !== null ? { at: [job.x, job.d], speed: job.speed } : zoneAim(id, job, previous, setup, t);
+        now[id] = t < job.delay ? previous[id] : towards(previous[id], [aim.at[0], Math.min(aim.at[1], deepest)], aim.speed * STEP * Math.min(1, (t - job.delay) / 0.5 + 0.2));
       } else {
         // Man coverage reacts to where the receiver was a moment ago, from the inside and slightly deeper.
         const seen = frames[Math.max(0, frames.length - Math.round(job.delay / STEP))][job.target] || start[job.target];
