@@ -30,17 +30,26 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 .hidden{display:none}
 #frame3d{width:100%;height:min(72vh,640px);border:0;border-radius:8px;display:block;background:#0a1628}
 #help3d{font-size:13px;color:var(--muted);margin:6px 0 0}
-/* Full screen for the 3D view: the drive card fills the screen and the 3D view takes the spare height. */
+/* Full screen for the 3D view, laid out like Read & Throw: the 3D view fills the screen and the drive
+   (clock, down, buttons, messages) floats on top in a dark panel on the right. */
 .fsbar{display:flex;justify-content:flex-end;gap:10px}
-#game.fs{position:fixed;inset:0;z-index:1000;margin:0;border:0;border-radius:0;display:flex;flex-direction:column;padding:8px 14px;overflow:auto;background:#fff}
-#game.fs .fsbar{justify-content:space-between;margin-bottom:4px}
-#game.fs .stats{margin-bottom:2px}
-#game.fs #situation{margin-bottom:4px!important}
-#game.fs #wrap3d{flex:1;display:flex;flex-direction:column;min-height:0}
-#game.fs #frame3d{flex:1;height:auto;min-height:280px}
+#game.fs{position:fixed;inset:0;z-index:1000;margin:0;border:0;border-radius:0;padding:0;background:#0a1628;overflow:hidden}
+#game.fs #wrap3d{position:absolute;inset:0}
+#game.fs #frame3d{width:100%;height:100%;border-radius:0}
 #game.fs #help3d{display:none}
-#game.fs .acts{margin:8px 0 4px}
-#game.fs #msg{margin:4px 0}
+#hud{position:absolute;right:12px;top:64px;width:280px;max-height:calc(100% - 76px);overflow:auto;z-index:2;display:flex;flex-direction:column;gap:6px;
+  background:rgba(10,22,40,.85);color:#fff;border-radius:10px;padding:10px 12px;font-size:13px;box-sizing:border-box}
+#hud.hidden{display:none}
+#hud .fsbar{justify-content:flex-start}
+#hud .stats{gap:4px 12px;font-size:12px;margin:0;color:#cbd5e1}
+#hud .stats b{color:#fff;font-size:15px}
+#hud #clkS{color:#fde68a!important;margin:0}
+#hud #situation{font-size:13px!important;margin:0!important}
+#hud .acts{gap:6px;margin:0}
+#hud .btn{padding:8px 10px;font-size:11px;background:#166534;border:1px solid #22c55e}
+#hud .btn.ghost{background:#1e293b;color:#fff;border:1px solid #475569}
+#hud #msg{color:#fff!important;font-size:13px;margin:0;min-height:0}
+#hud #covNote{color:#cbd5e1;font-size:12px;margin:0;min-height:0}
 </style>
 <script src="analytics.js" defer></script>
 </head>
@@ -61,16 +70,17 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <p><button class="btn" id="start">Start drive</button></p>
 </div>
 <div id="game" class="card hidden">
-<div class="fsbar"><button class="btn ghost hidden" id="fsBack">&larr; Back to drill</button><button class="btn ghost hidden" id="fsEnter">Full screen</button></div>
-<div class="stats"><span>Game clock <b id="clkT">2:00</b></span><span>Down <b id="dn">1st &amp; 10</b></span><span>Ball on <b id="bs">own 25</b></span><span>Timeouts <b id="toN">3</b></span><span>Plays <b id="pl">0</b></span><span>Correct <b id="okN">0</b></span><span>Last read <b id="rt">-</b></span></div>
+<div class="fsbar" id="fsbar"><button class="btn ghost hidden" id="fsBack">&larr; Back to drill</button><button class="btn ghost hidden" id="fsEnter">Full screen</button></div>
+<div class="stats" id="statsRow"><span>Game clock <b id="clkT">2:00</b></span><span>Down <b id="dn">1st &amp; 10</b></span><span>Ball on <b id="bs">own 25</b></span><span>Timeouts <b id="toN">3</b></span><span>Plays <b id="pl">0</b></span><span>Correct <b id="okN">0</b></span><span>Last read <b id="rt">-</b></span></div>
 <div id="clkS"></div><div id="situation" style="font-weight:800;font-size:16px;margin-bottom:8px"></div>
 <canvas id="c" width="640" height="440"></canvas>
 <div id="wrap3d" class="hidden"><iframe id="frame3d" title="3D quarterback view"></iframe>
 <p id="help3d">Click the 3D view, then: Space to snap, hold Space (bullet) or L (lob) to throw where you look, drag or arrow keys to look around, T to throw it away, W to watch your last rep. M, P and K call a timeout, spike or kick.</p></div>
 <div class="clock" id="clockBar"><span id="clk"></span></div>
-<div class="acts"><button class="btn" id="go">Snap</button><button class="btn ghost" id="to" disabled>Timeout (M)</button><button class="btn ghost" id="sp" disabled>Spike (P)</button><button class="btn ghost" id="fg" disabled>Kick field goal (K)</button><button class="btn ghost" id="ta" disabled>Throw away (T)</button></div>
+<div class="acts" id="actsRow"><button class="btn" id="go">Snap</button><button class="btn ghost" id="to" disabled>Timeout (M)</button><button class="btn ghost" id="sp" disabled>Spike (P)</button><button class="btn ghost" id="fg" disabled>Kick field goal (K)</button><button class="btn ghost" id="ta" disabled>Throw away (T)</button></div>
 <div id="msg">Get ready.</div>
 <div id="covNote"></div>
+<div id="hud" class="hidden"></div>
 </div>
 <div id="done" class="card hidden">
 <h2>Drive complete</h2>
@@ -458,7 +468,7 @@ var threeD=false,frame3d=null,ready3d=false,queued3d=[],replay3d=false;
 function to3d(m){
 m.source='qb-drive';
 if(ready3d)frame3d.contentWindow.postMessage(m,location.origin);
-else if(m.type==='setup'||m.type==='end')queued3d.push(m);
+else if(m.type==='setup'||m.type==='end'||m.type==='hud')queued3d.push(m);
 }
 function focus3d(){if(threeD&&frame3d){frame3d.focus();try{frame3d.contentWindow.focus()}catch(e){}}}
 // Random concept and coverage each snap, at the current ball spot. Levels below 10 add 0.15 s of
@@ -503,15 +513,31 @@ updPlaybookStatus();
 $('view3d').addEventListener('change',showView);
 // Full screen: a 3D drive opens filling the screen (and the browser's full screen where allowed).
 // "Back to drill" returns to the normal page; the drive carries on there, and "Full screen" goes back.
+// In full screen the drive's info and buttons move into one floating panel over the 3D view;
+// a marker keeps each one's place so it goes back to the normal page layout afterwards.
+var HUD_PARTS=['fsbar','statsRow','clkS','situation','actsRow','msg','covNote'],hudMarks={};
+function moveToHud(on){
+HUD_PARTS.forEach(function(id){
+var el=$(id);
+if(!hudMarks[id]){hudMarks[id]=document.createComment(id);el.parentNode.insertBefore(hudMarks[id],el)}
+if(on)$('hud').appendChild(el);else hudMarks[id].parentNode.insertBefore(el,hudMarks[id]);
+});
+$('hud').classList.toggle('hidden',!on);
+// The 3D view leaves room on the right for the panel.
+to3d({type:'hud',on:on});
+}
 function enterFull(){
 if(!threeD)return;
 $('game').classList.add('fs');document.body.style.overflow='hidden';
+moveToHud(true);
 var el=$('game');
 if(el.requestFullscreen&&!document.fullscreenElement)el.requestFullscreen().catch(function(){});
 syncFull();focus3d();
 }
 function leaveFull(){
+var was=$('game').classList.contains('fs');
 $('game').classList.remove('fs');document.body.style.overflow='';
+if(was)moveToHud(false);
 if(document.fullscreenElement)document.exitFullscreen().catch(function(){});
 syncFull();
 }

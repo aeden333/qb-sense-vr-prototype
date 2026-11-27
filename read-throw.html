@@ -18,6 +18,9 @@
   /* Inside the Two-Minute Drill the drive picks the plays, so series, menus, slow motion and the answer are hidden. */
   .drive #series,.drive #random,.drive #slow,.drive #reveal,.drive #bar label,.drive #back{display:none}
   .drive #info{max-width:300px;font-size:12px}
+  /* Full-screen drive: the drive's panel sits on the right (280 px wide), so keep clear of it. */
+  .hud #bar{right:304px}
+  .hud #result{left:calc((100% - 292px) / 2);width:min(460px,calc(100% - 330px))}
   select{background:#1e293b;color:#fff;border:1px solid #475569;border-radius:6px;padding:7px 6px;font:inherit;font-weight:700}
   .setting{display:flex;align-items:center;gap:6px;margin-top:6px}
   .setting input{width:110px}
@@ -1618,6 +1621,7 @@ addEventListener('message', (e) => {
     else { pendingSetup = m; if (phase === 'over') $('next').textContent = driveNextLabel(); }
   } else if (m.type === 'snap') { if (phase === 'ready') snap(); }
   else if (m.type === 'throwaway') throwAway();
+  else if (m.type === 'hud') document.documentElement.classList.toggle('hud', Boolean(m.on));
   else if (m.type === 'end') {
     driveOver = true;
     pendingSetup = null;
