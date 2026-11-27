@@ -1149,6 +1149,15 @@ function trajectory(type, heading, distance) {
 
 const frameAt = (t) => play.frames[Math.max(0, Math.min(play.frames.length - 1, Math.round(t / STEP)))];
 const gap = (spot, point) => Math.hypot(spot[0] - point[0], spot[1] - point[1]);
+// The receiver the ball is thrown to: the one closest to where it comes down, if any is within
+// 7 yards. Only he plays the ball. A teammate it passes over or past does not reach up and take a
+// pass meant for someone else, so you can throw over a shallow route to the deeper one on the same
+// side, as in a real game. Defenders underneath can still undercut it.
+function intendedFor(path, release) {
+  const landing = frameAt(release + path.flight);
+  const id = ELIGIBLE.filter((r) => landing[r]).reduce((a, b) => (gap(landing[b], path.target) < gap(landing[a], path.target) ? b : a));
+  return gap(landing[id], path.target) <= 7 ? id : null;
+}
 
 // A defender intercepts when the ball is coming right at him; a glancing touch only deflects it.
 function square(path, release, from, id) {
@@ -1168,9 +1177,12 @@ const STRETCH = 2.2, LUNGE = 3.8;
 function react(path, release) {
   const actions = {};
   const first = Math.round(release / STEP), arrive = Math.round((release + path.flight) / STEP);
+  const intended = intendedFor(path, release);
   for (const id of Object.keys(play.frames[0])) {
     const isReceiver = ELIGIBLE.includes(id), isDefender = id in defence && !FRONT_FOUR.includes(id);
     if (!isReceiver && !isDefender) continue;
+    // Other receivers keep running their routes.
+    if (isReceiver && intended && id !== intended) continue;
     const planned = play.frames[Math.min(play.frames.length - 1, arrive)][id];
     // Receivers far from the ball keep running their routes. Every defender within 25 yards breaks
     // on the ball, the far ones a little later, since they have to find it first.
@@ -1219,6 +1231,7 @@ function react(path, release) {
 function resolve(path, release) {
   // Accuracy and the read are judged on where everybody was heading when the ball left.
   const planned = { ...frameAt(release + path.flight) };
+  const intended = intendedFor(path, release);
   const actions = react(path, release);
   let result = null;
   for (let s = 0; !result; s += STEP / 2) {
@@ -1229,6 +1242,7 @@ function resolve(path, release) {
       for (const [id, spot] of Object.entries(frame)) {
         const defender = id in defence, receiver = ELIGIBLE.includes(id);
         if (!defender && !receiver) continue;
+        if (receiver && intended && id !== intended) continue;
         // Reach in yards. Linemen are busy blocking, so they rarely touch the ball.
         const action = actions[id];
         // Fingertips go further for a player who is diving at the right moment.
