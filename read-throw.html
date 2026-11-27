@@ -89,6 +89,7 @@
   // Shown if the 3D library cannot be downloaded or WebGL is unavailable.
   setTimeout(function(){ if(!window.qb) document.getElementById('error').style.display='block'; }, 8000);
 </script>
+<script src="stadium.js"></script>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
 
@@ -123,13 +124,15 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 document.body.prepend(renderer.domElement);
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x7fb2e5);
-scene.fog = new THREE.Fog(0x7fb2e5, 90, 220);
+// The haze colour matches the sky at the horizon, so distant stands fade into it.
+const HAZE = 0xb4cde6;
+scene.background = new THREE.Color(HAZE);
+scene.fog = new THREE.Fog(HAZE, 130, 340);
 scene.add(new THREE.HemisphereLight(0xffffff, 0x335533, 1.6));
 const sun = new THREE.DirectionalLight(0xffffff, 1.4);
 sun.position.set(20, 40, 10);
 scene.add(sun);
-const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 400);
+const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 900);
 
 function canvasTexture(width, height, draw) {
   const canvas = document.createElement('canvas');
@@ -181,14 +184,12 @@ flat(WIDTH, 0.18, new THREE.MeshBasicMaterial({ color: 0x2563eb }), 0, 0, 0.015)
 const firstDownLine = flat(WIDTH, 0.18, new THREE.MeshBasicMaterial({ color: 0xfacc15 }), 0, 10, 0.015);
 
 const box = (w, h, d, color) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color }));
-// Stands on both sides and goal posts at each end line.
-for (const side of [-1, 1]) {
-  for (let row = 0; row < 8; row++) {
-    const stand = box(2, 1 + row * 1.1, 240, row % 2 ? 0x475569 : 0x64748b);
-    stand.position.set(side * (34 + row * 2) * YD, (1 + row * 1.1) / 2, -20 * YD);
-    scene.add(stand);
-  }
-}
+// The stadium, sky and crowd come from stadium.js, shared with the other 3D drills.
+const park = window.qbStadium(THREE, renderer);
+const stadium = park.stadium;
+scene.add(park.sky, stadium);
+// The stadium is built around the middle of the field.
+stadium.position.copy(world(0, 60 - LOS_FROM_BACK));
 const goalPosts = [-LOS_FROM_BACK, 120 - LOS_FROM_BACK].map((d) => {
   const posts = new THREE.Group();
   for (const [w, h, x, y] of [[0.2, 3, 0, 1.5], [5.7, 0.15, 0, 3], [0.15, 7, -2.8, 6.5], [0.15, 7, 2.8, 6.5]]) {
@@ -207,6 +208,7 @@ let endLine = Infinity;
 function setField(ball, toGo) {
   const fromBack = 110 - ball;
   fieldMesh.position.copy(world(0, 60 - fromBack));
+  stadium.position.copy(world(0, 60 - fromBack));
   goalPosts[0].position.copy(world(0, -fromBack));
   goalPosts[1].position.copy(world(0, 120 - fromBack));
   firstDownLine.position.copy(world(0, toGo)).setY(0.015);
@@ -474,8 +476,8 @@ function refresh() {
     camera.up.set(0, 1, 0);
     camera.position.copy(world(0, -5)).setY(eyeHeight());
     camera.rotation.set(pitch, yaw, 0, 'YXZ');
-    scene.fog.near = 90;
-    scene.fog.far = 220;
+    scene.fog.near = 130;
+    scene.fog.far = 340;
   }
   camera.updateProjectionMatrix();
   renderer.render(scene, camera);
