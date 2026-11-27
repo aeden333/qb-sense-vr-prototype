@@ -94,6 +94,7 @@ nextPlay=function(){
 st._coveragePrepared=null;originalNext();
 var r=st.play.r;
 if(Array.isArray(r)){
+var before=r.length;
 if(r.length>5)r=r.slice(0,5);
 while(r.length<5){
 var x=90;
@@ -101,6 +102,12 @@ if(r.some(function(q){return Math.abs(q.x-90)<60})){x=550;if(r.some(function(q){
 r.push({n:'Checkdown',x:x,y:0,p:[[0,-25]],c:'Q',oob:false});
 }
 st.play.r=r;
+// The open/covered draw ran before the added checkdowns existed. Keep that draw:
+// added checkdowns are covered, and a "nobody open" play still means throw it away.
+st.cov=(st.cov||[]).slice(0,Math.min(before,r.length));
+while(st.cov.length<r.length)st.cov.push(true);
+var firstOpen=st.cov.indexOf(false);
+st.ans=firstOpen<0?r.length:firstOpen;
 }
 };
 function legacyAlign(){

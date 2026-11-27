@@ -37,9 +37,9 @@ function coachFocus(list){
   var pA=gs.reduce(function(s,a){return s+a.pAtt},0),pC=gs.reduce(function(s,a){return s+a.pComp},0);
   var pr=pA?pC/pA:1;
   var worst='accuracy',w=1-acc/100;
-  var dt=t?t/2.0:0;if(dt-1>w){worst='decision time';w=dt-1}
-  if(fr>w){worst='forced throws';w=fr}
-  if(pA&&(1-pr)>w){worst='pressure response';w=1-pr}
+  var dt=t?t/2.0:0;if(dt-1>w){worst='decision';w=dt-1}
+  if(fr>w){worst='forced';w=fr}
+  if(pA&&(1-pr)>w){worst='pressure';w=1-pr}
   var tips={accuracy:'Find the first open receiver before the rush gets home.',decision:'Get the ball out faster — read progression, then throw.',forced:'Do not force into coverage. Take the checkdown or throw it away.',pressure:'Under pressure, get to the quick outlet sooner.'};
   return tips[worst];
 }

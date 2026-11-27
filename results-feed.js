@@ -15,9 +15,9 @@ function coachFocus(r){
   if(!r)return '';
   var acc=Number(r.accuracy)||0,avg=r.avgTime!=null?Number(r.avgTime):0,f=r.forced||0,pa=r.pressureAtt||0,pc=r.pressureComp||0,pr=pa?pc/pa:1;
   var worst='accuracy',w=1-acc/100;
-  var dt=avg/2.0;if(dt-1>w){worst='decision time';w=dt-1}
-  var fr=r.total? f/r.total : 0;if(fr>w){worst='forced throws';w=fr}
-  if(pa&&(1-pr)>w){worst='pressure response';w=1-pr}
+  var dt=avg/2.0;if(dt-1>w){worst='decision';w=dt-1}
+  var fr=r.total? f/r.total : 0;if(fr>w){worst='forced';w=fr}
+  if(pa&&(1-pr)>w){worst='pressure';w=1-pr}
   var tips={accuracy:'Find the first open receiver before the rush gets home.',decision:'Get the ball out faster — read progression, then throw.',forced:'Do not force into coverage. Take the checkdown or throw it away.',pressure:'Under pressure, get to the quick outlet sooner.'};
   return ' Coaching focus: '+tips[worst];
 }

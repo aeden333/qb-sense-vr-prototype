@@ -28,6 +28,8 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 #covNote{font-size:13px;color:#5B6B7C;min-height:18px;margin-bottom:8px}
 .acts{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .hidden{display:none}
+#frame3d{width:100%;height:min(72vh,640px);border:0;border-radius:8px;display:block;background:#0a1628}
+#help3d{font-size:13px;color:var(--muted);margin:6px 0 0}
 </style>
 <script src="analytics.js" defer></script>
 </head>
@@ -38,6 +40,7 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <h2>Session setup</h2>
 <div class="coach">
 <label>Score <select id="def"><option value="rand">Random</option><option value="2">Down 2 (field goal wins)</option><option value="3">Down 3 (field goal ties)</option><option value="6">Down 6 (need a touchdown)</option></select></label>
+<label>View <select id="view3d"><option value="3d">3D (quarterback's view)</option><option value="2d">2D diagram</option></select></label>
 <label id="playerWrap" class="hidden">Player <select id="player"><option value="">Results tab (just me)</option></select></label>
 </div>
 <p><b>Level: <span id="lvlVal">1</span>/10</b><br><input type="range" id="lvl" min="1" max="10" value="1"></p>
@@ -50,7 +53,9 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <div class="stats"><span>Game clock <b id="clkT">2:00</b></span><span>Down <b id="dn">1st &amp; 10</b></span><span>Ball on <b id="bs">own 25</b></span><span>Timeouts <b id="toN">3</b></span><span>Plays <b id="pl">0</b></span><span>Correct <b id="okN">0</b></span><span>Last read <b id="rt">-</b></span></div>
 <div id="clkS"></div><div id="situation" style="font-weight:800;font-size:16px;margin-bottom:8px"></div>
 <canvas id="c" width="640" height="440"></canvas>
-<div class="clock"><span id="clk"></span></div>
+<div id="wrap3d" class="hidden"><iframe id="frame3d" title="3D quarterback view"></iframe>
+<p id="help3d">Click the 3D view, then: Space to snap, hold Space (bullet) or L (lob) to throw where you look, drag or arrow keys to look around, T to throw it away, W to watch your last rep. M, P and K call a timeout, spike or kick.</p></div>
+<div class="clock" id="clockBar"><span id="clk"></span></div>
 <div class="acts"><button class="btn" id="go">Snap</button><button class="btn ghost" id="to" disabled>Timeout (M)</button><button class="btn ghost" id="sp" disabled>Spike (P)</button><button class="btn ghost" id="fg" disabled>Kick field goal (K)</button><button class="btn ghost" id="ta" disabled>Throw away (T)</button></div>
 <div id="msg">Get ready.</div>
 <div id="covNote"></div>
@@ -271,7 +276,8 @@ lastClockTick=now;
 var livePlay=phase==='read'||phase==='yac';
 var betweenPlays=phase==='pre'&&G.running;
 
-if(livePlay||betweenPlays){
+// The game clock pauses while a 3D replay of the last rep is playing.
+if((livePlay||betweenPlays)&&!replay3d){
 G.clock=Math.max(0,G.clock-dt);
 $('clkT').textContent=fmt(G.clock);
 
@@ -280,6 +286,8 @@ endDrive('Time expired',false);
 }
 }
 
+// In the 3D view the play itself (pressure, throw, catch) runs in the 3D frame.
+if(!threeD){
 if(phase==='read'){
 var el=Date.now()-st.t0;
 $('clk').style.width=(Math.max(0,1-el/st.dur)*100)+'%';
@@ -287,12 +295,13 @@ if(el>=st.press)sack();
 }else if(phase==='yac'){
 stepYac();
 }
-
 draw();
+}
 requestAnimationFrame(tick);
 }
 function snap(){
 if(phase!=='pre')return;
+if(threeD){to3d({type:'snap'});focus3d();return}
 if(G.clock<=0){
 G.clock=0;
 endDrive('Time expired before the snap.',false);
@@ -309,7 +318,7 @@ $('clk').style.width='100%';
 setPhase('read')
 }
 function throwTo(i){
-if(phase!=='read')return;
+if(phase!=='read'||threeD)return;
 var el=Date.now()-st.t0,dec=el/1000,ok=(i===st.ans),p=cl(el/(st.dur*0.75)),R=st.play.r[i],m=$('msg');
 G.times.push(dec);G.plays++;G.att++;if(ok)G.correct++;
 st.dec=dec;$('rt').textContent=dec.toFixed(1)+'s';
@@ -327,6 +336,7 @@ after({t:'inc',dec:dec})
 }
 function throwAway(){
 if(phase!=='read')return;
+if(threeD){to3d({type:'throwaway'});focus3d();return}
 var dec=(Date.now()-st.t0)/1000,ok=(st.ans===st.play.r.length),m=$('msg');
 G.times.push(dec);G.plays++;G.att++;if(ok)G.correct++;st.dec=dec;$('rt').textContent=dec.toFixed(1)+'s';
 m.style.color=ok?'#14532D':'#B45309';
@@ -361,7 +371,7 @@ after({t:'catch',gain:gain,oob:kind==='oob',dec:st.dec,yt:Y.t,kind:kind})
 }
 function after(o){
 var m=$('msg'),extra='',cost=o.dec||0,stop=false;
-$('covNote').textContent='The defense was in '+st.cvg+(st.extra?' with '+st.extra+' extra rusher'+(st.extra>1?'s':''):' with no extra rushers')+'. '+(COVNOTE[st.cvg]||'');
+$('covNote').textContent=threeD?'The defense was in '+st.cvg+'. '+(st.note3d||''):'The defense was in '+st.cvg+(st.extra?' with '+st.extra+' extra rusher'+(st.extra>1?'s':''):' with no extra rushers')+'. '+(COVNOTE[st.cvg]||'');
 if(o.t==='int'){endDrive('Interception',false);return}
 if(o.t==='sack'){G.ball=Math.min(99,G.ball+7);G.toGo+=7;G.down++;cost+=2}
 else if(o.t==='inc'){G.down++;cost+=2;stop=true}
@@ -378,13 +388,14 @@ if(G.down>4){upd();endDrive('Turnover on downs',false);return}
 if(G.clock<=0){upd();endDrive('Time expired',false);return}
 G.running=!stop;
 m.textContent+=' '+(stop?'Clock stopped.':'Clock is running.');
-nextPlay();setPhase('pre')
+nextPlay();if(threeD)setup3d(false);setPhase('pre')
 }
 function endDrive(res,win){
 G.result=res;G.win=!!win;
 if(res!=='Touchdown'){$('msg').style.color='#DC2626';$('msg').textContent='Drive over: '+res+'.'}
 if(res!=='Touchdown'){$('msg').style.color='#DC2626';$('msg').textContent='Drive over: '+res+'.';}
-G.running=false;setPhase('end')
+G.running=false;setPhase('end');
+if(threeD)to3d({type:'end'})
 }
 function useTimeout(){
 if(phase!=='pre'||!G.running||G.timeouts<1)return;
@@ -428,6 +439,58 @@ if(k==='p'||k==='P')spike();
 if(k==='k'||k==='K')kick();
 if(k===' '&&!$('go').disabled&&!$('game').classList.contains('hidden')){e.preventDefault();$('go').click()}
 });
+// ---------------------------------------------------------------- 3D view
+// Each snap is played in Read & Throw's drive mode, in a frame on this page. This page keeps the
+// drive: clock, downs, timeouts, spikes, field goals, stats and saving. The frame reports each play.
+var threeD=false,frame3d=null,ready3d=false,queued3d=[],replay3d=false;
+function to3d(m){
+m.source='qb-drive';
+if(ready3d)frame3d.contentWindow.postMessage(m,location.origin);
+else if(m.type==='setup'||m.type==='end')queued3d.push(m);
+}
+function focus3d(){if(threeD&&frame3d){frame3d.focus();try{frame3d.contentWindow.focus()}catch(e){}}}
+// Random concept and coverage each snap, at the current ball spot. Levels below 10 add 0.15 s of
+// rush time per level, as in the 2D drill. "fresh" loads the play at once at the start of a drive.
+function setup3d(fresh){
+to3d({type:'setup',fresh:fresh,concept:'random',coverage:'random',ball:G.ball,toGo:G.toGo,sackBonus:(10-G.level)*0.15});
+}
+function result3d(m){
+var msg=$('msg');
+G.times.push(m.time);G.plays++;st.dec=m.time;$('rt').textContent=m.time.toFixed(1)+'s';
+st.cvg=m.coverage;st.note3d=m.note;
+if(m.correct)G.correct++;
+if(m.outcome==='sack'){G.sacks++;msg.style.color='#DC2626';msg.textContent='Sacked for a 7-yard loss. The rush got home.';after({t:'sack',dec:m.time});return}
+G.att++;
+if(m.outcome==='intercepted'){G.ints++;msg.style.color='#DC2626';msg.textContent='Intercepted by the '+m.by+'.';after({t:'int'});return}
+if(m.outcome==='complete'){msg.style.color='#14532D';msg.textContent=m.title+'. Caught.';after({t:'catch',gain:m.gain,oob:m.oob,dec:m.time,yt:0,kind:m.td?'td':m.oob?'oob':'tackle'});return}
+msg.style.color=m.away?'#111827':'#B45309';
+msg.textContent=m.away?'Thrown away.':'Incomplete'+(m.outcome==='deflected'&&m.by?', knocked down by the '+m.by:'')+'.';
+after({t:'inc',dec:m.time});
+}
+addEventListener('message',function(e){
+if(!frame3d||e.source!==frame3d.contentWindow||e.origin!==location.origin||!e.data||e.data.source!=='qb3d')return;
+var m=e.data;
+if(m.type==='ready'){ready3d=true;var q=queued3d;queued3d=[];q.forEach(to3d)}
+else if(m.type==='snapped'){
+if(phase!=='pre')return;
+lastClockTick=performance.now();st.t0=Date.now();
+$('msg').style.color='#111827';$('msg').textContent='Ball snapped. Read the defense and find the open receiver before the rush gets home.';$('covNote').textContent='';
+setPhase('read');
+}
+else if(m.type==='result'){if(phase==='read')result3d(m)}
+else if(m.type==='replay'){replay3d=!!m.on}
+else if(m.type==='key'){if(m.key==='m')useTimeout();else if(m.key==='p')spike();else if(m.key==='k')kick();focus3d()}
+});
+function showView(){
+threeD=$('view3d').value==='3d';
+$('c').classList.toggle('hidden',threeD);$('clockBar').classList.toggle('hidden',threeD);$('wrap3d').classList.toggle('hidden',!threeD);
+document.querySelector('main').style.maxWidth=threeD?'1100px':'';
+if(threeD&&!frame3d){frame3d=$('frame3d');frame3d.src='read-throw.html?drive=1'}
+updPlaybookStatus();
+}
+$('view3d').addEventListener('change',showView);
+['to','sp','fg','ta'].forEach(function(id){$(id).addEventListener('click',focus3d)});
+
 function openDB(){
 return new Promise(function(resolve,reject){
 var rq=indexedDB.open('qbsense_coach_data',1);
@@ -480,7 +543,7 @@ if(!player){
 out.style.color='#14532D';
 try{
 var b=JSON.parse(localStorage.getItem('qbsense_twominute_results')||'[]');
-b.push({email:localStorage.getItem('qbsense_user')||'guest',date:date,level:G.level,accuracy:acc,correct:G.correct,total:n,avgTime:at,pressureResponse:pr,coverage:'Random',concept:'Random plays',result:G.result,timeoutsLeft:G.timeouts,clockLeft:Math.round(G.clock),startClock:G.startClock,startTimeouts:G.startTimeouts,passAtt:G.att,passComp:G.comp,passYds:G.yds,passTd:G.td,passInt:G.ints});
+b.push({email:localStorage.getItem('qbsense_user')||'guest',date:date,level:G.level,accuracy:acc,correct:G.correct,total:n,avgTime:at,pressureResponse:pr,coverage:'Random',concept:threeD?'Random plays (3D)':'Random plays',result:G.result,timeoutsLeft:G.timeouts,clockLeft:Math.round(G.clock),startClock:G.startClock,startTimeouts:G.startTimeouts,passAtt:G.att,passComp:G.comp,passYds:G.yds,passTd:G.td,passInt:G.ints});
 localStorage.setItem('qbsense_twominute_results',JSON.stringify(b.slice(-100)));
 out.textContent='Saved to your Progress history.';
 }catch(e){out.textContent='Could not save on this device.';out.style.color='#DC2626'}
@@ -509,14 +572,17 @@ $('start').addEventListener('click',function(){
   $('setup').classList.add('hidden');
   $('done').classList.add('hidden');
   $('game').classList.remove('hidden');
+  showView();
+  replay3d=false;
   setPhase('pre');
   nextPlay();
+  if(threeD){setup3d(true);focus3d()}
 });
 function updPlaybookStatus(){
 var team=getTeamPlaybook();
-$('pbStatus').textContent=(team&&isTeamPlaybookActive())?'Team playbook active':'Default plays';
+$('pbStatus').textContent=threeD?'Built-in concepts (the 3D view does not use saved team plays yet)':(team&&isTeamPlaybookActive())?'Team playbook active':'Default plays';
 }
-updPlaybookStatus();
+showView();
 loadPlayers();
 tick();
 </script>

@@ -2,6 +2,10 @@
 function load(){try{return JSON.parse(localStorage.getItem('qbsense_clips')||'[]')}catch(e){return[]}}
 function save(a){localStorage.setItem('qbsense_clips',JSON.stringify(a))}
 function me(){return localStorage.getItem('qbsense_user')||'guest'}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+// Only http(s) links open; anything else (such as javascript:) is refused.
+function safeUrl(u){try{var x=new URL(u,location.href);return x.protocol==='https:'||x.protocol==='http:'?x.href:''}catch(e){return ''}}
+function sameClip(a,b){return (a.email||'guest')===(b.email||'guest')&&a.date===b.date&&a.url===b.url}
 function target(){
 var sec=document.getElementById('results');if(!sec)return null;
 var main=document.getElementById('resultsMain')||sec;
@@ -26,16 +30,17 @@ html+='<div class="field"><label>Note</label><input id="clipNote" placeholder="W
 html+='<button class="btn primary" id="addClip">Add clip</button>';
 html+='<div style="margin-top:14px">';
 if(!clips.length){html+='<small>No clips yet. Add your first video link above.</small>'}
-clips.forEach(function(c,i){html+='<div class="playbook-item"><div><b>'+(c.drill||'Clip')+'</b>'+(c.coverage?' — '+c.coverage:'')+(c.concept?' — '+c.concept:'')+'<br><small>'+(c.result||'')+(c.note?' — '+c.note:'')+'</small></div><div><a class="btn ghost" href="'+c.url+'" target="_blank">Open</a> <button class="btn ghost" data-del="'+i+'">Delete</button></div></div>'});
+clips.forEach(function(c,i){var link=safeUrl(c.url);html+='<div class="playbook-item"><div><b>'+esc(c.drill||'Clip')+'</b>'+(c.coverage?' — '+esc(c.coverage):'')+(c.concept?' — '+esc(c.concept):'')+'<br><small>'+esc(c.result||'')+(c.note?' — '+esc(c.note):'')+'</small></div><div>'+(link?'<a class="btn ghost" href="'+esc(link)+'" target="_blank" rel="noopener noreferrer">Open</a> ':'')+'<button class="btn ghost" data-del="'+i+'">Delete</button></div></div>'});
 html+='</div>';
 card.innerHTML=html;
 var add=document.getElementById('addClip');
 if(add)add.onclick=function(){
-var url=document.getElementById('clipUrl').value.trim();if(!url)return;
+var url=safeUrl(document.getElementById('clipUrl').value.trim());if(!url)return;
 var rec={email:me(),date:new Date().toISOString(),url:url,drill:document.getElementById('clipDrill').value,coverage:document.getElementById('clipCoverage').value,concept:document.getElementById('clipConcept').value,result:document.getElementById('clipResult').value,note:document.getElementById('clipNote').value};
 var all=load();all.unshift(rec);save(all);render();
 };
-card.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){var all=load();all.splice(Number(b.getAttribute('data-del')),1);save(all);render()}});
+// data-del is the clip's place in this player's list, not in the stored list, so delete by identity.
+card.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){var clip=clips[Number(b.getAttribute('data-del'))];if(!clip)return;var all=load(),at=-1;for(var k=0;k<all.length;k++){if(sameClip(all[k],clip)){at=k;break}}if(at>=0){all.splice(at,1);save(all)}render()}});
 }
 document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('[data-page="results"]'))setTimeout(render,0)});
 window.addEventListener('storage',render);

@@ -14,6 +14,11 @@
   #info{left:12px;top:12px;max-width:340px;line-height:1.45}
   button{background:#1e293b;color:#fff;border:1px solid #475569;border-radius:6px;padding:8px 10px;font:inherit;font-weight:700;cursor:pointer}
   button.on{background:#166534;border-color:#22c55e}
+  #bar label{display:flex;align-items:center;gap:4px}
+  /* Inside the Two-Minute Drill the drive picks the plays, so series, menus, slow motion and the answer are hidden. */
+  .drive #series,.drive #random,.drive #slow,.drive #reveal,.drive #bar label,.drive #back{display:none}
+  .drive #info{max-width:300px;font-size:12px}
+  select{background:#1e293b;color:#fff;border:1px solid #475569;border-radius:6px;padding:7px 6px;font:inherit;font-weight:700}
   .setting{display:flex;align-items:center;gap:6px;margin-top:6px}
   .setting input{width:110px}
   #clock{right:12px;top:12px;font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
@@ -25,9 +30,9 @@
   #power{left:50%;transform:translateX(-50%);bottom:110px;width:220px;text-align:center;pointer-events:none}
   #power div{height:10px;margin-top:4px;background:#334155;border-radius:5px;overflow:hidden}
   #powerFill{display:block;height:100%;background:#f59e0b}
-  #result{left:50%;transform:translateX(-50%);top:70px;width:min(420px,86vw);text-align:center;z-index:2}
+  #result{left:50%;transform:translateX(-50%);top:70px;width:min(460px,86vw);text-align:center;z-index:2;max-height:calc(100vh - 190px);overflow:auto}
   #resultTitle{font-size:20px}
-  #resultText{white-space:pre-line;margin:8px 0 10px;line-height:1.45}
+  #resultText{white-space:pre-line;margin:8px 0 10px;line-height:1.45;text-align:left}
   #answer{margin-top:6px;color:#fde68a}
   #error{left:12px;right:12px;top:40%;display:none;text-align:center}
 </style>
@@ -43,12 +48,15 @@
 <div id="bar" class="panel">
   <a id="back" href="index.html#drills">← Drills</a>
   <button id="snap">Snap (Space)</button>
+  <button id="watch" disabled>Watch last rep (W)</button>
   <button id="throw">Bullet pass (hold Space)</button>
   <button id="lob">Lob pass (hold L)</button>
+  <button id="away" disabled>Throw away (T)</button>
   <button id="series">10-rep series</button>
   <button id="slow">Slow motion (S)</button>
   <button id="random">Random situation (R)</button>
-  <span id="situations"></span>
+  <label>Play <select id="conceptPick" title="Offensive concept"></select></label>
+  <label>Defense <select id="coveragePick" title="Defensive coverage"></select></label>
   <button id="reveal">Show answer</button>
   <button id="view">Top view (V)</button>
   <button id="labels" class="on">Names (N)</button>
@@ -72,6 +80,9 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.m
 // Data is in yards: x = left (-) / right (+), d = distance past the line of scrimmage (- = offence side).
 const YD = 0.9144;
 const world = (x, d) => new THREE.Vector3(x * YD, 0, -d * YD);
+// Drive mode: the page runs inside the Two-Minute Drill, which owns the clock, downs and score.
+const DRIVE = new URLSearchParams(location.search).has('drive');
+if (DRIVE) document.documentElement.classList.add('drive');
 
 const OFFENCE = [
   ['LT', -3.2, -0.6], ['LG', -1.6, -0.5], ['C', 0, -0.3], ['RG', 1.6, -0.5], ['RT', 3.2, -0.6],
@@ -148,27 +159,44 @@ function flat(width, length, material, x, d, y) {
   scene.add(mesh);
   return mesh;
 }
-flat(140, 190, new THREE.MeshLambertMaterial({ color: 0x24502c }), 0, 20, -0.05);
-// The back end line is 40 yards behind the ball.
-flat(WIDTH, 120, new THREE.MeshLambertMaterial({ map: field }), 0, 60 - LOS_FROM_BACK, 0);
+flat(300, 300, new THREE.MeshLambertMaterial({ color: 0x24502c }), 0, 20, -0.05);
+// By default the back end line is 40 yards behind the ball (own 30). In a drive, setField moves it.
+const fieldMesh = flat(WIDTH, 120, new THREE.MeshLambertMaterial({ map: field }), 0, 60 - LOS_FROM_BACK, 0);
 flat(WIDTH, 0.18, new THREE.MeshBasicMaterial({ color: 0x2563eb }), 0, 0, 0.015);
-flat(WIDTH, 0.18, new THREE.MeshBasicMaterial({ color: 0xfacc15 }), 0, 10, 0.015);
+const firstDownLine = flat(WIDTH, 0.18, new THREE.MeshBasicMaterial({ color: 0xfacc15 }), 0, 10, 0.015);
 
 const box = (w, h, d, color) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color }));
 // Stands on both sides and goal posts at each end line.
 for (const side of [-1, 1]) {
   for (let row = 0; row < 8; row++) {
-    const stand = box(2, 1 + row * 1.1, 112, row % 2 ? 0x475569 : 0x64748b);
+    const stand = box(2, 1 + row * 1.1, 240, row % 2 ? 0x475569 : 0x64748b);
     stand.position.set(side * (34 + row * 2) * YD, (1 + row * 1.1) / 2, -20 * YD);
     scene.add(stand);
   }
 }
-for (const d of [-LOS_FROM_BACK, 120 - LOS_FROM_BACK]) {
+const goalPosts = [-LOS_FROM_BACK, 120 - LOS_FROM_BACK].map((d) => {
+  const posts = new THREE.Group();
   for (const [w, h, x, y] of [[0.2, 3, 0, 1.5], [5.7, 0.15, 0, 3], [0.15, 7, -2.8, 6.5], [0.15, 7, 2.8, 6.5]]) {
     const post = box(w, h, 0.2, 0xfacc15);
-    post.position.copy(world(0, d)).add(new THREE.Vector3(x, y, 0));
-    scene.add(post);
+    post.position.set(x, y, 0);
+    posts.add(post);
   }
+  posts.position.copy(world(0, d));
+  scene.add(posts);
+  return posts;
+});
+// Passes landing past the back of the end zone are incomplete. Off the field by default.
+let endLine = Infinity;
+// Moves the field so the ball is "ball" yards from the opponent's goal line, with the
+// first-down line "toGo" yards ahead (hidden when it is goal to go).
+function setField(ball, toGo) {
+  const fromBack = 110 - ball;
+  fieldMesh.position.copy(world(0, 60 - fromBack));
+  goalPosts[0].position.copy(world(0, -fromBack));
+  goalPosts[1].position.copy(world(0, 120 - fromBack));
+  firstDownLine.position.copy(world(0, toGo)).setY(0.015);
+  firstDownLine.visible = toGo < ball;
+  endLine = ball + 10;
 }
 
 function label(text, color) {
@@ -375,14 +403,18 @@ quarterback.position.copy(world(0, -5));
 
 // Eyes are about 12 cm below the top of the head; a shotgun stance loses about 5 cm more.
 const eyeHeight = () => ($('height').value - 17) / 100;
-let current = 0, topView = false, showLabels = true, yaw = 0, pitch = -0.08;
+let sit = null, topView = false, showLabels = true, yaw = 0, pitch = -0.08;
 const $ = (id) => document.getElementById(id);
 
-function setSituation(index) {
+// A play is one concept against one coverage. The four original situations keep their
+// hand-written routes, defenses and reads; every other pairing is built from the tables below.
+function setPlay(play) {
   resetPlay();
-  current = index;
-  const situation = SITUATIONS[index];
-  const spots = { ...FRONT, ...situation.back };
+  resume = null;
+  watchingLast = false;
+  sit = play;
+  if (play.field) setField(play.field.ball, play.field.toGo);
+  const spots = { ...FRONT, ...play.back };
   for (const name of defenceNames) {
     const [x, d] = spots[name];
     // Small random shifts so a defence never looks exactly the same twice.
@@ -390,15 +422,16 @@ function setSituation(index) {
     defence[name].position.copy(world(x + shift(), d + shift()));
   }
   $('answer').hidden = true;
-  $('answer').textContent = `${situation.name}. ${situation.answer}`;
+  $('answer').textContent = play.answer;
   $('reveal').classList.remove('on');
   refresh();
 }
+const setSituation = (index) => setPlay(classicPlay(index));
 
+// Hides the coverage name when it was picked at random, so the player has to read it.
 let hideNumber = true;
 function refresh() {
-  $('title').textContent = hideNumber ? 'Read the defense' : `Situation ${current + 1}`;
-  [...$('situations').children].forEach((b, i) => b.classList.toggle('on', !hideNumber && i === current));
+  if (sit) $('title').textContent = hideNumber ? `${sit.concept}: read the defense` : `${sit.concept} vs ${sit.coverage}`;
   $('view').classList.toggle('on', topView);
   $('labels').classList.toggle('on', showLabels);
   quarterback.visible = topView;
@@ -434,17 +467,30 @@ function look(dYaw, dPitch) {
   pitch = THREE.MathUtils.clamp(pitch + dPitch, -0.6, 0.35);
   refresh();
 }
-const randomSituation = () => { hideNumber = true; yaw = 0; pitch = -0.08; setSituation(Math.floor(Math.random() * SITUATIONS.length)); };
+const randomOf = (list) => list[Math.floor(Math.random() * list.length)];
+// A new rep from the Play and Defense menus; "Random" picks a new one each time.
+function pickPlay() {
+  const c = $('conceptPick').value, v = $('coveragePick').value;
+  const concept = c === 'random' ? randomOf(Object.keys(CONCEPTS)) : c;
+  const coverage = v === 'random' ? randomOf(Object.keys(COVERAGES)) : v;
+  hideNumber = v === 'random';
+  yaw = 0;
+  pitch = -0.08;
+  if (concept === 'Slant-Flat' && CLASSIC_FOR[coverage]) setPlay(classicPlay(randomOf(CLASSIC_FOR[coverage])));
+  else setPlay(makePlay(concept, coverage));
+}
+const randomSituation = pickPlay;
 const toggleView = () => { topView = !topView; refresh(); };
 const toggleLabels = () => { showLabels = !showLabels; refresh(); };
 
-SITUATIONS.forEach((_, i) => {
-  const b = document.createElement('button');
-  b.textContent = String(i + 1);
-  b.title = 'Choose situation ' + (i + 1);
-  b.onclick = () => { hideNumber = false; setSituation(i); };
-  $('situations').append(b, ' ');
-});
+// Called once at the end of the script, after the concept and coverage tables exist.
+function fillMenus() {
+  for (const [id, names] of [['conceptPick', Object.keys(CONCEPTS)], ['coveragePick', Object.keys(COVERAGES)]]) {
+    $(id).append(new Option('Random', 'random'), ...names.map((n) => new Option(n, n)));
+    // Choosing from a menu leaves the series and sets up that play straight away.
+    $(id).addEventListener('change', () => { abortSeries(); pickPlay(); $(id).blur(); });
+  }
+}
 $('height').oninput = () => { $('heightText').textContent = $('height').value + ' cm'; refresh(); };
 $('fov').oninput = () => {
   const fov = Number($('fov').value);
@@ -469,7 +515,7 @@ addEventListener('keydown', (e) => {
   const turns = { ArrowLeft: [0.12, 0], ArrowRight: [-0.12, 0], ArrowUp: [0, 0.06], ArrowDown: [0, -0.06] };
   if (e.target.tagName === 'INPUT') return;
   if (turns[e.key]) { e.preventDefault(); if (!topView) look(...turns[e.key]); }
-  else if (e.key.toLowerCase() === 'r') randomSituation();
+  else if (e.key.toLowerCase() === 'r' && !DRIVE) randomSituation();
   else if (e.key.toLowerCase() === 'v') toggleView();
   else if (e.key.toLowerCase() === 'n') toggleLabels();
 });
@@ -492,7 +538,7 @@ const ROUTES = {
   Z: [[19, -1.4], [19, 8], [19, 13], [18, 11]],                      // comeback
   TE: [[4.9, -0.6], [5.5, 3], [5.5, 6], [5.5, 6.2]],                 // hitch
 };
-const SPEED = { X: 7.6, Slot: 7.2, Z: 7.6, TE: 5.8 };
+const SPEED = { X: 7.6, Slot: 7.2, Z: 7.6, TE: 5.8, RB: 7.0 };
 
 // Where a runner is after "distance" yards along a route.
 function along(points, distance) {
@@ -510,7 +556,7 @@ const covered = (speed, t) => speed * (t - 0.45 * (1 - Math.exp(-t / 0.45)));
 // Each defender: man (follow a receiver), zone (drop to a spot) or rush (reach the quarterback).
 const man = (target, delay = 0.25, speed = 7.3, inside = 1) => ({ type: 'man', target, delay, speed, inside });
 const zone = (x, d, speed = 5.5, delay = 0.15) => ({ type: 'zone', x, d, speed, delay });
-function assignments(index) {
+function classicAssignments(index) {
   if (index === 0) {
     return { CB1: zone(-19, 17), CB2: zone(19, 17), FS: zone(0, 19), SS: zone(10, 9), LB1: zone(-4, 9), LB2: zone(4, 9),
       // Cover 3: the Nickel always has the flat zone.
@@ -527,6 +573,167 @@ function assignments(index) {
   return { CB1: zone(-20, 16), CB2: zone(19, 16), FS: zone(-11, 7, 5.5, 0.35), SS: zone(0, 18), LB1: zone(-5, 8), LB2: zone(3, 8),
     Nickel: { type: 'rush', via: [-6, -1.5] } };
 }
+const rush = (via) => ({ type: 'rush', via });
+
+// ---------------------------------------------------------------- Concepts and coverages
+// Route shapes in yards: [in, depth]. "In" is toward the middle of the field, so one shape works
+// from either side; depth is past the line of scrimmage. The first four reproduce the original routes.
+const ROUTE_SHAPES = {
+  slant: [[0, 3], [8, 10], [12, 13.5], [17, 17]],
+  flat: [[-2, 0.8], [-7, 2.5], [-13, 3], [-14.5, 3]],
+  comeback: [[0, 8], [0, 13], [1, 11]],
+  hitch: [[-0.6, 3], [-0.6, 6], [-0.6, 6.2]],
+  go: [[-0.5, 6], [-1, 40]],
+  seam: [[0.5, 6], [1, 40]],
+  post: [[0, 12], [6, 18], [12, 35]],
+  corner: [[0, 11], [-6, 17], [-9, 24]],
+  dig: [[0, 12], [2, 13], [14, 13], [24, 13]],
+  out: [[0, 10], [-1, 10.5], [-9, 10.5]],
+  curl: [[0, 12], [1.5, 10.5]],
+  sit: [[0, 9], [0.5, 8.5]],
+  stick: [[0, 5.5], [1, 5]],
+  sail: [[0, 10], [-6, 16], [-10, 19]],
+  drag: [[1, 2], [8, 2.5], [35, 3]],
+  shallow: [[1, 3], [8, 4], [30, 4]],
+  'shallow in': [[0, 4], [2, 4.5], [12, 4.5]],
+  cross: [[0, 4], [6, 9], [20, 14], [35, 15]],
+  china: [[0, 3], [-4, 5.5], [8, 6.5], [16, 7]],
+};
+// The running back lines up right of the quarterback: [right, depth] from his spot.
+const RB_SHAPES = {
+  swing: [[2, -5], [6, -4], [10, -2], [13, 0]],
+  flat: [[2, -3.5], [6, -1], [11, 0.5], [13, 1]],
+  angle: [[2, -4], [4, -2], [1, 2], [-3, 5]],
+  wheel: [[2, -4.5], [7, -2], [10, 3], [10.5, 30]],
+  checkdown: [[0, -3], [-0.5, 1], [-1, 2]],
+};
+// The Game Situations concepts, set for this 2x2 formation: X and Slot left, tight end and Z right.
+// "order" is the progression; "block" keeps the running back in pass protection.
+const CONCEPTS = {
+  'Slant-Flat': { routes: { X: 'slant', Slot: 'flat', Z: 'comeback', TE: 'hitch', RB: 'block' }, order: ['X', 'Slot', 'Z', 'TE'] },
+  Slants: { routes: { X: 'slant', Slot: 'slant', Z: 'slant', TE: 'seam', RB: 'swing' }, order: ['X', 'Slot', 'Z', 'TE', 'RB'] },
+  Flood: { routes: { Z: 'go', TE: 'sail', RB: 'flat', X: 'slant', Slot: 'drag' }, order: ['TE', 'RB', 'Z', 'X', 'Slot'] },
+  Levels: { routes: { X: 'dig', Slot: 'shallow in', Z: 'go', TE: 'out', RB: 'checkdown' }, order: ['X', 'Slot', 'Z', 'TE', 'RB'] },
+  'Four Verticals': { routes: { X: 'go', Slot: 'seam', TE: 'seam', Z: 'go', RB: 'checkdown' }, order: ['Slot', 'TE', 'X', 'Z', 'RB'] },
+  Mesh: { routes: { X: 'sit', Slot: 'drag', TE: 'shallow', Z: 'corner', RB: 'swing' }, order: ['Z', 'X', 'Slot', 'TE', 'RB'] },
+  Spacing: { routes: { X: 'hitch', Slot: 'flat', Z: 'hitch', TE: 'stick', RB: 'angle' }, order: ['Slot', 'TE', 'X', 'Z', 'RB'] },
+  Smash: { routes: { X: 'hitch', Slot: 'corner', Z: 'hitch', TE: 'corner', RB: 'flat' }, order: ['Slot', 'X', 'TE', 'Z', 'RB'] },
+  Dagger: { routes: { Slot: 'seam', X: 'dig', TE: 'shallow', Z: 'out', RB: 'checkdown' }, order: ['X', 'TE', 'Slot', 'Z', 'RB'] },
+  'Curl-Flat': { routes: { X: 'curl', Slot: 'flat', Z: 'curl', TE: 'flat', RB: 'block' }, order: ['X', 'Slot', 'Z', 'TE'] },
+  Stick: { routes: { X: 'slant', Slot: 'hitch', Z: 'go', TE: 'stick', RB: 'flat' }, order: ['TE', 'RB', 'Z', 'X', 'Slot'] },
+  'Y-Cross': { routes: { X: 'go', Slot: 'drag', Z: 'post', TE: 'cross', RB: 'flat' }, order: ['Z', 'TE', 'RB', 'Slot', 'X'] },
+  China: { routes: { X: 'go', Slot: 'china', Z: 'out', TE: 'drag', RB: 'swing' }, order: ['Slot', 'X', 'TE', 'Z', 'RB'] },
+  'Shallow Cross': { routes: { X: 'corner', Slot: 'shallow', Z: 'dig', TE: 'seam', RB: 'angle' }, order: ['Slot', 'Z', 'X', 'TE', 'RB'] },
+};
+// All 12 Game Situations coverages. "back" places the seven players behind the line, in yards;
+// "plan" gives each one a job and is told whether the running back runs a route or blocks.
+const NORMAL_LB = { LB1: [-2.8, 4.5], LB2: [2.8, 4.5] };
+const COVERAGES = {
+  Man: { note: 'Man: press man underneath with two deep safeties. Crossing routes and quick throws beat it.',
+    back: { CB1: [-19, 1.5], CB2: [19, 1.5], Nickel: [-11, 1.5], FS: [-9, 13], SS: [9, 13], ...NORMAL_LB },
+    plan: (rb) => ({ CB1: man('X', 0.3, 7.3, -0.6), CB2: man('Z', 0.3, 7.3, -0.6), Nickel: man('Slot', 0.25), LB2: man('TE', 0.3, 6.8),
+      LB1: rb ? man('RB', 0.3, 7) : zone(0, 6), FS: zone(-10, 20), SS: zone(10, 20) }) },
+  'Cover 0': { note: 'Cover 0: man with no deep safety and extra rushers. Get the ball out fast or hit the deep shot.',
+    back: { CB1: [-19, 2], CB2: [19, 2], Nickel: [-11, 2], SS: [5.5, 3], FS: [1.5, 6], LB1: [-2.5, 2], LB2: [2.5, 2.2] },
+    plan: (rb) => ({ CB1: man('X', 0.3), CB2: man('Z', 0.3), Nickel: man('Slot', 0.25), SS: man('TE', 0.3, 6.8),
+      FS: rb ? man('RB', 0.3, 7) : rush([3.5, -1]), LB1: rush([-2.4, -0.5]), LB2: rush([2.4, -0.5]) }) },
+  'Cover 1': { note: 'Cover 1: man with one deep middle safety. Throw away from the safety and keep it quick.',
+    back: SITUATIONS[1].back,
+    plan: (rb) => ({ ...classicAssignments(1), LB1: rb ? man('RB', 0.3, 7) : zone(-2.5, 7) }) },
+  'Cover 2': { note: 'Cover 2: two deep safeties. The flats and the sideline holes behind the corners are soft.',
+    back: { CB1: [-18, 5], CB2: [18, 5], FS: [-10, 13], SS: [10, 13], Nickel: [-10, 4.5], ...NORMAL_LB },
+    plan: () => ({ CB1: zone(-21, 5, 6, 0.2), CB2: zone(21, 5, 6, 0.2), FS: zone(-13, 21), SS: zone(13, 21),
+      Nickel: zone(-11, 10), LB1: zone(-3, 11), LB2: zone(5, 10) }) },
+  'Cover 3': { note: 'Cover 3: three deep. The short and medium zones are soft.',
+    back: SITUATIONS[0].back, plan: () => classicAssignments(0) },
+  'Cover 4': { note: 'Cover 4: quarters. Four deep defenders, so take the flats, hitches and crossers underneath.',
+    back: { CB1: [-19, 7], CB2: [19, 7], FS: [-7, 11], SS: [7, 11], Nickel: [-10, 5], ...NORMAL_LB },
+    plan: () => ({ CB1: zone(-19, 22), CB2: zone(19, 22), FS: zone(-7, 21), SS: zone(7, 21), Nickel: zone(-17, 5, 6.2, 0.3),
+      LB1: zone(-4, 9), LB2: zone(8, 7, 6) }) },
+  'Cover 2 Man': { note: 'Cover 2 Man: two deep, trail man underneath. Crossing routes and quick throws beat it.',
+    back: { CB1: [-19, 4], CB2: [19, 4], Nickel: [-11, 4], FS: [-10, 14], SS: [10, 14], ...NORMAL_LB },
+    plan: (rb) => ({ CB1: man('X', 0.45, 7.2, 1), CB2: man('Z', 0.45, 7.2, 1), Nickel: man('Slot', 0.35), LB2: man('TE', 0.35, 6.8),
+      LB1: rb ? man('RB', 0.35, 7) : zone(0, 8), FS: zone(-11, 21), SS: zone(11, 21) }) },
+  'Cover 3 Match': { note: 'Cover 3 Match: three deep, matching routes underneath. Work the middle and short.',
+    back: SITUATIONS[0].back,
+    plan: () => ({ CB1: man('X', 0.5, 7.2, -0.8), CB2: man('Z', 0.5, 7.2, -0.8), Nickel: man('Slot', 0.35, 7), SS: man('TE', 0.4, 6.8),
+      FS: zone(0, 19), LB1: zone(-4, 8), LB2: zone(4, 8) }) },
+  'Cover 6': { note: 'Cover 6: quarters to the left, Cover 2 to the right. The half side is soft to the flat.',
+    back: { CB1: [-19, 7], FS: [-7, 12], Nickel: [-10, 5], CB2: [18, 5], SS: [10, 13], ...NORMAL_LB },
+    plan: () => ({ CB1: zone(-19, 22), FS: zone(-7, 21), Nickel: zone(-15, 7), CB2: zone(21, 5, 6, 0.2), SS: zone(13, 21),
+      LB1: zone(-3, 10), LB2: zone(5, 10) }) },
+  'Cover 4 Palms': { note: 'Cover 4 Palms: the safeties take the slot and tight end vertically and the corners sit deep. Throw underneath.',
+    back: { CB1: [-18, 6], CB2: [18, 6], FS: [-9, 9], SS: [9, 9], Nickel: [-10, 4.5], ...NORMAL_LB },
+    plan: () => ({ CB1: zone(-19, 21), CB2: zone(19, 21), FS: man('Slot', 0.5, 7, 0.5), SS: man('TE', 0.5, 6.8, 0.5),
+      Nickel: zone(-17, 5, 6.2, 0.3), LB1: zone(-4, 8), LB2: zone(8, 6, 6) }) },
+  'Fire Zone': { note: 'Fire zone: five rush, three deep, three under. Get rid of it fast, hot to where the blitz came from.',
+    back: SITUATIONS[3].back, plan: () => classicAssignments(3) },
+  'Simulated Blitz': { note: 'Simulated blitz: both linebackers show pressure, but one drops and the right end drops. Read the real rush, not the look.',
+    back: { CB1: [-19, 7], CB2: [19, 7], FS: [-8, 13], SS: [8, 13], Nickel: [-10, 3], LB1: [-2, 1.5], LB2: [2, 1.5] },
+    plan: () => ({ LB1: rush([-2.4, -0.5]), LB2: zone(4, 8, 5.5, 0.35), DE2: zone(7, 5, 5, 0.3), Nickel: zone(-13, 7),
+      CB1: zone(-19, 20), CB2: zone(19, 20), FS: zone(-8, 21), SS: zone(8, 21) }) },
+};
+// The original four situations, reached as Slant-Flat against these coverages.
+const CLASSIC_FOR = { 'Cover 3': [0], 'Cover 1': [1, 2], 'Fire Zone': [3] };
+const CLASSIC_COVERAGE = ['Cover 3', 'Cover 1', 'Cover 1', 'Fire Zone'];
+
+const alignment = (id) => OFFENCE.find(([name]) => name === id).slice(1);
+function shapeRoute(id, name) {
+  const [x0] = alignment(id);
+  if (id === 'RB') return RB_SHAPES[name].map(([dx, d]) => [x0 + dx, d]);
+  const inward = x0 < 0 ? 1 : -1;
+  return ROUTE_SHAPES[name].map(([i, d]) => [THREE.MathUtils.clamp(x0 + i * inward, -25.5, 25.5), d]);
+}
+function classicPlay(index) {
+  const situation = SITUATIONS[index];
+  return { classic: index, concept: 'Slant-Flat', coverage: CLASSIC_COVERAGE[index], name: situation.name, back: situation.back,
+    routes: ROUTES, speed: SPEED, routeNames: { X: 'slant', Slot: 'flat' }, plan: () => classicAssignments(index),
+    answer: `${situation.name}. ${situation.answer}` };
+}
+// options (drive mode): field = { ball, toGo } places the line of scrimmage; sackBonus adds
+// training time to the pass rush, like the drill levels; nobody runs past the back of the end zone.
+function makePlay(conceptName, coverageName, options = {}) {
+  const concept = CONCEPTS[conceptName], cover = COVERAGES[coverageName];
+  const field = options.field || null, depthLimit = field ? field.ball + 9 : Infinity;
+  const routes = {}, routeNames = {};
+  for (const [id, name] of Object.entries(concept.routes)) {
+    if (name === 'block') continue;
+    routes[id] = shapeRoute(id, name).map(([x, d]) => [x, Math.min(d, depthLimit)]);
+    routeNames[id] = name;
+  }
+  const play = { classic: null, concept: conceptName, coverage: coverageName, name: `${conceptName} vs ${coverageName}`,
+    back: cover.back, routes, speed: SPEED, routeNames, order: concept.order.filter((id) => routes[id]), plan: () => cover.plan('RB' in routes),
+    field, depthLimit, sackBonus: options.sackBonus || 0, note: cover.note };
+  play.best = bestRead(play);
+  play.answer = `${play.name}. Best read: ${receiverName(play, play.best.id)}, about ${play.best.top.toFixed(1)} yd from the nearest defender when thrown at ${play.best.when.toFixed(1)} s. ${cover.note}`;
+  return play;
+}
+// Space a receiver needs to count as open, in yards from the nearest defender.
+const OPEN_YARDS = 3;
+// The first receiver in the progression who gets open before the rush arrives; if nobody does,
+// the one with the most space. Uses the same simulation as the rep itself.
+function bestRead(play) {
+  // Measured from this play's own line-up, not whatever is on the field right now.
+  const spots = { ...FRONT, ...play.back };
+  const lineUp = Object.fromEntries(Object.keys(everyone).map((id) => [id, id in defence ? spots[id] : alignment(id)]));
+  const { frames, sack } = simulate(play, 0.5, lineUp);
+  let best = null, most = null;
+  for (const id of play.order) {
+    let top = 0, when = 0;
+    // "when" is the release time; space is measured about half a second later, as the ball arrives.
+    for (let t = 0.8; t <= Math.min(2.8, sack - 0.3) + 1e-6; t += 0.1) {
+      const frame = frames[Math.round((t + 0.5) / STEP)];
+      const space = Math.min(...Object.keys(defence).map((k) => gap(frame[k], frame[id])));
+      if (space > top) { top = space; when = t; }
+    }
+    const read = { id, top, when };
+    if (!most || top > most.top) most = read;
+    if (!best && top >= OPEN_YARDS) best = read;
+  }
+  return best || most;
+}
+const RECEIVER = { X: 'X', Slot: 'Slot', Z: 'Z', TE: 'Tight end', RB: 'Running back' };
+const receiverName = (play, id) => (play.routeNames[id] ? `${RECEIVER[id]} (${play.routeNames[id]})` : RECEIVER[id]);
 
 const QB_SPOT = [0, -5];
 // Pass protection forms a cup: the tackles drop deeper and wider than the guards and centre.
@@ -573,13 +780,16 @@ const offenceByName = Object.fromEntries(offence.map((p) => [p.userData.name, p]
 const everyone = { ...offenceByName, ...defence };
 
 // The whole play is computed at the snap, so that replays and slow motion are identical.
-function simulate(index, draw = Math.random()) {
-  const start = Object.fromEntries(Object.entries(everyone).map(([id, p]) => [id, yards(p)]));
-  const plan = assignments(index);
+function simulate(which = sit, draw = Math.random(), lineUp = null) {
+  // A number means one of the four original situations (kept for the automated checks).
+  const setup = typeof which === 'number' ? classicPlay(which) : which;
+  const start = lineUp || Object.fromEntries(Object.entries(everyone).map(([id, p]) => [id, yards(p)]));
+  const plan = setup.plan();
   const blitz = Object.values(plan).some((a) => a.type === 'rush');
   const [low, high] = blitz ? SACK_RANGE.blitz : SACK_RANGE.noBlitz;
   // Rounded to a tenth, the precision shown on the clock.
-  const sack = Math.round((low + draw * (high - low)) * 10) / 10;
+  const sack = Math.round((low + draw * (high - low) + (setup.sackBonus || 0)) * 10) / 10;
+  const deepest = setup.depthLimit ?? Infinity;
   const frames = [{ ...start }];
   // Numbers between 0 and 1 that differ from rep to rep but stay the same on a replay.
   const vary = (k) => { const n = Math.sin((draw + 0.137) * 1000 + k * 12.9898) * 43758.5453; return n - Math.floor(n); };
@@ -588,12 +798,14 @@ function simulate(index, draw = Math.random()) {
   for (let t = STEP; t <= DURATION + 1e-6; t += STEP) {
     const previous = frames[frames.length - 1];
     const now = {};
-    for (const id of Object.keys(ROUTES)) {
-      // Routes start from the real line-up spot.
-      const route = [start[id], ...ROUTES[id].slice(1)];
-      now[id] = along(route, covered(SPEED[id], t));
+    for (const [id, points] of Object.entries(setup.routes)) {
+      // Routes start from the real line-up spot. The original routes list that spot first.
+      const route = [start[id], ...(setup.classic !== null ? points.slice(1) : points)];
+      now[id] = along(route, covered(setup.speed[id], t));
     }
     Object.entries(BLOCKS).forEach(([id, spot], k) => {
+      // A running back with a route does not stay in to block.
+      if (id in setup.routes) return;
       const set = [spot[0] + (vary(k + 2) - 0.5) * 0.8, spot[1] + (vary(k + 12) - 0.5) * 0.7];
       const driven = Math.max(0, t - 1.1) * (0.1 + vary(k + 22) * 0.4);
       const sway = Math.sin(t * (2 + vary(k + 32) * 2) + vary(k + 42) * 6) * 0.3 * Math.min(1, t);
@@ -625,7 +837,7 @@ function simulate(index, draw = Math.random()) {
         const end = [QB_SPOT[0] - 0.8, QB_SPOT[1] + 0.4];
         now[id] = curve(start[id], job.via, end, u);
       } else if (job.type === 'zone') {
-        now[id] = t < job.delay ? previous[id] : towards(previous[id], [job.x, job.d], job.speed * STEP * Math.min(1, (t - job.delay) / 0.5 + 0.2));
+        now[id] = t < job.delay ? previous[id] : towards(previous[id], [job.x, Math.min(job.d, deepest)], job.speed * STEP * Math.min(1, (t - job.delay) / 0.5 + 0.2));
       } else {
         // Man coverage reacts to where the receiver was a moment ago, from the inside and slightly deeper.
         const seen = frames[Math.max(0, frames.length - Math.round(job.delay / STEP))][job.target] || start[job.target];
@@ -804,7 +1016,7 @@ function resolve(path, release) {
   let result = null;
   for (let s = 0; !result; s += STEP / 2) {
     const ball = path.at(s), frame = frameAt(release + s), point = [ball.x, ball.d];
-    if (ball.y <= 0.12 || Math.abs(ball.x) > WIDTH / 2) result = { outcome: 'incomplete', at: s };
+    if (ball.y <= 0.12 || Math.abs(ball.x) > WIDTH / 2 || ball.d > endLine) result = { outcome: 'incomplete', at: s };
     else if (ball.y < 3.2 && ball.traveled > 2) {
       let best = null;
       for (const [id, spot] of Object.entries(frame)) {
@@ -838,7 +1050,7 @@ function resolve(path, release) {
   if (result.by && path.at(result.at).y > 2.3) actions[result.by] = { kind: 'jump', arrive: release + result.at, toward: path.target.slice() };
   else if (result.by && !actions[result.by]) actions[result.by] = { kind: 'reach', arrive: release + result.at, toward: path.target.slice() };
   const caught = result.by && result.outcome !== 'deflected';
-  return { ...result, release, path, target, miss, openness, actions, caught };
+  return { ...result, release, path, target, miss, openness, actions, caught, arrival };
 }
 
 // The read agreed at step 0, per situation.
@@ -848,12 +1060,21 @@ const READS = [
   { best: 'X', ok: 'Slot' },
   { best: 'Slot', ok: 'X', allowed: (t) => t.release < 1.5 },
 ];
-function decision(index, thrown) {
+function decision(thrown) {
   if (!thrown) return 'sack';
-  const read = READS[index];
-  if (thrown.target === read.best) return 'good';
-  if (thrown.target === read.ok && (!read.allowed || read.allowed(thrown))) return 'acceptable';
-  return 'bad';
+  if (thrown.away) return 'away';
+  if (sit.classic !== null) {
+    const read = READS[sit.classic];
+    if (thrown.target === read.best) return 'good';
+    if (thrown.target === read.ok && (!read.allowed || read.allowed(thrown))) return 'acceptable';
+    return 'bad';
+  }
+  // Every other play is judged on how open the target really was when the ball arrived.
+  if (!thrown.target || thrown.outcome === 'intercepted') return 'bad';
+  if (thrown.openness >= OPEN_YARDS) return 'good';
+  // The best read, thrown a little late or early, is still the right idea; when nobody gets open it is the right throw.
+  if (thrown.target === sit.best.id) return sit.best.top < OPEN_YARDS ? 'good' : 'acceptable';
+  return thrown.openness >= 2 ? 'acceptable' : 'bad';
 }
 
 const marker = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.8, 32), new THREE.MeshBasicMaterial({ color: 0xfacc15, depthTest: false, transparent: true, side: THREE.DoubleSide }));
@@ -872,6 +1093,8 @@ scene.add(marker);
 // phase: ready (before the snap), live (can still throw), watch (ball gone, sack or replay), over.
 let phase = 'ready', play = null, time = 0, playing = false, slow = false, last = 0, startSpots = null;
 let charge = null, series = null, recorded = false;
+// lastRep: the most recent finished rep. resume: the rep to go back to after watching it again.
+let lastRep = null, resume = null, watchingLast = false;
 
 function resetPlay() {
   playing = false;
@@ -900,6 +1123,26 @@ function controls() {
   $('reveal').disabled = Boolean(series) && phase !== 'over';
   $('series').textContent = series ? `Rep ${Math.min(series.reps.length + (recorded ? 0 : 1), SERIES_LENGTH)} / ${SERIES_LENGTH}` : '10-rep series';
   $('series').classList.toggle('on', Boolean(series));
+  $('watch').disabled = !lastRep || phase === 'live' || phase === 'watch';
+  $('away').disabled = phase !== 'live';
+  if (DRIVE && driveOver) $('snap').disabled = true;
+}
+
+// Plays the previous rep again from the snap, with its result and coaching at the end.
+// From a rep that has not been snapped yet, "Back to your rep" returns to it afterwards.
+function watchLast() {
+  if (!lastRep || phase === 'live' || phase === 'watch') return;
+  const back = resume || (phase === 'ready' ? { sit, hide: hideNumber } : null);
+  resetPlay();
+  ({ sit, play, startSpots } = lastRep);
+  if (sit.field) setField(sit.field.ball, sit.field.toGo);
+  recorded = true;
+  watchingLast = true;
+  resume = back;
+  hideNumber = false;
+  $('answer').textContent = sit.answer;
+  document.activeElement.blur();
+  run('watch');
 }
 
 function placeBall() {
@@ -1000,7 +1243,7 @@ function show(t) {
       }
     }
     if (partner) r.body.rotation.y = Math.atan2(-(frame[partner][0] - spot[0]), frame[partner][1] - spot[1]);
-    else if (id === 'RB' || (lineman && speed < 1.5)) r.body.rotation.y = r.home;
+    else if ((id === 'RB' && !(id in sit.routes)) || (lineman && speed < 1.5)) r.body.rotation.y = r.home;
     else r.body.rotation.y = speed < 1.5 || backpedal ? toQB : heading;
     let distance = 0;
     for (let i = 1; i <= index; i += 3) {
@@ -1061,46 +1304,140 @@ function startCharge(type) {
   if (phase !== 'live' || charge || time < 0.35) return;
   charge = { type, since: performance.now() };
 }
-function releaseThrow(type, distance) {
+function releaseThrow(type, distance, heading = yaw) {
   if (phase !== 'live') return;
   if (distance === undefined) {
     if (!charge || charge.type !== type) return;
     distance = aimedDistance();
   }
   charge = null;
-  play.throw = resolve(trajectory(type, yaw, distance), time);
+  play.throw = resolve(trajectory(type, heading, distance), time);
   play.end = Math.min(DURATION, time + play.throw.at + 1.5);
+  if (DRIVE && play.throw.outcome === 'complete') runAfterCatch(play.throw);
   phase = 'watch';
   updateAim();
   controls();
 }
+// Throw it away: a high lob well over the nearer sideline, so nobody can catch it.
+function throwAway() {
+  if (phase !== 'live') return;
+  releaseThrow('lob', MAX_YARDS, yaw >= 0 ? 1.5 : -1.5);
+  if (play.throw) play.throw.away = true;
+}
 
-const NAMES = { X: 'X (slant)', Slot: 'Slot (flat)', Z: 'Z', TE: 'Tight end', RB: 'Running back' };
-const TITLES = { good: '✅ Good read', acceptable: '🟡 Acceptable read', bad: '❌ Bad read', sack: '❌ Sack' };
+// Drive mode: after the catch the receiver runs until the nearest defender could reach him,
+// or steps out of bounds near the sideline. Rewrites his path so the run shows in 3D.
+const RUN_SPEED = 7;
+function runAfterCatch(thrown) {
+  const ball = sit.field.ball, first = Math.min(play.frames.length - 1, Math.round((thrown.release + thrown.at) / STEP));
+  const spot = play.frames[first][thrown.by];
+  const space = Math.min(...Object.keys(defence).map((k) => gap(play.frames[first][k], spot)));
+  const nearSideline = Math.abs(spot[0]) >= 22;
+  let yac = Math.max(0, Math.min(30, space * 1.2 - 0.5));
+  if (nearSideline) yac = Math.min(yac, 3);
+  // A catch in the end zone, or a run that reaches it, is a touchdown.
+  const td = spot[1] >= ball || spot[1] + yac >= ball;
+  if (td) yac = Math.max(0, ball - spot[1]);
+  const room = Math.max(0, (DURATION - thrown.release - thrown.at - 1) * RUN_SPEED);
+  yac = Math.min(yac, room);
+  const out = nearSideline && !td, side = spot[0] < 0 ? -1 : 1;
+  const dir = out ? [side * 0.6, 0.8] : [0, 1];
+  for (let k = first + 1; k < play.frames.length; k++) {
+    const s = Math.min(yac, RUN_SPEED * (k - first) * STEP);
+    play.frames[k][thrown.by] = [spot[0] + dir[0] * s, spot[1] + dir[1] * s];
+  }
+  thrown.gain = td ? ball : Math.round(spot[1] + yac * dir[1]);
+  thrown.caughtAt = spot[1];
+  thrown.td = td;
+  thrown.oob = out;
+  play.end = Math.min(DURATION, thrown.release + thrown.at + yac / RUN_SPEED + 1);
+}
+
+const TITLES = { good: '✅ Good read', acceptable: '🟡 Acceptable read', nocatch: '🟡 Right idea, but no catch', bad: '❌ Bad read', sack: '❌ Sack',
+  away: '↗ Thrown away' };
 const number = (v) => v.toFixed(1);
+
+// "Good read" and "Acceptable read" now need the receiver to catch the ball; a sound
+// decision that ends incomplete, deflected or dropped is "Right idea, but no catch".
+function grading(thrown) {
+  const grade = decision(thrown);
+  return (grade === 'good' || grade === 'acceptable') && thrown.outcome !== 'complete' ? 'nocatch' : grade;
+}
+
+const bestId = () => (sit.classic !== null ? READS[sit.classic].best : sit.best.id);
+// Where the throw went compared with the receiver: long, short, inside or outside.
+function missedBy(thrown) {
+  const rec = thrown.arrival[thrown.target], aim = thrown.path.target;
+  const dx = aim[0] - rec[0], dd = aim[1] - rec[1];
+  if (Math.abs(dd) >= Math.abs(dx)) return dd > 0 ? 'too long (past him)' : 'short of him';
+  return dx * (rec[0] < 0 ? -1 : 1) > 0 ? 'too far outside' : 'too far inside';
+}
+// Coaching points for the rep just played, from what everybody was doing when the ball arrived.
+function coaching(thrown, grade) {
+  const tips = [], best = bestId();
+  if (!thrown) {
+    tips.push(`You held the ball until the rush got home at ${number(play.sack)} s. Get it out about half a second sooner, or move on to the next read.`);
+    tips.push(`The best read was ${receiverName(sit, best)}${sit.best ? `, open when thrown at about ${number(sit.best.when)} s` : ''}.`);
+    return tips;
+  }
+  if (thrown.away) {
+    if (sit.best && sit.best.top < OPEN_YARDS) tips.push('Smart: nobody got open, so you threw it away. No loss, and the clock stops.');
+    else tips.push(`Thrown away: no loss, and the clock stops. But ${receiverName(sit, best)} got open${sit.best ? `, about ${number(sit.best.top)} yd when thrown at ${number(sit.best.when)} s` : ''}.`);
+    return tips;
+  }
+  if (!thrown.target) {
+    tips.push('The ball did not go near any receiver. Line up the yellow mark with your target, and hold the button longer for more distance.');
+  } else {
+    const room = thrown.openness;
+    tips.push(`${receiverName(sit, thrown.target)} had ${number(room)} yd of space when the ball arrived: ${room >= OPEN_YARDS ? 'open' : room >= 2 ? 'a tight window' : 'covered'}.`);
+    const space = (id) => Math.min(...Object.keys(defence).map((k) => gap(thrown.arrival[k], thrown.arrival[id])));
+    const others = Object.keys(sit.routes).filter((id) => id !== thrown.target).map((id) => [id, space(id)]).sort((a, b) => b[1] - a[1]);
+    if (others.length && others[0][1] >= OPEN_YARDS && others[0][1] > room + 1.5) tips.push(`${receiverName(sit, others[0][0])} was more open, with ${number(others[0][1])} yd.`);
+    if (thrown.miss > 1.5) tips.push(`The throw was ${number(thrown.miss)} yd ${missedBy(thrown)}.`);
+    if (sit.best && thrown.target === best && thrown.release > sit.best.when + 0.7) tips.push(`Right receiver, but late: his window opened around ${number(sit.best.when)} s and you threw at ${number(thrown.release)} s.`);
+  }
+  const by = thrown.by ? thrown.by.replace(/\d$/, '') : '';
+  if (thrown.outcome === 'intercepted') tips.push(`The ${by} was sitting in the throwing lane. If nobody is open, throw it away rather than into coverage.`);
+  else if (thrown.outcome === 'deflected' && ['DE', 'DT'].includes(by)) tips.push('A lineman batted it at the line. Throw through a gap in the rush, or put air under it with a lob.');
+  else if (thrown.outcome === 'deflected') tips.push(`The ${by} got a hand on it. Lead the receiver away from the defender.`);
+  if (grade === 'good') tips.push('Right read, on time, and caught. Keep doing that.');
+  else if (grade === 'nocatch' && thrown.miss <= 1.5 && thrown.outcome === 'incomplete') tips.push('Good decision and a catchable ball; the receiver could not hold on to it.');
+  return tips;
+}
 
 function finish() {
   playing = false;
   phase = 'over';
-  const thrown = play.throw, grade = decision(current, thrown);
+  const thrown = play.throw, grade = grading(thrown);
+  // A replay of a rep that was already reported: tell the drive the replay is over.
+  if (DRIVE && recorded) toDrive({ type: 'replay', on: false });
   const lines = [];
   if (thrown) {
-    lines.push(`Pass ${thrown.outcome}${thrown.by && thrown.outcome !== 'complete' ? ' by ' + thrown.by.replace(/\d$/, '') : ''}.`);
-    lines.push(`Target: ${thrown.target ? NAMES[thrown.target] : 'nobody'}. Thrown after ${number(thrown.release)} s.`);
-    if (thrown.target) lines.push(`Accuracy: ${number(thrown.miss)} yd from the receiver. Closest defender: ${number(thrown.openness)} yd.`);
+    if (thrown.away) lines.push(`Thrown away after ${number(thrown.release)} s.`);
+    else {
+      lines.push(`Pass ${thrown.outcome}${thrown.by && thrown.outcome !== 'complete' ? ' by ' + thrown.by.replace(/\d$/, '') : ''}.`);
+      lines.push(`Target: ${thrown.target ? receiverName(sit, thrown.target) : 'nobody'}. Thrown after ${number(thrown.release)} s.`);
+      if (thrown.target) lines.push(`Accuracy: ${number(thrown.miss)} yd from the receiver. Closest defender: ${number(thrown.openness)} yd.`);
+    }
+    if (thrown.gain !== undefined) {
+      lines.push(thrown.td ? 'Touchdown!' : `Gain of ${thrown.gain} yd: caught ${Math.round(thrown.caughtAt)} yd past the line${thrown.oob ? ', then out of bounds' : ''}.`);
+    }
   } else {
     lines.push(`The pressure arrived after ${number(play.sack)} s.`);
   }
   if (!recorded) {
     recorded = true;
+    // Kept so the rep can be watched again after moving on.
+    lastRep = { sit, play, startSpots };
+    if (DRIVE) reportToDrive(thrown, grade);
     if (series) {
-      series.reps.push({ situation: current + 1, blitz: play.blitz, grade, outcome: thrown ? thrown.outcome : 'sack', release: thrown ? thrown.release : null });
+      series.reps.push({ situation: sit.name, concept: sit.concept, coverage: sit.coverage, blitz: play.blitz, grade, outcome: thrown ? thrown.outcome : 'sack', release: thrown ? thrown.release : null });
     }
   }
   const done = series && series.reps.length >= SERIES_LENGTH;
-  $('resultTitle').textContent = TITLES[grade];
-  $('resultText').textContent = lines.join('\n') + `\n\n${SITUATIONS[current].name}. ${SITUATIONS[current].answer}`;
-  $('next').textContent = done ? 'See summary (Enter)' : series ? 'Next (Enter)' : 'Try again (Enter)';
+  $('resultTitle').textContent = (watchingLast ? 'Last rep: ' : '') + TITLES[grade];
+  $('resultText').textContent = lines.join('\n') + '\n\nCoaching:\n• ' + coaching(thrown, grade).join('\n• ') + `\n\n${sit.answer}`;
+  $('next').textContent = resume ? 'Back to your rep (Enter)' : DRIVE ? driveNextLabel() : done ? 'See summary (Enter)' : series ? 'Next (Enter)' : 'Try again (Enter)';
   $('result').hidden = false;
   $('next').hidden = false;
   $('replay').hidden = false;
@@ -1108,6 +1445,8 @@ function finish() {
   controls();
 }
 
+// The one value in a list, or "Mixed" when the series used several.
+const only = (list) => (new Set(list).size === 1 ? list[0] : 'Mixed');
 function summary() {
   const reps = series.reps;
   const good = (list) => list.filter((r) => r.grade === 'good' || r.grade === 'acceptable').length;
@@ -1122,7 +1461,7 @@ function summary() {
     const record = { email: localStorage.getItem('qbsense_user') || 'guest', date: result.date, level: 1,
       accuracy: Math.round(result.goodReads / result.total * 100), correct: result.goodReads, total: result.total,
       avgTime: average === null ? null : Number(average.toFixed(2)),
-      pressureAtt: withBlitz.length, pressureComp: good(withBlitz), concept: 'Slant-Flat', coverage: 'Mixed',
+      pressureAtt: withBlitz.length, pressureComp: good(withBlitz), concept: only(reps.map((r) => r.concept)), coverage: only(reps.map((r) => r.coverage)),
       completions: result.completions, interceptions: result.interceptions, sacks: result.sacks };
     const all = JSON.parse(localStorage.getItem('qbsense_readthrow_results') || '[]');
     localStorage.setItem('qbsense_readthrow_results', JSON.stringify([...all, record]));
@@ -1163,6 +1502,8 @@ function tick(now) {
 }
 
 function run(nextPhase) {
+  // "watch" from here is always a replay; the drive pauses its game clock meanwhile.
+  if (DRIVE && nextPhase === 'watch') toDrive({ type: 'replay', on: true });
   phase = nextPhase;
   $('result').hidden = true;
   show(0);
@@ -1174,26 +1515,32 @@ function run(nextPhase) {
 // Starts a rep, or replays the finished one.
 function snap() {
   if (phase === 'ready') {
+    // In a drive, only a play the drive has set up can be snapped, and not after the drive ends.
+    if (DRIVE && (driveOver || !sit.field)) return;
     startSpots = Object.fromEntries(Object.entries(everyone).map(([id, p]) => [id, p.position.clone()]));
-    play = simulate(current);
+    play = simulate(sit);
     play.end = DURATION;
     document.activeElement.blur();
+    if (DRIVE) toDrive({ type: 'snapped' });
     run('live');
   } else if (phase === 'over') run('watch');
 }
 
-function newRep() {
-  yaw = 0;
-  pitch = -0.08;
-  hideNumber = true;
-  setSituation(Math.floor(Math.random() * SITUATIONS.length));
-}
+const newRep = pickPlay;
 function next() {
   if (phase !== 'over') return;
+  if (resume) {
+    const back = resume;
+    setPlay(back.sit);
+    hideNumber = back.hide;
+    refresh();
+    return;
+  }
+  if (DRIVE) { if (pendingSetup) applySetup(pendingSetup); return; }
   if (series && series.reps.length >= SERIES_LENGTH) { summary(); return; }
   if (series) newRep();
   else if ($('resultTitle').textContent === 'Series summary') newRep();
-  else setSituation(current);
+  else setPlay(sit);
 }
 function abortSeries() {
   series = null;
@@ -1201,6 +1548,8 @@ function abortSeries() {
 }
 
 $('snap').onclick = snap;
+$('watch').onclick = watchLast;
+$('away').onclick = throwAway;
 $('slow').onclick = () => { slow = !slow; $('slow').classList.toggle('on', slow); };
 $('replay').onclick = snap;
 $('next').onclick = next;
@@ -1210,7 +1559,7 @@ $('series').onclick = () => {
   newRep();
 };
 // Picking a situation by hand leaves the series.
-for (const id of ['random', 'situations']) $(id).addEventListener('click', abortSeries);
+$('random').addEventListener('click', abortSeries);
 for (const [id, type] of [['throw', 'bullet'], ['lob', 'lob']]) {
   $(id).addEventListener('pointerdown', (e) => { e.preventDefault(); startCharge(type); });
   addEventListener('pointerup', () => releaseThrow(type));
@@ -1222,10 +1571,59 @@ addEventListener('keydown', (e) => {
     e.preventDefault();
     if (e.repeat) return;
     if (phase === 'live') startCharge(e.code === 'Space' ? 'bullet' : 'lob');
-    else if (e.code === 'Space') snap();
+    // In a drive, Space after a play moves on to the next play (the Replay button still replays).
+    else if (e.code === 'Space') { if (DRIVE && phase === 'over') next(); else snap(); }
   } else if (e.key === 'Enter' && phase === 'over') { e.preventDefault(); next(); }
-  else if (e.key.toLowerCase() === 's') $('slow').click();
+  else if (e.key.toLowerCase() === 's' && !DRIVE) $('slow').click();
+  else if (e.key.toLowerCase() === 'w') watchLast();
+  else if (e.key.toLowerCase() === 't') throwAway();
   else if (e.key.toLowerCase() === 'r') abortSeries();
+  // Timeout, spike and field goal belong to the drive.
+  else if (DRIVE && ['m', 'p', 'k'].includes(e.key.toLowerCase())) toDrive({ type: 'key', key: e.key.toLowerCase() });
+});
+
+// ---------------------------------------------------------------- Drive mode bridge
+// The Two-Minute Drill sends each play's set-up ("setup"), and can snap, throw it away or end the
+// drive. This page reports the snap, every result, and when a replay starts and stops.
+let pendingSetup = null, driveOver = false;
+function toDrive(message) {
+  if (DRIVE && parent !== window) parent.postMessage({ source: 'qb3d', ...message }, location.origin);
+}
+function applySetup(s) {
+  pendingSetup = null;
+  const concept = s.concept === 'random' ? randomOf(Object.keys(CONCEPTS)) : s.concept;
+  const coverage = s.coverage === 'random' ? randomOf(Object.keys(COVERAGES)) : s.coverage;
+  hideNumber = true;
+  yaw = 0;
+  pitch = -0.08;
+  setPlay(makePlay(concept, coverage, { field: { ball: s.ball, toGo: s.toGo }, sackBonus: s.sackBonus || 0 }));
+}
+function driveNextLabel() { return driveOver ? 'Drive over' : pendingSetup ? 'Next play (Enter)' : 'Next play'; }
+function reportToDrive(thrown, grade) {
+  const nobodyOpen = Boolean(sit.best && sit.best.top < OPEN_YARDS);
+  toDrive({ type: 'result', outcome: thrown ? thrown.outcome : 'sack', away: Boolean(thrown && thrown.away),
+    gain: thrown && thrown.gain !== undefined ? thrown.gain : 0, td: Boolean(thrown && thrown.td), oob: Boolean(thrown && thrown.oob),
+    time: thrown ? thrown.release : play.sack, grade, title: TITLES[grade],
+    // A correct decision: a caught good or acceptable read, or throwing it away when nobody got open.
+    correct: grade === 'good' || grade === 'acceptable' || (grade === 'away' && nobodyOpen),
+    by: thrown && thrown.by ? thrown.by.replace(/\d$/, '') : '', concept: sit.concept, coverage: sit.coverage, note: sit.note || '', blitz: play.blitz });
+}
+addEventListener('message', (e) => {
+  if (!DRIVE || e.source !== parent || e.origin !== location.origin || !e.data || e.data.source !== 'qb-drive') return;
+  const m = e.data;
+  if (m.type === 'setup') {
+    driveOver = false;
+    // "fresh" starts a new drive: load the play at once, whatever is on screen.
+    if (phase === 'ready' || m.fresh) applySetup(m);
+    else { pendingSetup = m; if (phase === 'over') $('next').textContent = driveNextLabel(); }
+  } else if (m.type === 'snap') { if (phase === 'ready') snap(); }
+  else if (m.type === 'throwaway') throwAway();
+  else if (m.type === 'end') {
+    driveOver = true;
+    pendingSetup = null;
+    if (phase === 'over') $('next').textContent = driveNextLabel();
+    controls();
+  }
 });
 addEventListener('keyup', (e) => {
   // Space would also press whichever button has the focus.
@@ -1233,14 +1631,20 @@ addEventListener('keyup', (e) => {
   else if (e.code === 'KeyL') releaseThrow('lob');
 });
 
+fillMenus();
 randomSituation();
 resize();
+toDrive({ type: 'ready' });
 // Used by automated checks.
-window.qb = { offence, defence, setSituation, snap, simulate, assignments, SACK_RANGE,
+window.qb = { offence, defence, setSituation, setPlay, makePlay, CONCEPTS, COVERAGES, snap, simulate, assignments: classicAssignments, SACK_RANGE,
+  current: () => sit,
+  phase: () => phase,
+  aim: (heading) => { yaw = heading; refresh(); },
   seek: (t) => { playing = false; show(t); },
   // Throws at a chosen moment, direction and distance, then jumps to the result.
   testThrow: (index, type, release, heading, distance) => {
-    setSituation(index); snap(); playing = false; show(release); yaw = heading; releaseThrow(type, distance);
+    if (typeof index === 'number') setSituation(index); else setPlay(index);
+    snap(); playing = false; show(release); yaw = heading; releaseThrow(type, distance);
     const thrown = play.throw; show(play.end); finish();
     return { outcome: thrown.outcome, by: thrown.by, target: thrown.target, miss: +thrown.miss.toFixed(1), title: $('resultTitle').textContent };
   },
