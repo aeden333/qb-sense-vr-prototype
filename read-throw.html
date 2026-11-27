@@ -33,6 +33,10 @@
   .setting input{width:110px}
   #clock{right:12px;top:12px;font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
   #clock.late{background:#b91c1c}
+  #playcard{right:12px;top:12px;width:250px;padding:8px 10px}
+  #playcard svg{display:block;width:100%;height:auto;margin-top:6px}
+  /* On narrower screens in the full-screen drive, keep the play call clear of the play card. */
+  @media (max-width: 1000px) { .drive.hud #info{max-width:calc(100% - 480px)} }
   #snap{background:#b45309;border-color:#f59e0b}
   #back{color:#fff;font-weight:700;padding:8px 4px}
   button:disabled{opacity:.4;cursor:default}
@@ -72,6 +76,7 @@
   <button id="labels" class="on">Names (N)</button>
 </div>
 <div id="clock" class="panel" hidden></div>
+<div id="playcard" class="panel" hidden><b id="pcTitle"></b><svg id="pcSvg" viewBox="0 0 240 170" role="img" aria-label="Overhead diagram of your play"></svg></div>
 <div id="cross" hidden></div>
 <div id="power" class="panel" hidden>Power<div><span id="powerFill"></span></div></div>
 <div id="result" class="panel" hidden>
@@ -434,6 +439,7 @@ function setPlay(play) {
   $('answer').hidden = true;
   $('answer').textContent = play.answer;
   $('reveal').classList.remove('on');
+  drawRoutes(play);
   refresh();
 }
 const setSituation = (index) => setPlay(classicPlay(index));
@@ -444,6 +450,9 @@ function refresh() {
   if (sit) $('title').textContent = hideNumber ? `${sit.concept}: read the defense` : `${sit.concept} vs ${sit.coverage}`;
   $('view').classList.toggle('on', topView);
   $('labels').classList.toggle('on', showLabels);
+  // The play diagram and the play card are only up before the snap.
+  routeGroup.visible = phase === 'ready';
+  $('playcard').hidden = phase !== 'ready' || !sit;
   quarterback.visible = topView;
   for (const p of [...offence, ...Object.values(defence), quarterback]) {
     // Line names would hide the secondary, so they only show in the top view.
@@ -744,6 +753,87 @@ function bestRead(play) {
 }
 const RECEIVER = { X: 'X', Slot: 'Slot', Z: 'Z', TE: 'Tight end', RB: 'Running back' };
 const receiverName = (play, id) => (play.routeNames[id] ? `${RECEIVER[id]} (${play.routeNames[id]})` : RECEIVER[id]);
+
+// ---------------------------------------------------------------- The play diagram
+// Before the snap each route is painted on the grass, like a play drawn on a whiteboard: a coloured
+// stripe from the receiver's spot along his route, an arrow at the end and the route's name.
+// It disappears at the snap, so the read itself is still made live.
+const ROUTE_COLOURS = { X: 0x38bdf8, Slot: 0xfacc15, Z: 0xfb923c, TE: 0xf472b6, RB: 0xa3e635 };
+const routeGroup = new THREE.Group();
+scene.add(routeGroup);
+function clearRoutes() {
+  for (const child of [...routeGroup.children]) {
+    child.traverse((o) => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); }
+    });
+    routeGroup.remove(child);
+  }
+}
+function drawRoutes(play) {
+  clearRoutes();
+  for (const [id, points] of Object.entries(play.routes)) {
+    // The original routes list the line-up spot first; the others start from it.
+    const path = play.classic !== null ? points : [alignment(id), ...points];
+    const colour = ROUTE_COLOURS[id] || 0xffffff;
+    const paint = new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide });
+    const route = new THREE.Group();
+    for (let i = 1; i < path.length; i++) {
+      const a = world(...path[i - 1]), b = world(...path[i]);
+      const length = a.distanceTo(b);
+      if (length < 0.05) continue;
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.02, length + 0.22), paint);
+      stripe.position.copy(a).add(b).multiplyScalar(0.5).setY(0.03);
+      stripe.rotation.y = Math.atan2(b.x - a.x, b.z - a.z);
+      stripe.renderOrder = 5;
+      route.add(stripe);
+    }
+    // Arrow head along the last leg, and the route's name just past it.
+    const end = world(...path[path.length - 1]), before = world(...path[Math.max(0, path.length - 2)]);
+    // A flat triangle on the grass, pointing along the last leg (its tip is local +z after the turn).
+    const tip = new THREE.Shape([new THREE.Vector2(-0.5, 0), new THREE.Vector2(0.5, 0), new THREE.Vector2(0, 1)]);
+    const head = new THREE.Mesh(new THREE.ShapeGeometry(tip), paint);
+    head.rotation.x = Math.PI / 2;
+    const arrow = new THREE.Group();
+    arrow.add(head);
+    arrow.position.copy(end).setY(0.04);
+    arrow.rotation.y = Math.atan2(end.x - before.x, end.z - before.z);
+    route.add(arrow);
+    const tag = label(play.routeNames[id] || id, 'rgba(15,23,42,.85)');
+    tag.position.copy(end).setY(0.9);
+    route.add(tag);
+    routeGroup.add(route);
+  }
+  drawPlayCard(play, (id) => (play.classic !== null ? play.routes[id] : [alignment(id), ...play.routes[id]]));
+}
+// The same play as an overhead diagram in the corner, like a coach's play card.
+function drawPlayCard(play, pathOf) {
+  const ids = Object.keys(play.routes);
+  const deepest = Math.max(10, ...ids.flatMap((id) => pathOf(id).map((p) => p[1])));
+  const top = Math.min(32, deepest + 2), bottom = -7;
+  const W = 240, H = 170, sx = (x) => ((x + WIDTH / 2) / WIDTH * (W - 12) + 6).toFixed(1), sy = (d) => (H - 8 - (d - bottom) / (top - bottom) * (H - 16)).toFixed(1);
+  const hex = (id) => '#' + (ROUTE_COLOURS[id] || 0xffffff).toString(16).padStart(6, '0');
+  let svg = `<defs>${ids.map((id) => `<marker id="pc-${id}" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="${hex(id)}"/></marker>`).join('')}</defs>`;
+  svg += `<rect x="0" y="0" width="${W}" height="${H}" rx="8" fill="#14532d"/>`;
+  for (let d = 5; d < top; d += 5) svg += `<line x1="6" x2="${W - 6}" y1="${sy(d)}" y2="${sy(d)}" stroke="rgba(255,255,255,.12)"/>`;
+  svg += `<line x1="6" x2="${W - 6}" y1="${sy(0)}" y2="${sy(0)}" stroke="#60a5fa" stroke-width="2"/>`;
+  for (const x of [-3.2, -1.6, 0, 1.6, 3.2]) svg += `<rect x="${sx(x) - 3}" y="${sy(-0.6) - 3}" width="6" height="6" fill="#cbd5e1"/>`;
+  svg += `<circle cx="${sx(0)}" cy="${sy(-5)}" r="4" fill="#f59e0b"/>`;
+  const placed = [];
+  for (const id of ids) {
+    const path = pathOf(id), [x0, d0] = path[0], [xe, de] = path[path.length - 1];
+    // Nudge a route name down if it would land on one already written.
+    let ty = Math.max(10, sy(de) - 6);
+    while (placed.some(([px, py]) => Math.abs(px - sx(xe)) < 42 && Math.abs(py - ty) < 11)) ty += 11;
+    placed.push([+sx(xe), ty]);
+    svg += `<polyline points="${path.map(([x, d]) => sx(x) + ',' + sy(d)).join(' ')}" fill="none" stroke="${hex(id)}" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#pc-${id})"/>`;
+    svg += `<circle cx="${sx(x0)}" cy="${sy(d0)}" r="5" fill="#fff" stroke="${hex(id)}" stroke-width="2"/>`;
+    const anchor = xe < -15 ? 'start' : xe > 15 ? 'end' : 'middle';
+    svg += `<text x="${sx(xe)}" y="${ty}" text-anchor="${anchor}" font-size="10" font-weight="700" fill="#fff" paint-order="stroke" stroke="#0f172a" stroke-width="2.5">${play.routeNames[id] || id}</text>`;
+  }
+  $('pcTitle').textContent = `${play.concept}: your play`;
+  $('pcSvg').innerHTML = svg;
+}
 
 const QB_SPOT = [0, -5];
 // Pass protection forms a cup: the tackles drop deeper and wider than the guards and centre.
