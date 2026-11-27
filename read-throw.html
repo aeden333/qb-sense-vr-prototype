@@ -554,7 +554,7 @@ const SACK_RANGE = { blitz: [2.0, 2.5], noBlitz: [2.8, 3.8] };
 
 // Receiver routes, in yards. The first point is the line-up spot.
 const ROUTES = {
-  X: [[-19, -0.5], [-19, 3], [-11, 10], [-7, 13.5], [-2, 17]],      // slant
+  X: [[-19, -0.5], [-19, 2.5], [-1, 20.5]],                         // slant: 3 steps, then 45° inside
   Slot: [[-11, -1.4], [-13, 0.8], [-18, 2.5], [-24, 3], [-25.5, 3]], // flat
   Z: [[19, -1.4], [19, 8], [19, 13], [18, 11]],                      // comeback
   TE: [[4.9, -0.6], [5.5, 3], [5.5, 6], [5.5, 6.2]],                 // hitch
@@ -600,7 +600,8 @@ const rush = (via) => ({ type: 'rush', via });
 // Route shapes in yards: [in, depth]. "In" is toward the middle of the field, so one shape works
 // from either side; depth is past the line of scrimmage. The first four reproduce the original routes.
 const ROUTE_SHAPES = {
-  slant: [[0, 3], [8, 10], [12, 13.5], [17, 17]],
+  // Three hard steps up the field, then a straight 45-degree break toward the middle.
+  slant: [[0, 2.5], [18, 20.5]],
   flat: [[-2, 0.8], [-7, 2.5], [-13, 3], [-14.5, 3]],
   comeback: [[0, 8], [0, 13], [1, 11]],
   hitch: [[-0.6, 3], [-0.6, 6], [-0.6, 6.2]],
