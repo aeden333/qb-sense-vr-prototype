@@ -18,9 +18,16 @@
   /* Inside the Two-Minute Drill the drive picks the plays, so series, menus, slow motion and the answer are hidden. */
   .drive #series,.drive #random,.drive #slow,.drive #reveal,.drive #bar label,.drive #back{display:none}
   .drive #info{max-width:300px;font-size:12px}
-  /* Full-screen drive: the drive's panel sits on the right (280 px wide), so keep clear of it. */
-  .hud #bar{right:304px}
-  .hud #result{left:calc((100% - 292px) / 2);width:min(460px,calc(100% - 330px))}
+  /* Full-screen drive, kept sparse: the play call (with the look-around tip) sits next to the drive's
+     Back button, the height and view sliders are hidden, and the button bar only appears while the
+     ball is live, with just the throws. Snap, replay, top view and names stay on Space, W, V and N.
+     The drive's scoreboard runs along the bottom (about 72 px), so the bar sits above it. */
+  .hud #info{left:170px}
+  .hud #info .setting{display:none}
+  .hud #bar{left:50%;right:auto;transform:translateX(-50%);bottom:84px;display:none}
+  .hud.live #bar{display:flex}
+  .hud #bar > :not(#throw):not(#lob):not(#away){display:none}
+  .hud #result{top:108px;max-height:calc(100vh - 230px)}
   select{background:#1e293b;color:#fff;border:1px solid #475569;border-radius:6px;padding:7px 6px;font:inherit;font-weight:700}
   .setting{display:flex;align-items:center;gap:6px;margin-top:6px}
   .setting input{width:110px}
@@ -1128,6 +1135,7 @@ function controls() {
   $('series').classList.toggle('on', Boolean(series));
   $('watch').disabled = !lastRep || phase === 'live' || phase === 'watch';
   $('away').disabled = phase !== 'live';
+  document.documentElement.classList.toggle('live', phase === 'live');
   if (DRIVE && driveOver) $('snap').disabled = true;
 }
 
@@ -1619,7 +1627,11 @@ addEventListener('message', (e) => {
     // "fresh" starts a new drive: load the play at once, whatever is on screen.
     if (phase === 'ready' || m.fresh) applySetup(m);
     else { pendingSetup = m; if (phase === 'over') $('next').textContent = driveNextLabel(); }
-  } else if (m.type === 'snap') { if (phase === 'ready') snap(); }
+  } else if (m.type === 'snap') {
+    // From the result card, the drive's Snap button first brings up the next play so it can be read.
+    if (phase === 'ready') snap();
+    else if (phase === 'over' && pendingSetup) next();
+  }
   else if (m.type === 'throwaway') throwAway();
   else if (m.type === 'hud') document.documentElement.classList.toggle('hud', Boolean(m.on));
   else if (m.type === 'end') {

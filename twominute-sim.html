@@ -30,26 +30,71 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 .hidden{display:none}
 #frame3d{width:100%;height:min(72vh,640px);border:0;border-radius:8px;display:block;background:#0a1628}
 #help3d{font-size:13px;color:var(--muted);margin:6px 0 0}
-/* Full screen for the 3D view, laid out like Read & Throw: the 3D view fills the screen and the drive
-   (clock, down, buttons, messages) floats on top in a dark panel on the right. */
+/* Full screen for the 3D view, kept deliberately sparse: the 3D view fills the screen, the scoreboard
+   runs along the bottom, a small Back button sits top left, and just above the scoreboard a short row
+   shows only the buttons that can be used right now, with a one-line key hint. Everything else
+   (stats, messages, the coverage note) is left out; the scoreboard, banners and the result card cover it. */
 .fsbar{display:flex;justify-content:flex-end;gap:10px}
 #game.fs{position:fixed;inset:0;z-index:1000;margin:0;border:0;border-radius:0;padding:0;background:#0a1628;overflow:hidden}
 #game.fs #wrap3d{position:absolute;inset:0}
 #game.fs #frame3d{width:100%;height:100%;border-radius:0}
 #game.fs #help3d{display:none}
-#hud{position:absolute;right:12px;top:64px;width:280px;max-height:calc(100% - 76px);overflow:auto;z-index:2;display:flex;flex-direction:column;gap:6px;
-  background:rgba(10,22,40,.85);color:#fff;border-radius:10px;padding:10px 12px;font-size:13px;box-sizing:border-box}
-#hud.hidden{display:none}
-#hud .fsbar{justify-content:flex-start}
-#hud .stats{gap:4px 12px;font-size:12px;margin:0;color:#cbd5e1}
-#hud .stats b{color:#fff;font-size:15px}
-#hud #clkS{color:#fde68a!important;margin:0}
-#hud #situation{font-size:13px!important;margin:0!important}
-#hud .acts{gap:6px;margin:0}
-#hud .btn{padding:8px 10px;font-size:11px;background:#166534;border:1px solid #22c55e}
-#hud .btn.ghost{background:#1e293b;color:#fff;border:1px solid #475569}
-#hud #msg{color:#fff!important;font-size:13px;margin:0;min-height:0}
-#hud #covNote{color:#cbd5e1;font-size:12px;margin:0;min-height:0}
+#game.fs > #statsRow,#game.fs > #clkS,#game.fs > #situation,#game.fs > #msg,#game.fs > #covNote{display:none}
+#hudTop{position:absolute;left:12px;top:12px;z-index:2}
+#hudTop .btn{padding:8px 12px;font-size:11px;background:rgba(10,22,40,.85);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px}
+#hudActs{position:absolute;left:50%;bottom:84px;transform:translateX(-50%);z-index:2;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:calc(100% - 24px)}
+#hudTop.hidden,#hudActs.hidden{display:none}
+#hudActs .acts{gap:8px;margin:0;justify-content:center}
+#hudActs .btn{padding:9px 16px;font-size:12px;border-radius:8px;background:rgba(10,22,40,.85);color:#fff;border:1px solid rgba(255,255,255,.25);box-shadow:0 4px 14px rgba(0,0,0,.35)}
+#hudActs #go{background:#b45309;border-color:#f59e0b}
+/* Only buttons that can be used now; throwing it away lives in the 3D view's own throw buttons. */
+#hudActs .btn:disabled,#hudActs #ta{display:none}
+#fsHint{font-size:12px;color:#e2e8f0;background:rgba(10,22,40,.6);padding:4px 10px;border-radius:999px;white-space:nowrap}
+#fsHint:empty{display:none}
+
+/* Broadcast-style scoreboard across the bottom of the full-screen 3D view. */
+#scoreboard{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:3;width:min(940px,calc(100% - 24px));height:58px;
+  display:grid;grid-template-columns:1.25fr 1.25fr .95fr 1.45fr;border-radius:10px;overflow:visible;
+  font-family:'Arial Narrow','Roboto Condensed','Helvetica Neue',Arial,sans-serif;text-transform:uppercase;letter-spacing:.04em;color:#fff;
+  background:linear-gradient(180deg,#232d3d 0%,#121a26 55%,#0a1019 100%);box-shadow:0 10px 30px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.12);user-select:none}
+#scoreboard.hidden{display:none}
+#scoreboard:before{content:'';position:absolute;inset:0;border-radius:10px;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,0) 48%)}
+.sb-team{position:relative;display:flex;align-items:center;gap:10px;padding:0 0 0 14px;overflow:hidden}
+.sb-us{border-radius:10px 0 0 10px;background:linear-gradient(90deg,#0f3d22 0%,#166534 70%,#15803d 100%)}
+.sb-them{background:linear-gradient(90deg,#5f1414 0%,#991b1b 70%,#b91c1c 100%);border-left:1px solid rgba(0,0,0,.4)}
+.sb-team:after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:#facc15}
+.sb-them:after{background:#f8fafc}
+.sb-name{font-size:22px;font-weight:900;letter-spacing:.06em;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.sb-poss{width:14px;height:9px;border-radius:50%;background:#92400e;box-shadow:inset 0 0 0 1px #fde68a;flex:none}
+.sb-them .sb-poss{visibility:hidden}
+.sb-to{display:flex;gap:3px;position:absolute;left:14px;bottom:7px}
+.sb-to i{display:block;width:13px;height:3px;border-radius:2px;background:rgba(255,255,255,.22)}
+.sb-to i.on{background:#fde68a}
+.sb-name{margin-bottom:6px}
+.sb-score{margin-left:auto;height:100%;min-width:62px;display:grid;place-items:center;font-size:32px;font-weight:900;font-variant-numeric:tabular-nums;
+  background:rgba(0,0,0,.32);box-shadow:inset 1px 0 0 rgba(255,255,255,.08);transition:transform .25s}
+.sb-score.bump{animation:sbBump .9s ease}
+@keyframes sbBump{0%{transform:scale(1);color:#fff}30%{transform:scale(1.35);color:#fde68a}100%{transform:scale(1);color:#fff}}
+.sb-clock{display:flex;align-items:center;justify-content:center;gap:10px;border-left:1px solid rgba(255,255,255,.08);border-right:1px solid rgba(255,255,255,.08)}
+.sb-qtr{font-size:14px;font-weight:800;color:#94a3b8}
+.sb-time{font-size:30px;font-weight:900;font-variant-numeric:tabular-nums;min-width:74px;text-align:center}
+.sb-time.stopped{color:#cbd5e1}
+.sb-time.low{color:#f87171}
+.sb-run{width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px #22c55e;animation:sbPulse 1s infinite}
+.sb-run.off{background:#475569;box-shadow:none;animation:none}
+@keyframes sbPulse{50%{opacity:.35}}
+.sb-down{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:0 16px;border-radius:0 10px 10px 0;
+  background:linear-gradient(90deg,rgba(250,204,21,.16),rgba(250,204,21,0) 70%)}
+.sb-dd{font-size:22px;font-weight:900;color:#fde68a;line-height:1}
+.sb-ball{font-size:12px;font-weight:700;color:#cbd5e1;margin-top:4px}
+/* Event banner that slides up from the scoreboard: touchdown, first down, timeout... */
+.sb-flag{position:absolute;left:50%;bottom:100%;transform:translate(-50%,12px);opacity:0;margin-bottom:8px;padding:8px 26px;border-radius:8px 8px 0 0;
+  font-size:24px;font-weight:900;letter-spacing:.14em;white-space:nowrap;color:#111827;background:linear-gradient(180deg,#fde68a,#f59e0b);
+  box-shadow:0 8px 20px rgba(0,0,0,.4);transition:transform .35s cubic-bezier(.2,.9,.3,1.2),opacity .25s;pointer-events:none}
+.sb-flag.show{opacity:1;transform:translate(-50%,0)}
+.sb-flag.bad{color:#fff;background:linear-gradient(180deg,#ef4444,#991b1b)}
+.sb-flag.info{color:#fff;background:linear-gradient(180deg,#334155,#0f172a)}
+@media(max-width:760px){#scoreboard{height:50px;grid-template-columns:1fr 1fr .9fr 1.2fr}.sb-name{font-size:16px}.sb-score{font-size:24px;min-width:44px}.sb-time{font-size:22px;min-width:54px}.sb-qtr{display:none}.sb-dd{font-size:16px}.sb-ball{font-size:10px}.sb-flag{font-size:17px}}
 </style>
 <script src="analytics.js" defer></script>
 </head>
@@ -80,7 +125,15 @@ canvas{width:100%;height:auto;border-radius:8px;display:block;background:#1a5c2e
 <div class="acts" id="actsRow"><button class="btn" id="go">Snap</button><button class="btn ghost" id="to" disabled>Timeout (M)</button><button class="btn ghost" id="sp" disabled>Spike (P)</button><button class="btn ghost" id="fg" disabled>Kick field goal (K)</button><button class="btn ghost" id="ta" disabled>Throw away (T)</button></div>
 <div id="msg">Get ready.</div>
 <div id="covNote"></div>
-<div id="hud" class="hidden"></div>
+<div id="hudTop" class="hidden"></div>
+<div id="hudActs" class="hidden"><div id="fsHint"></div></div>
+<div id="scoreboard" class="hidden" role="status" aria-label="Scoreboard">
+<div class="sb-team sb-us"><span class="sb-poss" title="Your ball"></span><span class="sb-name">QBS</span><span class="sb-to" id="sbToUs" title="Your timeouts"><i></i><i></i><i></i></span><span class="sb-score" id="sbUs">0</span></div>
+<div class="sb-team sb-them"><span class="sb-poss"></span><span class="sb-name">OPP</span><span class="sb-to" title="Their timeouts"><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="sb-score" id="sbThem">0</span></div>
+<div class="sb-clock"><span class="sb-qtr">4th</span><span class="sb-time" id="sbClock">2:00</span><span class="sb-run off" id="sbRun" title="Clock running"></span></div>
+<div class="sb-down"><span class="sb-dd" id="sbDown">1st &amp; 10</span><span class="sb-ball" id="sbBall">Ball on own 25</span></div>
+<div class="sb-flag" id="sbFlag"></div>
+</div>
 </div>
 <div id="done" class="card hidden">
 <h2>Drive complete</h2>
@@ -308,6 +361,7 @@ endDrive('Time expired',false);
 }
 }
 
+renderSB();
 // In the 3D view the play itself (pressure, throw, catch) runs in the 3D frame.
 if(!threeD){
 if(phase==='read'){
@@ -395,13 +449,13 @@ function after(o){
 var m=$('msg'),extra='',cost=o.dec||0,stop=false;
 $('covNote').textContent=threeD?'The defense was in '+st.cvg+'. '+(st.note3d||''):'The defense was in '+st.cvg+(st.extra?' with '+st.extra+' extra rusher'+(st.extra>1?'s':''):' with no extra rushers')+'. '+(COVNOTE[st.cvg]||'');
 if(o.t==='int'){endDrive('Interception',false);return}
-if(o.t==='sack'){G.ball=Math.min(99,G.ball+7);G.toGo+=7;G.down++;cost+=2}
+if(o.t==='sack'){G.ball=Math.min(99,G.ball+7);G.toGo+=7;G.down++;cost+=2;sbFlag('Sack','bad')}
 else if(o.t==='inc'){G.down++;cost+=2;stop=true}
 else if(o.t==='catch'){
 G.ball-=o.gain;cost+=3+o.yt;G.comp++;G.yds+=o.gain;
-if(G.ball<=0){G.td++;upd();m.style.color='#14532D';m.textContent='TOUCHDOWN! The receiver reached the end zone.';endDrive('Touchdown',true);return}
+if(G.ball<=0){G.td++;sbScore(7);upd();m.style.color='#14532D';m.textContent='TOUCHDOWN! The receiver reached the end zone.';endDrive('Touchdown',true);return}
 G.toGo-=o.gain;
-if(G.toGo<=0){G.down=1;G.toGo=Math.min(10,G.ball);extra=' First down.'}else{G.down++}
+if(G.toGo<=0){G.down=1;G.toGo=Math.min(10,G.ball);extra=' First down.';sbFlag('First down')}else{G.down++}
 stop=o.oob;
 m.style.color=m.style.color||'#14532D';
 m.textContent=m.textContent.replace(/ He runs until.*$/,'')+' '+(o.kind==='oob'?'He ran out of bounds':'A defender touched him and he was down')+' after a '+o.gain+'-yard gain.'+extra
@@ -417,23 +471,27 @@ G.result=res;G.win=!!win;
 if(res!=='Touchdown'){$('msg').style.color='#DC2626';$('msg').textContent='Drive over: '+res+'.'}
 if(res!=='Touchdown'){$('msg').style.color='#DC2626';$('msg').textContent='Drive over: '+res+'.';}
 G.running=false;setPhase('end');
-if(threeD)to3d({type:'end'})
+if(threeD)to3d({type:'end'});
+// The banner for how the drive ended stays up until the results.
+sbFlag(res==='Touchdown'?'Touchdown':/^Field goal/.test(res)?'Field goal is good':res==='Missed field goal'?'No good':res==='Interception'?'Intercepted':/^Turnover/.test(res)?'Turnover on downs':'Final',
+win?'':/^Time/.test(res)?'info':'bad',true);
 }
 function useTimeout(){
 if(phase!=='pre'||!G.running||G.timeouts<1)return;
-G.timeouts--;G.used++;G.running=false;$('msg').style.color='#111827';$('msg').textContent='Timeout. The clock is stopped.';setPhase('pre')
+G.timeouts--;G.used++;G.running=false;$('msg').style.color='#111827';$('msg').textContent='Timeout. The clock is stopped.';sbFlag('Timeout QBS','info');setPhase('pre')
 }
 function spike(){
 if(phase!=='pre'||!G.running)return;
 G.att++;G.clock-=2;G.down++;G.running=false;
 if(G.clock<=0){G.clock=0;upd();endDrive('Time expired',false);return}
 if(G.down>4){upd();endDrive('Turnover on downs after the spike',false);return}
-$('msg').style.color='#111827';$('msg').textContent='Spiked the ball. Clock stopped, down used.';setPhase('pre')
+$('msg').style.color='#111827';$('msg').textContent='Spiked the ball. Clock stopped, down used.';sbFlag('Spike','info');setPhase('pre')
 }
 function kick(){
 if(phase!=='pre'||G.deficit>3||G.ball>43)return;
 var kd=G.ball+17,pr=kd<=30?0.95:kd<=40?0.88:kd<=50?0.75:kd<=57?0.55:0.4;
 if(Math.random()<pr){
+sbScore(3);
 $('msg').style.color='#14532D';
 if(G.deficit===2){$('msg').textContent='The '+kd+'-yard field goal is good. You win.';endDrive('Field goal (win)',true)}
 else{$('msg').textContent='The '+kd+'-yard field goal is good. The game is tied.';endDrive('Field goal (tie)',true)}
@@ -513,18 +571,56 @@ updPlaybookStatus();
 $('view3d').addEventListener('change',showView);
 // Full screen: a 3D drive opens filling the screen (and the browser's full screen where allowed).
 // "Back to drill" returns to the normal page; the drive carries on there, and "Full screen" goes back.
-// In full screen the drive's info and buttons move into one floating panel over the 3D view;
-// a marker keeps each one's place so it goes back to the normal page layout afterwards.
-var HUD_PARTS=['fsbar','statsRow','clkS','situation','actsRow','msg','covNote'],hudMarks={};
+// ---------------------------------------------------------------- Scoreboard
+// Fourth quarter, you trailing by the drive's deficit. A touchdown counts 7 (the extra point is
+// assumed), a field goal 3, which matches how the drill decides a win or a tie.
+function renderSB(){
+if($('scoreboard').classList.contains('hidden'))return;
+setText('sbUs',G.us);setText('sbThem',G.them);
+setText('sbClock',fmt(G.clock));
+var live=phase==='read'||phase==='yac'||(phase==='pre'&&G.running);
+if(replay3d)live=false;
+$('sbClock').classList.toggle('stopped',!live&&phase!=='end');
+$('sbClock').classList.toggle('low',G.clock<=10&&phase!=='end');
+$('sbRun').classList.toggle('off',!live);
+setText('sbDown',phase==='end'?'Final':ordn(G.down)+' & '+((G.ball<=10&&G.toGo>=G.ball)?'Goal':G.toGo));
+setText('sbBall',phase==='end'?(G.result||''):'Ball on '+spot(G.ball));
+var tos=$('sbToUs').children;for(var i=0;i<tos.length;i++)tos[i].classList.toggle('on',i<G.timeouts);
+setText('fsHint',fsHint());
+}
+// Only touches the page when the text actually changes (this runs every frame).
+function setText(id,v){var el=$(id),s=String(v);if(el.textContent!==s)el.textContent=s}
+var flagTimer=null;
+// kind: '' gold (good news), 'bad' red, 'info' dark.
+function sbFlag(text,kind,stay){
+var f=$('sbFlag');f.textContent=text;f.className='sb-flag show'+(kind?' '+kind:'');
+clearTimeout(flagTimer);
+if(!stay)flagTimer=setTimeout(function(){f.classList.remove('show')},2600);
+}
+function sbScore(points){
+G.us+=points;renderSB();
+var s=$('sbUs');s.classList.remove('bump');void s.offsetWidth;s.classList.add('bump');
+}
+
+// In full screen the Back button moves to the top left and the action buttons to a short row above
+// the scoreboard; a marker keeps each one's place so it goes back to the normal page layout afterwards.
+var HUD_PARTS={fsbar:'hudTop',actsRow:'hudActs'},hudMarks={};
 function moveToHud(on){
-HUD_PARTS.forEach(function(id){
+Object.keys(HUD_PARTS).forEach(function(id){
 var el=$(id);
 if(!hudMarks[id]){hudMarks[id]=document.createComment(id);el.parentNode.insertBefore(hudMarks[id],el)}
-if(on)$('hud').appendChild(el);else hudMarks[id].parentNode.insertBefore(el,hudMarks[id]);
+if(on)$(HUD_PARTS[id]).insertBefore(el,$(HUD_PARTS[id]).firstChild);else hudMarks[id].parentNode.insertBefore(el,hudMarks[id]);
 });
-$('hud').classList.toggle('hidden',!on);
-// The 3D view leaves room on the right for the panel.
+$('hudTop').classList.toggle('hidden',!on);$('hudActs').classList.toggle('hidden',!on);
+$('scoreboard').classList.toggle('hidden',!on);
+renderSB();
+// The 3D view switches to its minimal layout.
 to3d({type:'hud',on:on});
+}
+// One line of keys for what can be done right now.
+function fsHint(){
+// During the play the 3D view shows its own throw buttons, so no hint then.
+return phase==='pre'?'Space: snap   ·   W: watch your last rep':'';
 }
 function enterFull(){
 if(!threeD)return;
@@ -630,6 +726,9 @@ $('start').addEventListener('click',function(){
   var tc=10+5*Math.floor(Math.random()*23);
   var tn=1+Math.floor(Math.random()*3);
   G={ball:75,down:1,toGo:10,clock:tc,timeouts:tn,running:false,plays:0,correct:0,times:[],sacks:0,ints:0,result:'',level:Number($('lvl').value),deficit:Number(dv),used:0,win:false,startClock:tc,startTimeouts:tn,att:0,comp:0,yds:0,td:0};
+  // A realistic fourth-quarter score: the opponent leads by the drive's deficit.
+  G.them=[17,20,21,24,27,28,31][Math.floor(Math.random()*7)];G.us=G.them-G.deficit;
+  clearTimeout(flagTimer);$('sbFlag').className='sb-flag';
   st.y=null;
   $('setup').classList.add('hidden');
   $('done').classList.add('hidden');
