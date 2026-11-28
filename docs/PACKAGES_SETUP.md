@@ -2,12 +2,16 @@
 
 QB Sense VR unlocks features by package:
 
-| Package | Unlocks |
+| Package (account code) | Unlocks |
 |---|---|
 | No package (signed in) | Results and progress, plus 3 free sessions of the 2D drills |
-| Starter ($20/month) | All 2D drills, the 2D Two-Minute Drill, playbook uploads (with AI conversion), results and progress |
-| QB Pro ($30/month) | Everything in Starter, plus the 3D drills: Read & Throw, 3D Pocket Pressure, the 3D Two-Minute Drill |
-| Coach & Team ($75/month) | Everything in QB Pro, plus VR (Live Training, Coach Mode) and Players (follow and coach tracking: coming soon) |
+| Rookie, $20/month (`starter`) | All 2D drills, the 2D Two-Minute Drill, playbook uploads (with AI conversion), results and progress |
+| Varsity, $30/month (`pro`) | Everything in Rookie, plus the 3D drills: Read & Throw, 3D Pocket Pressure, the 3D Two-Minute Drill |
+| All-Pro, $75/month (`team`) | Everything in Varsity, plus VR (Live Training, Coach Mode) and Players (follow and coach tracking: coming soon) |
+| Coach & Team (quote) | Quote only: coaches request one on the Pricing page. Give a quoted group the `team` code |
+
+The account codes stay `starter`, `pro` and `team` whatever the packages are called, so renaming a package
+never affects anyone who already has it.
 
 How it works:
 
@@ -60,11 +64,11 @@ Redeploy so the new settings take effect.
 
 ### 5. Payment links: prices, and coming back to the site after paying
 
-The payment links must charge the package prices: Starter $20, QB Pro $30, Coach & Team $75 per month. A Stripe
+The payment links must charge the package prices: Rookie $20, Varsity $30, All-Pro $75 per month. A Stripe
 payment link's price cannot be edited, so create a new link for any price that changed and put its URL in
 `pricing-checkout.js` (the `plans` list).
 
-For each of the three payment links (Starter, QB Pro, Coach & Team): Stripe dashboard > Payment links > the link >
+For each of the three payment links (Rookie, Varsity, All-Pro): Stripe dashboard > Payment links > the link >
 **After payment** > Don't show confirmation page > redirect to:
 
 `https://YOUR-SITE/index.html?checkout=success`
@@ -78,6 +82,35 @@ The site then waits a few seconds for the webhook and unlocks the package.
 2. Copy the portal **login link** and put it in `pricing-checkout.js` as `PORTAL_LINK`.
 
 Players who already have a package are sent there instead of starting a second subscription.
+
+### 7. Coach & Team quote requests (Firestore rule)
+
+The "Request a quote" form saves each request in Firestore, in the `quoteRequests` collection. Add this block
+inside `match /databases/{database}/documents { ... }` in Firebase console > Firestore > **Rules**, then Publish:
+
+```
+match /quoteRequests/{id} {
+  // A signed-in user can send a request for their own account, with exactly these fields.
+  allow create: if request.auth != null
+    && request.resource.data.uid == request.auth.uid
+    && request.resource.data.keys().hasOnly(['uid', 'name', 'email', 'organization', 'quarterbacks', 'message', 'createdAt'])
+    && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100
+    && request.resource.data.email is string && request.resource.data.email.size() <= 200
+    && request.resource.data.organization is string && request.resource.data.organization.size() > 0 && request.resource.data.organization.size() <= 150
+    && request.resource.data.quarterbacks is int && request.resource.data.quarterbacks >= 1 && request.resource.data.quarterbacks <= 1000
+    && request.resource.data.message is string && request.resource.data.message.size() <= 2000
+    && request.resource.data.createdAt == request.time;
+  // Nobody reads, changes or deletes requests from the site; you read them in the Firebase console.
+  allow read, update, delete: if false;
+}
+```
+
+To read requests: Firebase console > Firestore > Data > `quoteRequests`. Each has the coach's name, email,
+organization, number of quarterbacks, message and the time it was sent.
+
+To give a quoted group access: send them a Stripe payment link for the price you quote, on the All-Pro product.
+The webhook only knows the three standard prices, so for a
+custom price add its amount (in cents) to `PLAN_BY_AMOUNT` in `api/stripe-webhook.js`, mapped to `team`.
 
 ## Keep in mind
 
