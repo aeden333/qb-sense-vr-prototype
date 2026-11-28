@@ -2109,6 +2109,7 @@ window.qb = { offence, defence, setSituation, setPlay, makePlay, CONCEPTS, COVER
   actions: () => (play && play.throw ? Object.fromEntries(Object.entries(play.throw.actions).map(([id, a]) => [id, a.kind])) : {}), count: offence.length + 1 + Object.keys(defence).length };
 </script>
 <script type="module" src="auth-guard.js"></script>
+<script type="module" src="plan-gate.js"></script>
 <script type="module" src="results-sync.js"></script>
 </body>
 </html>

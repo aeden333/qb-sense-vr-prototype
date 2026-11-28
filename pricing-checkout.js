@@ -1,12 +1,15 @@
 (function(){
 'use strict';
+// The Stripe customer portal login link (Stripe dashboard: Settings > Billing > Customer portal).
+// Leave empty until it is set up.
+var PORTAL_LINK='';
 function inject(){
 var pricing=document.getElementById('pricing');
 if(!pricing||document.getElementById('checkoutCard'))return;
-var plans={starter:{name:'Starter',price:19,link:'https://buy.stripe.com/test_5kQbJ3ajUdYX78yf8g7EQ00'},pro:{name:'QB Pro',price:39,link:'https://buy.stripe.com/test_7sY9AV77I5sr50q9NW7EQ01'},team:{name:'Coach & Team',price:99,link:'https://buy.stripe.com/test_6oU7sN3Vw8ED2Sid087EQ02'}};
+var plans={starter:{name:'Starter',price:20,link:'https://buy.stripe.com/test_fZu5kFgIi1cbcsS5xG7EQ03'},pro:{name:'QB Pro',price:30,link:'https://buy.stripe.com/test_eVq9AV3Vw1cbeB01hq7EQ04'},team:{name:'Coach & Team',price:75,link:'https://buy.stripe.com/test_8x214p8bM2gfakK1hq7EQ05'}};
 var card=document.createElement('div');
 card.id='checkoutCard';card.className='card';card.style.scrollMarginTop='120px';
-card.innerHTML='<h2>Start your subscription</h2><p>Select your plan below or use a Choose button above. Hardware offers remain visible for reference, but cannot be purchased yet.</p><div class="field"><label for="checkoutPlan">Choose your plan</label><select id="checkoutPlan"><option value="">Select a plan</option><option value="starter">Starter — $19/month</option><option value="pro">QB Pro — $39/month</option><option value="team">Coach &amp; Team — $99/month</option></select></div><div id="checkoutDetails"></div><div class="field"><label for="checkoutBilling">Billing period</label><select id="checkoutBilling"><option value="monthly">Monthly — software only</option><option value="annual" disabled>Annual software pricing — not configured</option></select></div><div class="field"><label for="checkoutHeadset">VR headset rental — Coming soon</label><select id="checkoutHeadset" disabled><option>Coming soon — unavailable for purchase</option></select></div><div class="field"><label for="checkoutVest">Haptic vest — Coming soon</label><select id="checkoutVest" disabled><option>Coming soon — unavailable for purchase</option></select></div><div id="checkoutTotal" class="price-total" aria-live="polite"></div><p id="checkoutStatus" role="status"></p><button type="button" class="btn primary" id="checkoutButton" disabled>Continue to secure checkout</button>';
+card.innerHTML='<h2>Start your subscription</h2><p>Select your plan below or use a Choose button above. Hardware offers remain visible for reference, but cannot be purchased yet.</p><div class="field"><label for="checkoutPlan">Choose your plan</label><select id="checkoutPlan"><option value="">Select a plan</option><option value="starter">Starter — $20/month</option><option value="pro">QB Pro — $30/month</option><option value="team">Coach &amp; Team — $75/month</option></select></div><div id="checkoutDetails"></div><div class="field"><label for="checkoutBilling">Billing period</label><select id="checkoutBilling"><option value="monthly">Monthly — software only</option><option value="annual" disabled>Annual software pricing — not configured</option></select></div><div class="field"><label for="checkoutHeadset">VR headset rental — Coming soon</label><select id="checkoutHeadset" disabled><option>Coming soon — unavailable for purchase</option></select></div><div class="field"><label for="checkoutVest">Haptic vest — Coming soon</label><select id="checkoutVest" disabled><option>Coming soon — unavailable for purchase</option></select></div><div id="checkoutTotal" class="price-total" aria-live="polite"></div><p id="checkoutStatus" role="status"></p><button type="button" class="btn primary" id="checkoutButton" disabled>Continue to secure checkout</button>';
 pricing.appendChild(card);
 var plan=card.querySelector('#checkoutPlan'),details=card.querySelector('#checkoutDetails'),total=card.querySelector('#checkoutTotal'),button=card.querySelector('#checkoutButton'),status=card.querySelector('#checkoutStatus');
 var sources={};
@@ -35,7 +38,40 @@ button.disabled=!selected.link;
 status.textContent=selected.link?'Test mode: you will see the Stripe test checkout. No real payment is taken.':'Checkout is not connected yet. A Stripe Payment Link is required before payments can be accepted.';
 }
 plan.addEventListener('change',update);
-button.addEventListener('click',function(){var selected=plans[plan.value];if(!selected||!selected.link)return;try{var url=new URL(selected.link);if(url.protocol==='https:'&&url.hostname==='buy.stripe.com')window.location.assign(url.href);}catch(error){status.textContent='The checkout link is invalid.';}});
+// The checkout carries the player's account id, so the webhook (api/stripe-webhook.js) can put the
+// package on the right account. A player who already has a package changes or cancels it in the
+// Stripe customer portal instead of starting a second subscription.
+button.addEventListener('click',function(){
+var selected=plans[plan.value];if(!selected||!selected.link)return;
+var account=window.qbAccount;
+if(!account||!account.uid){status.textContent='Sign in before choosing a package.';return;}
+if(account.plan&&account.plan!=='none'){
+status.textContent='You already have a package. To change or cancel it, use Manage subscription.';
+if(PORTAL_LINK)window.location.assign(PORTAL_LINK);
+return;
+}
+try{
+var url=new URL(selected.link);
+if(url.protocol!=='https:'||url.hostname!=='buy.stripe.com')throw new Error('bad link');
+url.searchParams.set('client_reference_id',account.uid);
+if(account.email)url.searchParams.set('prefilled_email',account.email);
+window.location.assign(url.href);
+}catch(error){status.textContent='The checkout link is invalid.';}
+});
+// After checkout, show the "Manage subscription" link to players who have a package.
+function showManage(){
+var account=window.qbAccount;
+var manage=card.querySelector('#manageSubscription');
+var paying=account&&account.plan&&account.plan!=='none';
+if(!paying){if(manage)manage.remove();return;}
+if(manage)return;
+manage=document.createElement('p');manage.id='manageSubscription';
+if(PORTAL_LINK){var a=document.createElement('a');a.href=PORTAL_LINK;a.textContent='Manage subscription (change or cancel your package)';a.rel='noopener';manage.appendChild(a);}
+else manage.textContent='To change or cancel your package, contact support.';
+card.insertBefore(manage,button);
+}
+window.addEventListener('qbplan',showManage);
+showManage();
 update();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',inject);else inject();
