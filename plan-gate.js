@@ -13,6 +13,12 @@
 import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js';
 import { getAuth, getIdTokenResult } from 'https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js';
 
+// The pause switch. false = packages are paused: nothing is locked, there are no badges or free-sample
+// counts, and everyone can use every drill and feature. true = packages are on and locked as above.
+// When turning packages back on, also set PAYMENTS_ON in pricing-checkout.js and PACKAGES_ON in
+// api/convert-play.js, and reactivate the Stripe payment links.
+const PACKAGES_ON = false;
+
 const LEVEL = { none: 0, starter: 1, pro: 2, team: 3 };
 // The account keeps the original codes (starter, pro, team); these are the names players see.
 const NAMES = { none: 'No package', starter: 'Rookie', pro: 'Varsity', team: 'All-Pro' };
@@ -261,6 +267,15 @@ async function readPlan(force) {
 }
 
 async function start() {
+  if (!PACKAGES_ON) {
+    // Paused: lock nothing. The account is still reported, for the quote form and checkout.
+    await auth.authStateReady();
+    const user = auth.currentUser;
+    window.qbAccount = { uid: user ? user.uid : null, email: user ? user.email || '' : '', plan: 'none', paused: true };
+    document.documentElement.dataset.plan = 'paused';
+    window.dispatchEvent(new CustomEvent('qbplan', { detail: window.qbAccount }));
+    return;
+  }
   if (testPlan && testPlan in LEVEL) {
     apply(testPlan, { uid: 'local-test', email: 'test@localhost' });
     return;

@@ -3,6 +3,10 @@
 // The Stripe customer portal login link (Stripe dashboard: Settings > Billing > Customer portal).
 // Players sign in there with their email to switch or cancel their package.
 var PORTAL_LINK='https://billing.stripe.com/p/login/test_5kQbJ3ajUdYX78yf8g7EQ00';
+// The pause switch for checkout. false = checkout is paused: plans can be browsed but not bought, and
+// everything on the site is open while packages are paused (see PACKAGES_ON in plan-gate.js).
+var PAYMENTS_ON=false;
+var PAUSED_TEXT='Checkout is paused for now. Every drill and feature is free to use while packages are paused.';
 function inject(){
 var pricing=document.getElementById('pricing');
 if(!pricing||document.getElementById('checkoutCard'))return;
@@ -25,7 +29,7 @@ if(choose)choose.addEventListener('click',function(event){event.preventDefault()
 function update(){
 details.replaceChildren();
 var selected=plans[plan.value];
-if(!selected){total.textContent='Select a plan to see your price.';status.textContent='Choose a software plan to continue to Stripe test checkout.';button.disabled=true;return;}
+if(!selected){total.textContent='Select a plan to see your price.';status.textContent=PAYMENTS_ON?'Choose a software plan to continue to Stripe test checkout.':PAUSED_TEXT;button.disabled=true;return;}
 var source=sources[plan.value];
 if(source){
 var heading=document.createElement('h3');heading.textContent=selected.name+' — existing plan details';details.appendChild(heading);
@@ -34,6 +38,7 @@ var offers=source.querySelector('.price-total');
 if(offers){var label=document.createElement('p');label.textContent='Pricing information from your plan card (reference only; hardware is coming soon):';details.appendChild(label);details.appendChild(offers.cloneNode(true));}
 }
 total.textContent=selected.name+' — $'+selected.price+'/month, software only. No headset or vest included.';
+if(!PAYMENTS_ON){button.disabled=true;status.textContent=PAUSED_TEXT;return;}
 button.disabled=!selected.link;
 status.textContent=selected.link?'Test mode: you will see the Stripe test checkout. No real payment is taken.':'Checkout is not connected yet. A Stripe Payment Link is required before payments can be accepted.';
 }
@@ -43,6 +48,7 @@ plan.addEventListener('change',update);
 // Stripe customer portal instead of starting a second subscription.
 button.addEventListener('click',function(){
 var selected=plans[plan.value];if(!selected||!selected.link)return;
+if(!PAYMENTS_ON){status.textContent=PAUSED_TEXT;return;}
 var account=window.qbAccount;
 if(!account||!account.uid){status.textContent='Sign in before choosing a package.';return;}
 if(account.plan&&account.plan!=='none'){
