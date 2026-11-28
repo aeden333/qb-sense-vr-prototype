@@ -112,6 +112,23 @@ To give a quoted group access: send them a Stripe payment link for the price you
 The webhook only knows the three standard prices, so for a
 custom price add its amount (in cents) to `PLAN_BY_AMOUNT` in `api/stripe-webhook.js`, mapped to `team`.
 
+## Pausing packages
+
+Packages can be paused: nothing is locked, checkout is off, and every signed-in user can use every
+drill and feature, including AI playbook conversion. **Packages are currently paused.**
+
+To pause or turn them back on, set these three switches the same way (`false` = paused, `true` = on):
+
+| File | Switch |
+|---|---|
+| `plan-gate.js` | `PACKAGES_ON` |
+| `pricing-checkout.js` | `PAYMENTS_ON` |
+| `api/convert-play.js` | `PACKAGES_ON` |
+
+Also deactivate (pause) or reactivate (turn on) the three payment links in the Stripe dashboard >
+Payment links. While paused they are deactivated, so a saved checkout link cannot take a payment.
+Existing subscriptions and the webhook are not affected.
+
 ## Keep in mind
 
 - The webhook knows the package by its monthly price: 2000, 3000 or 7500 cents ($20, $30, $75). If you change a price, change
