@@ -5,6 +5,10 @@ const WINDOW_MS = 10 * 60 * 1000;
 // Kept in memory, so the limit is per server instance and resets on restart.
 const recent = new Map();
 
+// Packages that include playbook uploads (and so AI conversion). The package is saved on the account
+// by api/stripe-webhook.js.
+const PLAYBOOK_PLANS = new Set(['starter', 'pro', 'team']);
+
 async function verifyUser(request) {
   const header = request.headers?.authorization || '';
   if (!header.startsWith('Bearer ')) return null;
@@ -15,7 +19,15 @@ async function verifyUser(request) {
   });
   if (!result.ok) return null;
   const data = await result.json();
-  return data?.users?.[0]?.localId || null;
+  const user = data?.users?.[0];
+  if (!user?.localId) return null;
+  let plan = 'none';
+  try {
+    plan = JSON.parse(user.customAttributes || '{}').plan || 'none';
+  } catch (error) {
+    plan = 'none';
+  }
+  return { id: user.localId, plan };
 }
 
 function overLimit(userId) {
@@ -32,15 +44,19 @@ export default async function handler(request, response) {
     return response.status(405).json({ error: 'Method not allowed' });
   }
 
-  let userId;
+  let account;
   try {
-    userId = await verifyUser(request);
+    account = await verifyUser(request);
   } catch (error) {
     return response.status(503).json({ error: 'Could not check your sign-in. Try again.' });
   }
-  if (!userId) {
+  if (!account) {
     return response.status(401).json({ error: 'Sign in to use AI conversion.' });
   }
+  if (!PLAYBOOK_PLANS.has(account.plan)) {
+    return response.status(403).json({ error: 'Playbook uploads are part of every package. Choose a package on the Pricing page to use AI conversion.' });
+  }
+  const userId = account.id;
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
