@@ -489,12 +489,12 @@ Live Training, Coach Mode, and any Virtual Reality are currently unavailable and
 </div>
 <span class="badge">Pricing</span>
 <h2>Choose your training plan.</h2>
-<p>Starter has the 2D drills, playbook uploads, and progress tracking. QB Pro adds the 3D drills. Coach &amp; Team adds VR headset training and Players (coming soon). New here? Try 3 free sessions of the 2D drills first.</p>
+<p>Rookie has the 2D drills, playbook uploads, and progress tracking. Varsity adds the 3D drills. All-Pro adds VR headset training and Players (coming soon). Coaches and teams can request a quote. New here? Try 3 free sessions of the 2D drills first.</p>
 </div>
 
 <div class="pricing-grid">
 <div class="price-card">
-<div class="price-tier">Starter</div>
+<div class="price-tier">Rookie</div>
 <div class="price-amount">$20<span>/mo</span></div>
 <div class="price-sub">Software only</div>
 <ul class="price-features">
@@ -505,46 +505,45 @@ Live Training, Coach Mode, and any Virtual Reality are currently unavailable and
 <li>✕ VR headset</li>
 </ul>
 <div class="price-total"><b>$20/month</b><br><b>$200/year</b> on the annual plan (2 months free)<br>No headset needed</div>
-<button class="btn primary" style="width:100%;margin-top:auto;">Choose Starter</button>
+<button class="btn primary" style="width:100%;margin-top:auto;">Choose Rookie</button>
 </div>
 
 <div class="price-card featured">
 <div class="price-tag">Most popular</div>
-<div class="price-tier">QB Pro</div>
+<div class="price-tier">Varsity</div>
 <div class="price-amount">$30<span>/mo</span></div>
 <div class="price-sub">Software only</div>
 <ul class="price-features">
-<li>✓ Everything in Starter</li>
+<li>✓ Everything in Rookie</li>
 <li>✓ 3D drills: Read &amp; Throw, 3D Pocket Pressure, 3D Two-Minute Drill</li>
 <li>✕ VR headset</li>
 </ul>
 <div class="price-total"><b>$30/month</b><br><b>$300/year</b> on the annual plan (2 months free)<br>No headset needed</div>
-<button class="btn primary" style="width:100%;margin-top:auto;">Choose QB Pro</button>
+<button class="btn primary" style="width:100%;margin-top:auto;">Choose Varsity</button>
 </div>
 
 <div class="price-card">
-<div class="price-tier">Coach &amp; Team</div>
+<div class="price-tier">All-Pro</div>
 <div class="price-amount">$75<span>/mo</span></div>
-<div class="price-sub">Software only</div>
+<div class="price-sub">Software, plus VR headset rental</div>
 <ul class="price-features">
-<li>✓ Everything in QB Pro</li>
+<li>✓ Everything in Varsity</li>
 <li>◷ VR headset training: Live Training and Coach Mode (coming soon)</li>
 <li>◷ Players: follow other players, and coaches track their players (coming soon)</li>
-<li>✓ Up to 20 quarterbacks</li>
-<li>◷ Optional haptic vests (coming soon)</li>
+<li>◷ Optional haptic vest (coming soon)</li>
 </ul>
 <div class="price-total"><b>$124/month</b> without vest<br><b>$153/month</b> with one vest<br><b>$1,338</b> first year without vest<br><b>$1,686</b> first year with one vest</div>
-<button class="btn primary" style="width:100%;margin-top:auto;">Choose Coach &amp; Team</button>
+<button class="btn primary" style="width:100%;margin-top:auto;">Choose All-Pro</button>
 </div>
 </div>
 
-<div class="price-card enterprise">
+<div class="price-card enterprise" id="quoteCard">
 <div>
-<div class="price-tier">Enterprise</div>
-<p style="margin:8px 0 0;color:#374151;">Custom pricing for schools, colleges, facilities, and large organizations.</p>
+<div class="price-tier">Coach &amp; Team</div>
+<p style="margin:8px 0 0;color:#374151;">For coaches, teams, schools, academies, and programs: every All-Pro feature for your whole roster of quarterbacks, with pricing built for your group.</p>
 </div>
 <div class="price-total">Custom quote</div>
-<button class="btn ghost" style="color:#111;border-color:var(--border)">Request a quote</button>
+<button class="btn ghost" id="quoteButton" type="button" style="color:#111;border-color:var(--border)">Request a quote</button>
 </div>
 
 <div class="card" style="overflow-x:auto;">
@@ -565,7 +564,7 @@ Live Training, Coach Mode, and any Virtual Reality are currently unavailable and
 </thead>
 <tbody>
 <tr>
-<td>Starter</td>
+<td>Rookie</td>
 <td>$20/month</td>
 <td>$200/year — 2 months free</td>
 <td>Not included</td>
@@ -576,7 +575,7 @@ Live Training, Coach Mode, and any Virtual Reality are currently unavailable and
 <td>A quarterback who wants the 2D drills, playbook uploads, and progress tracking</td>
 </tr>
 <tr>
-<td>QB Pro</td>
+<td>Varsity</td>
 <td>$30/month</td>
 <td>$300/year — 2 months free</td>
 <td>Not included</td>
@@ -587,7 +586,7 @@ Live Training, Coach Mode, and any Virtual Reality are currently unavailable and
 <td>A serious quarterback who wants every drill, including the 3D drills</td>
 </tr>
 <tr>
-<td>Coach &amp; Team</td>
+<td>All-Pro</td>
 <td>$75/month</td>
 <td>$750/year — 2 months free</td>
 <td>Required: $49/month + $250 refundable deposit</td>
@@ -595,10 +594,10 @@ Live Training, Coach Mode, and any Virtual Reality are currently unavailable and
 <td>$124/month without vest; $153/month with one vest</td>
 <td>$49/month without vest; $78/month with one vest</td>
 <td>$1,338 without vest; $1,686 with one vest</td>
-<td>A QB coach, academy, or program training up to 20 quarterbacks in VR, with player tracking</td>
+<td>A quarterback who wants VR headset training, and to follow other players</td>
 </tr>
 <tr>
-<td>Enterprise</td>
+<td>Coach &amp; Team</td>
 <td>Custom quote</td>
 <td>Custom annual quote</td>
 <td>Required: custom rental</td>
@@ -606,7 +605,7 @@ Live Training, Coach Mode, and any Virtual Reality are currently unavailable and
 <td>Custom monthly quote</td>
 <td>Custom monthly quote</td>
 <td>Custom annual quote</td>
-<td>Schools, colleges, facilities, and large organizations</td>
+<td>Coaches, teams, schools, academies, and programs training several quarterbacks</td>
 </tr>
 </tbody>
 </table>
@@ -1163,6 +1162,7 @@ onAuthStateChanged(auth,user=>{if(user){showApp(user);}else{showLogin();}});
 window.logoutQB=async function(){await signOut(auth);};
 </script>
 <script type="module" src="plan-gate.js"></script>
+<script type="module" src="quote-request.js"></script>
 <script type="module" src="results-sync.js"></script>
 </body>
 </html>

@@ -1,8 +1,9 @@
 // Package access. Reads the signed-in player's package, which api/stripe-webhook.js saves on the
 // account when they subscribe, and locks what the package does not include:
-//   Starter       - the 2D drills, playbook uploads, results and progress
-//   QB Pro        - everything in Starter plus the 3D drills (no VR)
-//   Coach & Team  - everything in QB Pro plus VR (Live Training, Coach Mode) and Players
+//   Rookie   (starter) - the 2D drills, playbook uploads, results and progress
+//   Varsity  (pro)     - everything in Rookie plus the 3D drills (no VR)
+//   All-Pro  (team)    - everything in Varsity plus VR (Live Training, Coach Mode) and Players
+// Coach & Team is quote-only (quote-request.js); a quoted group is given the team package.
 // Signed in with no package: results and progress, plus a free sample of the 2D drills.
 // These locks stop normal use in the browser. Anything that costs money (AI playbook conversion) is
 // also checked on the server, since a page's files can always be opened directly.
@@ -13,7 +14,8 @@ import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebase
 import { getAuth, getIdTokenResult } from 'https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js';
 
 const LEVEL = { none: 0, starter: 1, pro: 2, team: 3 };
-const NAMES = { none: 'No package', starter: 'Starter', pro: 'QB Pro', team: 'Coach & Team' };
+// The account keeps the original codes (starter, pro, team); these are the names players see.
+const NAMES = { none: 'No package', starter: 'Rookie', pro: 'Varsity', team: 'All-Pro' };
 // What each drill page needs.
 const PAGES = {
   'blitz-sim.html': 'starter',
@@ -146,7 +148,7 @@ function drillPageGate(plan, uid) {
   const need = PAGES[page];
   if (!need) return;
   if (LEVEL[plan] >= LEVEL[need]) {
-    // QB Pro and up get the 3D view of the Two-Minute Drill; Starter gets the 2D diagram.
+    // Varsity and up get the 3D view of the Two-Minute Drill; Rookie gets the 2D diagram.
     if (page === 'twominute-sim.html') limitTwoMinute(plan);
     return;
   }
@@ -171,7 +173,7 @@ function limitTwoMinute(plan) {
   const option = select.querySelector('option[value="3d"]');
   if (option) {
     option.disabled = true;
-    option.textContent = '3D quarterback view (QB Pro)';
+    option.textContent = '3D quarterback view (Varsity)';
   }
   if (select.value === '3d') {
     select.value = '2d';
@@ -190,13 +192,13 @@ function homeGate(plan, uid) {
     section.classList.toggle('qb-locked', LEVEL[plan] < LEVEL[need]);
     if (LEVEL[plan] < LEVEL[need]) section.prepend(lockCard(feature, need, plan, true));
   }
-  // Players is included with Coach & Team; following others and coach tracking come next.
+  // Players is included with All-Pro; following others and coach tracking come next.
   const players = document.getElementById('players');
   if (players && LEVEL[plan] >= LEVEL.team && !document.getElementById('qbPlayersSoon')) {
     const note = document.createElement('div');
     note.id = 'qbPlayersSoon';
     note.className = 'qb-plan-note';
-    note.textContent = 'Coming soon with your Coach & Team package: follow other players, and let coaches track their players’ training and results.';
+    note.textContent = 'Coming soon with your All-Pro package: follow other players, and let coaches track their players’ training and results.';
     players.prepend(note);
   }
   // Drill list: mark what is locked and show the free sample.
