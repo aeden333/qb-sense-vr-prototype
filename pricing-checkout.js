@@ -1,8 +1,8 @@
 (function(){
 'use strict';
 // The Stripe customer portal login link (Stripe dashboard: Settings > Billing > Customer portal).
-// Leave empty until it is set up.
-var PORTAL_LINK='';
+// Players sign in there with their email to switch or cancel their package.
+var PORTAL_LINK='https://billing.stripe.com/p/login/test_5kQbJ3ajUdYX78yf8g7EQ00';
 function inject(){
 var pricing=document.getElementById('pricing');
 if(!pricing||document.getElementById('checkoutCard'))return;
