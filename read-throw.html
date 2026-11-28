@@ -778,7 +778,8 @@ function bestRead(play) {
   for (const id of play.order) {
     let top = 0, when = 0;
     // "when" is the release time; space is measured about half a second later, as the ball arrives.
-    for (let t = 0.8; t <= Math.min(2.8, sack - 0.3) + 1e-6; t += 0.1) {
+    // Not before he is out on his route (a back checking for blitzers releases late).
+    for (let t = Math.max(0.8, ((play.delays || {})[id] || 0) + 0.5); t <= Math.min(2.8, sack - 0.3) + 1e-6; t += 0.1) {
       const frame = frames[Math.round((t + 0.5) / STEP)];
       const space = Math.min(...Object.keys(defence).map((k) => gap(frame[k], frame[id])));
       if (space > top) { top = space; when = t; }
@@ -1042,19 +1043,22 @@ function simulate(which = sit, draw = Math.random(), lineUp = null) {
       } else {
         // Man coverage reacts to where the receiver was a moment ago (he has to see the cut before he
         // can turn), from the inside and slightly deeper, and matches his speed.
-        const back = Math.round(job.delay / STEP);
+        // He reads the receiver's hips, so he sees a cut quickly; his momentum is what costs him the step.
+        const back = Math.round(job.delay * 0.45 / STEP);
         const seen = frames[Math.max(0, frames.length - back)][job.target] || start[job.target];
         const seenBefore = frames[Math.max(0, frames.length - back - 6)][job.target] || seen;
         const lead = [(seen[0] - seenBefore[0]) / (6 * STEP), (seen[1] - seenBefore[1]) / (6 * STEP)];
         const side = seen[0] < 0 ? 1 : -1;
         const aim = [seen[0] + side * job.inside, seen[1] + Math.max(0.6, 3 - t * 1.8)];
-        now[id] = steer(id, previous[id], aim, job.speed * 1.04, lead, 12);
+        // Corners and safeties plant and drive on a break nearly as sharply as the receiver cuts.
+        now[id] = steer(id, previous[id], aim, job.speed * 1.08, lead, 16);
       }
     }
     separate(now);
     frames.push(now);
   }
-  return { frames, sack, blitz };
+  // Each defender's job (man, zone or rush) is kept, since it decides how soon he sees a throw.
+  return { frames, sack, blitz, jobs: plan };
 }
 
 // A second body with moving legs and arms, shown while a player runs.
@@ -1119,7 +1123,8 @@ scene.add(football);
 const BALL_START = world(0, 0.05).setY(0.1), BALL_HELD = world(0.15, -4.55).setY(1.15);
 
 // ---------------------------------------------------------------- Throwing
-const GRAVITY = 9.81, RELEASE = { x: 0.3, d: -4.8, y: 1.95 }, CATCH_HEIGHT = 1.3;
+// The ball leaves the quarterback's hand over the top, about 2.2 m up, as for a 6'2" passer.
+const GRAVITY = 9.81, RELEASE = { x: 0.3, d: -4.8, y: 2.2 }, CATCH_HEIGHT = 1.3;
 const MIN_YARDS = 5, MAX_YARDS = 45, CHARGE_SECONDS = 1.5, SERIES_LENGTH = 10;
 const ELIGIBLE = ['X', 'Slot', 'Z', 'TE', 'RB'];
 const FRONT_FOUR = Object.keys(FRONT);
@@ -1149,6 +1154,13 @@ function trajectory(type, heading, distance) {
 
 const frameAt = (t) => play.frames[Math.max(0, Math.min(play.frames.length - 1, Math.round(t / STEP)))];
 const gap = (spot, point) => Math.hypot(spot[0] - point[0], spot[1] - point[1]);
+// Pass rushers (the front four and any blitzer) keep rushing when the ball is thrown. They can only
+// bat a pass that goes right through their hands, and cannot intercept it.
+// A lineman who drops into coverage (simulated blitz) plays the ball like any other defender.
+const rushing = (id) => {
+  const job = play && play.jobs && play.jobs[id];
+  return job ? job.type === 'rush' : FRONT_FOUR.includes(id);
+};
 // The receiver the ball is thrown to: the one closest to where it comes down, if any is within
 // 7 yards. Only he plays the ball. A teammate it passes over or past does not reach up and take a
 // pass meant for someone else, so you can throw over a shallow route to the deeper one on the same
@@ -1161,7 +1173,7 @@ function intendedFor(path, release) {
 
 // A defender intercepts when the ball is coming right at him; a glancing touch only deflects it.
 function square(path, release, from, id) {
-  if (FRONT_FOUR.includes(id)) return false;
+  if (rushing(id)) return false;
   for (let s = from; s < from + 0.15; s += STEP / 2) {
     const ball = path.at(s);
     if (ball.y > 0.5 && ball.y < 2.3 && gap(frameAt(release + s)[id], [ball.x, ball.d]) < 0.35) return true;
@@ -1172,51 +1184,183 @@ function square(path, release, from, id) {
 // How far a player can be from the ball at its arrival and still do something about it.
 const STRETCH = 2.2, LUNGE = 3.8;
 
+// ---------------------------------------------------------------- Playing the ball in the air
+// Real limits for a player going after the ball: top speed, and how quickly he can speed up, stop
+// or change direction (about 10 yd/s per second, so stopping from full speed and coming back takes
+// close to a second, as on a real field).
+const BALL_GRIP = 10, RECEIVER_TOP = 8, DEFENDER_TOP = 7.6;
+
+// How long before a player sees the ball and starts to go after it.
+// - A receiver facing the quarterback (hitch, curl, slant, crosser) sees it almost at once. One
+//   running away from him on a deep route has to turn his head and find it over his shoulder.
+// - A zone defender with his eyes on the quarterback breaks on the throw quickly. A defender in man
+//   coverage, or a deep defender running with his back half turned, plays the receiver and only
+//   finds the ball later. The farther away he is, the later he gets there.
+function reactionTime(id, path, release, far) {
+  const first = Math.round(release / STEP);
+  const now = play.frames[Math.min(play.frames.length - 1, first)][id], before = play.frames[Math.max(0, first - 6)][id];
+  const moving = [now[0] - before[0], now[1] - before[1]];
+  const awayFromQB = moving[0] * (now[0] - QB_SPOT[0]) + moving[1] * (now[1] - QB_SPOT[1]) > 0 && Math.hypot(...moving) > 0.3;
+  if (ELIGIBLE.includes(id)) return awayFromQB && now[1] > 10 ? 0.45 : 0.25;
+  const job = play.jobs && play.jobs[id];
+  if (far) return 0.6;
+  return (job && job.type === 'man') || (awayFromQB && now[1] > 12) ? 0.5 : 0.35;
+}
+
+// A player's run from the release toward "goal", timed to get there at frame "due": he keeps his
+// momentum, then slows down, speeds up or turns back as needed, within real limits.
+// A receiver ("follow") keeps running his route, since a timing throw goes to where the route will
+// take him, and shifts off it only by as much as the ball is off that spot. A defender leaves his
+// coverage and goes straight for the ball. "shift" moves his path before he finds the ball: a man
+// defender mirrors his receiver when the receiver changes course for the ball.
+function chase(id, release, goal, due, reaction, top, follow = false, shift = null) {
+  const first = Math.round(release / STEP), last = play.frames.length - 1;
+  const route = (k) => {
+    const p = play.frames[Math.max(0, Math.min(last, k))][id];
+    if (!shift) return p;
+    const s = shift(k);
+    return [p[0] + s[0], p[1] + s[1]];
+  };
+  let at = route(first);
+  const before = route(first - 6);
+  let speed = [(at[0] - before[0]) / (6 * STEP), (at[1] - before[1]) / (6 * STEP)];
+  const delay = Math.round(reaction / STEP), steps = [];
+  const off = [goal[0] - route(due)[0], goal[1] - route(due)[1]];
+  const span = Math.max(1, due - first - delay);
+  // Where he wants to be at frame k: on his route, moved over toward the ball bit by bit.
+  const track = (k) => {
+    const u = ease(THREE.MathUtils.clamp((k - first - delay) / span, 0, 1)), p = route(k);
+    return [p[0] + off[0] * u, p[1] + off[1] * u];
+  };
+  for (let k = first + 1; k <= Math.min(due, last); k++) {
+    if (k - first <= delay) {
+      // Still on his route while he finds the ball.
+      const next = route(k);
+      speed = [(next[0] - at[0]) / STEP, (next[1] - at[1]) / STEP];
+      at = next;
+    } else {
+      const left = Math.max(0.15, (due - k) * STEP);
+      let want;
+      if (follow) {
+        const here = track(k), ahead = track(k + 1);
+        want = [(ahead[0] - here[0]) / STEP + (here[0] - at[0]) * 5, (ahead[1] - here[1]) / STEP + (here[1] - at[1]) * 5];
+      } else want = [(goal[0] - at[0]) / left, (goal[1] - at[1]) / left];
+      const wanted = Math.hypot(...want);
+      if (wanted > top) want = [want[0] * top / wanted, want[1] * top / wanted];
+      const change = [want[0] - speed[0], want[1] - speed[1]], amount = Math.hypot(...change);
+      // On his route he can still make its cuts; only the extra adjustment for the ball is limited.
+      let grip = BALL_GRIP;
+      if (follow) {
+        const a = route(k - 1), b = route(k), c = route(k + 1);
+        grip += Math.hypot(c[0] - 2 * b[0] + a[0], c[1] - 2 * b[1] + a[1]) / (STEP * STEP);
+      }
+      const limit = Math.min(1, grip * STEP / (amount || 1));
+      speed = [speed[0] + change[0] * limit, speed[1] + change[1] * limit];
+      at = [at[0] + speed[0] * STEP, at[1] + speed[1] * STEP];
+    }
+    steps.push([k, at]);
+  }
+  return { at, speed, steps };
+}
+
+// Where the intended receiver plays the ball, like a real receiver reading it in the air:
+// - thrown in front of him and nobody close: he adjusts his speed (sits down in the window or
+//   runs on to it) and catches it in stride where it comes down;
+// - a defender closing on the spot, or the ball short of him: he works back toward the
+//   quarterback along the ball's flight and catches it earlier, at a catchable height, in front of
+//   the defender, up to about 5 yards back, but only where he can really get to in time with his
+//   momentum. Otherwise he does what he can at the landing spot: reach, dive or fall short.
+function catchPlan(path, release, id) {
+  const arrive = Math.round((release + path.flight) / STEP), last = play.frames.length - 1;
+  const first = Math.round(release / STEP);
+  const now = play.frames[Math.min(last, first)][id], before = play.frames[Math.max(0, first - 6)][id];
+  const moving = [now[0] - before[0], now[1] - before[1]];
+  const landing = play.frames[Math.min(last, arrive)];
+  const contested = Object.keys(defence).some((k) => !FRONT_FOUR.includes(k) && gap(landing[k], path.target) < 2.5);
+  // Short: the ball comes down behind where he is heading.
+  const toBall = [path.target[0] - landing[id][0], path.target[1] - landing[id][1]];
+  const short = gap(landing[id], path.target) > 1 && toBall[0] * moving[0] + toBall[1] * moving[1] < 0;
+  const reaction = reactionTime(id, path, release, false);
+  if (contested || short) {
+    for (let s = path.flight * 0.5; s < path.flight - 0.05; s += STEP * 2) {
+      const ball = path.at(s), point = [ball.x, ball.d];
+      if (ball.y < 0.6 || ball.y > 2.4 || gap(point, path.target) > 5) continue;
+      const due = Math.round((release + s) / STEP);
+      // The earliest point on the flight he can really get to in time.
+      if (gap(chase(id, release, point, due, reaction, RECEIVER_TOP, true).at, point) <= 0.6) return { at: point, due, attack: true, reaction };
+    }
+  }
+  return { at: path.target.slice(), due: arrive, attack: false, reaction };
+}
+
 // Once the ball is in the air, nearby players leave their path to go and get it. This rewrites
 // their positions from the release onward and records who jumps, dives or falls.
+// Defenders play the ball under the same real limits as the receiver (how soon they see it, how
+// fast they can stop and turn), and the same way a real defender does:
+// - a man defender on the receiver mirrors him a beat late while he looks for the ball, so when the
+//   receiver comes back for a short ball, his defender comes back with him;
+// - each defender goes to contest the ball where the receiver will catch it (or where it lands);
+// - one who can really get in front of the receiver in time jumps the route and plays the ball
+//   earlier, up to 3 yards in front of the catch point, for a pick or a breakup.
+function defendPlan(id, path, release, intended, plan, original, far) {
+  const first = Math.round(release / STEP), last = play.frames.length - 1;
+  const arrive = Math.round((release + path.flight) / STEP);
+  const reaction = reactionTime(id, path, release, far);
+  const job = play.jobs && play.jobs[id];
+  const lag = Math.round(0.2 / STEP);
+  const shift = intended && job && job.type === 'man' && job.target === intended
+    ? (k) => {
+      const j = Math.max(0, Math.min(last, k - lag)), now = play.frames[j][intended], was = original[j];
+      return [now[0] - was[0], now[1] - was[1]];
+    }
+    : null;
+  const spot = plan ? plan.at : path.target, when = plan ? plan.due : arrive;
+  const catchTime = (when - first) * STEP;
+  for (let s = Math.max(0.2, catchTime - 1); s < catchTime - 0.05; s += STEP * 2) {
+    const ball = path.at(s), point = [ball.x, ball.d];
+    if (ball.y < 0.5 || ball.y > 2.6 || gap(point, spot) > 3) continue;
+    const due = first + Math.round(s / STEP);
+    if (gap(chase(id, release, point, due, reaction, DEFENDER_TOP, false, shift).at, point) <= 0.5) return { at: point, due, reaction, shift, jump: true };
+  }
+  return { at: spot.slice(), due: when, reaction, shift, jump: false };
+}
+
 function react(path, release) {
   const actions = {};
-  const first = Math.round(release / STEP), arrive = Math.round((release + path.flight) / STEP);
+  const arrive = Math.round((release + path.flight) / STEP);
   const intended = intendedFor(path, release);
-  for (const id of Object.keys(play.frames[0])) {
-    const isReceiver = ELIGIBLE.includes(id), isDefender = id in defence && !FRONT_FOUR.includes(id);
+  const plan = intended ? catchPlan(path, release, intended) : null;
+  // Where the receiver was running before he adjusted to the ball, for the defender mirroring him.
+  const original = intended ? play.frames.map((f) => f[intended]) : null;
+  // The receiver moves first; the defenders then react to him and to the ball.
+  const order = Object.keys(play.frames[0]).sort((a, b) => (b === intended) - (a === intended));
+  for (const id of order) {
+    const isReceiver = ELIGIBLE.includes(id), isDefender = id in defence && !rushing(id);
     if (!isReceiver && !isDefender) continue;
     // Other receivers keep running their routes.
     if (isReceiver && intended && id !== intended) continue;
     const planned = play.frames[Math.min(play.frames.length - 1, arrive)][id];
     // Receivers far from the ball keep running their routes. Every defender within 25 yards breaks
-    // on the ball, the far ones a little later, since they have to find it first.
+    // on the ball, the far ones later, since they have to find it first.
     const far = gap(planned, path.target) > 7;
     if (far && (isReceiver || gap(planned, path.target) > 25)) continue;
-    const delay = Math.round((isReceiver ? 0.2 : far ? 0.5 : 0.35) / STEP);
-    const top = isReceiver ? 8 : 7.6, grip = 20;
-    let at = play.frames[Math.min(play.frames.length - 1, first)][id];
-    const before = play.frames[Math.max(0, first - 6)][id];
-    let speed = [(at[0] - before[0]) / (6 * STEP), (at[1] - before[1]) / (6 * STEP)];
-    for (let k = first + 1; k <= Math.min(arrive, play.frames.length - 1); k++) {
-      if (k - first <= delay) { at = play.frames[k][id]; continue; }
-      // Steer toward the spot where the ball comes down, keeping some momentum.
-      const left = Math.max(0.15, (arrive - k) * STEP);
-      let want = [(path.target[0] - at[0]) / left, (path.target[1] - at[1]) / left];
-      const wanted = Math.hypot(...want);
-      if (wanted > top) want = [want[0] * top / wanted, want[1] * top / wanted];
-      const change = [want[0] - speed[0], want[1] - speed[1]], amount = Math.hypot(...change);
-      const limit = Math.min(1, grip * STEP / (amount || 1));
-      speed = [speed[0] + change[0] * limit, speed[1] + change[1] * limit];
-      at = [at[0] + speed[0] * STEP, at[1] + speed[1] * STEP];
-      play.frames[k][id] = at;
-    }
-    const miss = gap(at, path.target);
-    const action = { arrive: arrive * STEP, toward: path.target.slice() };
+    const mine = id === intended ? plan : isReceiver
+      ? { at: path.target, due: arrive, reaction: reactionTime(id, path, release, far) }
+      : defendPlan(id, path, release, intended, plan, original, far);
+    const goal = mine.at, due = mine.due;
+    const { at, speed, steps } = chase(id, release, goal, due, mine.reaction, isReceiver ? RECEIVER_TOP : DEFENDER_TOP, isReceiver, mine.shift);
+    for (const [k, spot] of steps) play.frames[k][id] = spot;
+    const miss = gap(at, goal);
+    const action = { arrive: due * STEP, toward: goal.slice() };
     if (miss <= 0.8) action.kind = 'reach';
     else if (miss <= STRETCH) action.kind = 'dive';
     else if (miss <= LUNGE) action.kind = 'fall';
     else continue;
     actions[id] = action;
     // After the ball arrives: a diving player slides to a stop, the others slow down.
-    const slide = action.kind === 'reach' ? null : towards(at, path.target, 1.2);
-    for (let k = arrive + 1; k < play.frames.length; k++) {
-      const t = (k - arrive) * STEP;
+    const slide = action.kind === 'reach' ? null : towards(at, goal, 1.2);
+    for (let k = due + 1; k < play.frames.length; k++) {
+      const t = (k - due) * STEP;
       if (slide) play.frames[k][id] = lerp2(at, slide, ease(Math.min(1, t / 0.35)));
       else {
         const glide = 0.35 * (1 - Math.exp(-t / 0.35));
@@ -1247,11 +1391,15 @@ function resolve(path, release) {
         const action = actions[id];
         // Fingertips go further for a player who is diving at the right moment.
         const diving = action && action.kind === 'dive' && release + s > action.arrive - 0.15;
-        const reach = (receiver ? 1.3 : FRONT_FOUR.includes(id) ? 0.45 : 0.8) + (diving ? 1 : 0);
+        // A lineman fighting a block only bats a pass that goes right through his hands.
+        const reach = (receiver ? 1.3 : rushing(id) ? 0.3 : 0.8) + (diving ? 1 : 0);
         const ratio = gap(spot, point) / reach;
         // Above head height only a jump gets there.
         const high = ball.y > 2.3;
-        if (high && FRONT_FOUR.includes(id)) continue;
+        if (high && rushing(id)) continue;
+        // A rusher locked up with a blocker cannot get his hands up into the passing lane in time;
+        // he only gets a pass thrown low, at his body. An unblocked rusher can get his hands up.
+        if (rushing(id) && ball.y > 1.9 && Object.keys(BLOCKS).some((b) => frame[b] && gap(frame[b], spot) < 1.3)) continue;
         // A player who is going to fall short cannot make the catch.
         if (action && action.kind === 'fall' && release + s > action.arrive - 0.15) continue;
         if (ratio <= 1 && ball.y > (receiver ? 0.45 : 0.3) && (!receiver || ball.traveled > 3) && (!best || ratio < best.ratio)) best = { id, ratio, defender };
@@ -1954,9 +2102,10 @@ window.qb = { offence, defence, setSituation, setPlay, makePlay, CONCEPTS, COVER
     if (typeof index === 'number') setSituation(index); else setPlay(index);
     snap(); playing = false; show(release); yaw = heading; releaseThrow(type, distance);
     const thrown = play.throw; show(play.end); finish();
-    return { outcome: thrown.outcome, by: thrown.by, target: thrown.target, miss: +thrown.miss.toFixed(1), title: $('resultTitle').textContent };
+    return { outcome: thrown.outcome, by: thrown.by, target: thrown.target, miss: +thrown.miss.toFixed(1), title: $('resultTitle').textContent,
+      touched: +(thrown.release + thrown.at).toFixed(2), lands: +(thrown.release + thrown.path.flight).toFixed(2) };
   },
-  frames: (index) => simulate(index, 0.5).frames, trajectory,
+  frames: (index) => simulate(index, 0.5).frames, trajectory, lastPlay: () => play,
   actions: () => (play && play.throw ? Object.fromEntries(Object.entries(play.throw.actions).map(([id, a]) => [id, a.kind])) : {}), count: offence.length + 1 + Object.keys(defence).length };
 </script>
 <script type="module" src="auth-guard.js"></script>
