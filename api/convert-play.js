@@ -8,6 +8,9 @@ const recent = new Map();
 // Packages that include playbook uploads (and so AI conversion). The package is saved on the account
 // by api/stripe-webhook.js.
 const PLAYBOOK_PLANS = new Set(['starter', 'pro', 'team']);
+// The pause switch. false = packages are paused: every signed-in user can use AI conversion.
+// Turn it back on together with PACKAGES_ON in plan-gate.js and PAYMENTS_ON in pricing-checkout.js.
+const PACKAGES_ON = false;
 
 async function verifyUser(request) {
   const header = request.headers?.authorization || '';
@@ -53,7 +56,7 @@ export default async function handler(request, response) {
   if (!account) {
     return response.status(401).json({ error: 'Sign in to use AI conversion.' });
   }
-  if (!PLAYBOOK_PLANS.has(account.plan)) {
+  if (PACKAGES_ON && !PLAYBOOK_PLANS.has(account.plan)) {
     return response.status(403).json({ error: 'Playbook uploads are part of every package. Choose a package on the Pricing page to use AI conversion.' });
   }
   const userId = account.id;
